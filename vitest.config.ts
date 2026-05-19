@@ -1,0 +1,12 @@
+import { defineConfig } from "vitest/config";
+
+export default defineConfig({
+  test: {
+    include: ["test/**/*.test.ts"],
+    exclude: ["test/integration/**"],
+    environment: "node",
+    typecheck: { enabled: false },
+    pool: "threads",
+    poolOptions: { threads: { singleThread: false } }
+  }
+});
