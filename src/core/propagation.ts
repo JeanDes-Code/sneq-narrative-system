@@ -1,5 +1,5 @@
 import type { AttributFige } from "../domain/attribute.js";
-import type { AreteGCN, NoeudGCN, ReglePropagation } from "../domain/gcn.js";
+import type { AreteGCN, ReglePropagation } from "../domain/gcn.js";
 import type { CampaignId, EntityID } from "../domain/ids.js";
 import type { Contrainte } from "../domain/potentialite.js";
 import { asContraintId } from "../domain/ids.js";
@@ -7,7 +7,6 @@ import { asContraintId } from "../domain/ids.js";
 export interface PropagationInput {
   fact: AttributFige;
   campaignId: CampaignId;
-  nodes: ReadonlyMap<string, NoeudGCN>;
   edges: ReadonlyArray<AreteGCN>;
   rules: ReadonlyArray<ReglePropagation>;
   maxDepth: number;
@@ -35,7 +34,7 @@ interface QueueItem {
 }
 
 export function propagate(input: PropagationInput): PropagationResult {
-  const { fact, nodes, edges, rules, maxDepth, minForce } = input;
+  const { fact, edges, rules, maxDepth, minForce } = input;
   const applicableRules = rules.filter(r => ruleMatches(r, fact));
 
   if (applicableRules.length === 0) {

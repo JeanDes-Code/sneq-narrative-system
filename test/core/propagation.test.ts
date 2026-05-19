@@ -1,20 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { propagate } from "../../src/core/propagation.js";
-import type { AreteGCN, NoeudGCN, ReglePropagation } from "../../src/domain/gcn.js";
+import type { AreteGCN, ReglePropagation } from "../../src/domain/gcn.js";
 import type { AttributFige } from "../../src/domain/attribute.js";
 import { asEntityID, asCampaignId, asFactId } from "../../src/domain/ids.js";
 
 const cid = asCampaignId("c1");
-
-function node(id: string): NoeudGCN {
-  return {
-    entityId: asEntityID(id),
-    type: "PERSONNAGE",
-    etatActuel: "PARTIELLEMENT_CONNU",
-    poidsNarratif: 0.5,
-    tags: []
-  };
-}
 
 function edge(src: string, dst: string, force = 0.8): AreteGCN {
   return {
@@ -54,37 +44,31 @@ const fact: AttributFige = {
 
 describe("propagation", () => {
   it("propagates to direct neighbors when rule matches", () => {
-    const nodes = new Map([["A", node("A")], ["B", node("B")]]);
     const edges = [edge("A", "B")];
-    const result = propagate({ fact, campaignId: cid, nodes, edges, rules: [rule], maxDepth: 2, minForce: 0.1 });
+    const result = propagate({ fact, campaignId: cid, edges, rules: [rule], maxDepth: 2, minForce: 0.1 });
     expect(result.entitesImpactees).toContain(asEntityID("B"));
     expect(result.contraintesPropagees).toHaveLength(1);
     expect(result.contraintesPropagees[0]!.entityId).toBe(asEntityID("B"));
   });
 
   it("decays force across hops and stops below minForce", () => {
-    const nodes = new Map([
-      ["A", node("A")], ["B", node("B")], ["C", node("C")], ["D", node("D")]
-    ]);
     const edges = [edge("A", "B", 0.5), edge("B", "C", 0.5), edge("C", "D", 0.5)];
-    const result = propagate({ fact, campaignId: cid, nodes, edges, rules: [rule], maxDepth: 5, minForce: 0.2 });
+    const result = propagate({ fact, campaignId: cid, edges, rules: [rule], maxDepth: 5, minForce: 0.2 });
     expect(result.entitesImpactees).toContain(asEntityID("B"));
     expect(result.entitesImpactees).toContain(asEntityID("C"));
     expect(result.entitesImpactees).not.toContain(asEntityID("D"));
   });
 
   it("does not visit the source entity", () => {
-    const nodes = new Map([["A", node("A")], ["B", node("B")]]);
     const edges = [edge("A", "B")];
-    const result = propagate({ fact, campaignId: cid, nodes, edges, rules: [rule], maxDepth: 2, minForce: 0.1 });
+    const result = propagate({ fact, campaignId: cid, edges, rules: [rule], maxDepth: 2, minForce: 0.1 });
     expect(result.entitesImpactees).not.toContain(asEntityID("A"));
   });
 
   it("returns empty result when no rule matches", () => {
     const otherRule: ReglePropagation = { ...rule, declencheur: { categorieAttribut: ["IDENTITE"] } };
-    const nodes = new Map([["A", node("A")], ["B", node("B")]]);
     const edges = [edge("A", "B")];
-    const result = propagate({ fact, campaignId: cid, nodes, edges, rules: [otherRule], maxDepth: 2, minForce: 0.1 });
+    const result = propagate({ fact, campaignId: cid, edges, rules: [otherRule], maxDepth: 2, minForce: 0.1 });
     expect(result.contraintesPropagees).toHaveLength(0);
   });
 });
