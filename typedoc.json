@@ -1,0 +1,16 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["src/index.ts"],
+  "out": "docs/typedoc",
+  "tsconfig": "./tsconfig.json",
+  "plugin": ["typedoc-plugin-markdown"],
+  "readme": "none",
+  "githubPages": false,
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeInternal": true,
+  "name": "@sneq/engine API",
+  "disableSources": true,
+  "hideGenerator": true,
+  "categorizeByGroup": true
+}

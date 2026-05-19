@@ -40,3 +40,6 @@ yarn-error.log*
 *.db
 *.sqlite
 *.sqlite3
+
+# Generated TypeDoc HTML/markdown source (we commit only docs/api.md)
+docs/typedoc/
