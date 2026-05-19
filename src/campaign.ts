@@ -144,16 +144,23 @@ export class CampaignContext implements ToolCallContext {
 
   async setScene(input: { locationEntityId: EntityID; presentEntityIds: EntityID[]; description: string }): Promise<{ sceneId: SceneId; turnNumber: number }> {
     const sceneId = asSceneId(`s_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
-    const next = await this.advanceTurn();
+    const last = await this.deps.repo.latestTurn(this.id);
+    const turnNumber = (last?.turnNumber ?? 0) + 1;
     await this.deps.repo.upsertScene({
       campaignId: this.id, id: sceneId,
       locationId: input.locationEntityId,
       presentEntityIds: input.presentEntityIds,
       description: input.description,
-      createdAtTurn: next.turnNumber
+      createdAtTurn: turnNumber
+    });
+    await this.deps.repo.appendTurn({
+      campaignId: this.id, turnNumber,
+      summary: null,
+      sceneId,
+      createdAt: Date.now()
     });
     this.deps.preGen.emit({ campaignId: this.id, triggerKind: "ENTRY_TO_SCENE", hint: {} });
-    return { sceneId, turnNumber: next.turnNumber };
+    return { sceneId, turnNumber };
   }
 
   async advanceTurn(summary?: string): Promise<{ turnNumber: number }> {
