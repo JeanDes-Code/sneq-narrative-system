@@ -1,4 +1,4 @@
-import type { EntityID } from "./ids.js";
+import type { EntityID, SceneId } from "./ids.js";
 
 export type ObservationSource =
   | "GM_NARRATION"
@@ -20,7 +20,7 @@ export interface Observation {
   source: ObservationSource;
   method: ObservationMethod;
   emittedBy?: EntityID;
-  sceneId?: string;
+  sceneId?: SceneId;
   fiabilite: Fiabilite;
   excerpt?: string;
   timestamp: number;
