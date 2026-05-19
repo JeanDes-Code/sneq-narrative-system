@@ -6,9 +6,9 @@ import type { Entity } from "../../src/domain/entity.js";
 let repo: SqliteRepository;
 const cid = asCampaignId("c1");
 
-function ent(id: string, vec: number[], name = id, type: Entity["type"] = "PERSONNAGE"): Entity {
+function ent(id: string, vec: number[], name = id, type: Entity["type"] = "PERSONNAGE", campaignId = cid): Entity {
   return {
-    campaignId: cid, id: asEntityID(id), type, name,
+    campaignId, id: asEntityID(id), type, name,
     nomConnu: true, aliases: [], tags: [], createdAt: 0,
     embedding: new Float32Array(vec), embeddingRefreshedAt: 0
   };
@@ -41,5 +41,24 @@ describe("vector search", () => {
       const r1 = new SqliteRepository({ path: ":memory:", embeddingDim: 4 });
       r1.close();
     }).not.toThrow();
+  });
+
+  it("isolates vectors across campaigns", async () => {
+    const cid2 = asCampaignId("c2");
+    await repo.createCampaign({ id: cid2, name: "y", createdAt: 0, embeddingDim: 3 });
+    await repo.upsertEntity(ent("shared", [1, 0, 0], "shared", "PERSONNAGE", cid));
+    await repo.upsertEntity(ent("shared", [0, 1, 0], "shared", "PERSONNAGE", cid2));
+    const hitsC1 = await repo.searchEntitiesByVector(cid, new Float32Array([1, 0, 0]), { topK: 1 });
+    expect(hitsC1[0]!.entity.campaignId).toBe(cid);
+    const hitsC2 = await repo.searchEntitiesByVector(cid2, new Float32Array([0, 1, 0]), { topK: 1 });
+    expect(hitsC2[0]!.entity.campaignId).toBe(cid2);
+  });
+
+  it("removes vectors when campaign deleted", async () => {
+    await repo.upsertEntity(ent("a", [1, 0, 0]));
+    await repo.deleteCampaign(cid);
+    await repo.createCampaign({ id: cid, name: "x", createdAt: 0, embeddingDim: 3 });
+    const hits = await repo.searchEntitiesByVector(cid, new Float32Array([1, 0, 0]), { topK: 5 });
+    expect(hits).toEqual([]);
   });
 });

@@ -12,7 +12,7 @@ import type { Turn } from "../../domain/turn.js";
 import type { CampaignId, EntityID, FactId } from "../../domain/ids.js";
 import { asCampaignId, asFactId } from "../../domain/ids.js";
 import { runMigrations } from "./migrations.js";
-import { loadVec, ensureVecTable, upsertVec, searchVec } from "./vec.js";
+import { loadVec, ensureVecTable, upsertVec, searchVec, deleteVecForCampaign } from "./vec.js";
 import { normalizeAlias } from "../../resolver/normalize.js";
 import {
   entityToRow, rowToEntity, type EntityRow,
@@ -66,6 +66,7 @@ export class SqliteRepository implements Repository {
         this.db.prepare(`DELETE FROM ${t} WHERE campaign_id = ?`).run(id);
       }
       this.db.prepare(`DELETE FROM campaigns WHERE id = ?`).run(id);
+      deleteVecForCampaign(this.db, id);
     });
     tx();
   }
@@ -94,7 +95,7 @@ export class SqliteRepository implements Repository {
       for (const a of e.aliases) insertAlias(a.text);
 
       if (r._embedding) {
-        upsertVec(this.db, e.id, e.embedding!);
+        upsertVec(this.db, e.campaignId, e.id, e.embedding!);
       }
     });
     tx();
@@ -106,7 +107,7 @@ export class SqliteRepository implements Repository {
     ).get(campaignId, entityId) as EntityRow | undefined;
     if (!row) return null;
     const vec = this.db.prepare(`SELECT embedding FROM entity_vec WHERE entity_id = ?`)
-      .get(entityId) as { embedding: Buffer } | undefined;
+      .get(`${campaignId}|${entityId}`) as { embedding: Buffer } | undefined;
     return rowToEntity(row, vec?.embedding ?? null);
   }
 
@@ -126,7 +127,8 @@ export class SqliteRepository implements Repository {
   }
 
   async searchEntitiesByVector(campaignId: CampaignId, vec: Float32Array, opts: VectorSearchOpts): Promise<EntityWithScore[]> {
-    const hits = searchVec(this.db, vec, opts.topK * 3);
+    // searchVec already scopes by campaignId via compound key and returns plain entity IDs
+    const hits = searchVec(this.db, campaignId, vec, opts.topK * 3);
     const result: EntityWithScore[] = [];
     for (const h of hits) {
       const row = this.db.prepare(
