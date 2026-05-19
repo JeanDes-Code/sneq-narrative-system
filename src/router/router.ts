@@ -3,6 +3,10 @@ import type {
   ChatRequest, ChatResponse, EmbeddingRequest, EmbeddingResponse
 } from "./interface.js";
 import { ProviderHttpError } from "./interface.js";
+import { OpenAICompatibleProvider } from "./providers/openai-compatible.js";
+import { AnthropicProvider } from "./providers/anthropic.js";
+import { GoogleGenAIProvider } from "./providers/google-genai.js";
+import { CustomProvider, type CustomChatFn, type CustomEmbedFn } from "./providers/custom.js";
 
 export interface RouterDeps {
   resolveProvider(ref: ProviderRef): Provider;
@@ -71,14 +75,37 @@ function normalizeError(e: unknown): ProviderHttpError {
   return new ProviderHttpError("NETWORK", null, String(e));
 }
 
-// Task 4.8 — stub factory; real providers (openai-compatible / anthropic / google-genai) land in the next dispatch.
-export function createDefaultDeps(): RouterDeps {
+export interface DefaultDepsOptions {
+  customChat?: CustomChatFn;
+  customEmbed?: CustomEmbedFn;
+}
+
+export function createDefaultDeps(opts: DefaultDepsOptions = {}): RouterDeps {
+  const cache = new Map<string, Provider>();
   return {
     resolveProvider(ref) {
-      throw new Error(
-        `No provider factory wired for "${ref.provider}". ` +
-        `Provide a custom RouterDeps to Router, or wait for the openai-compatible / anthropic / google-genai factory to be wired in.`
-      );
+      const key = `${ref.provider}|${ref.baseUrl ?? ""}|${ref.model}`;
+      let p = cache.get(key);
+      if (p) return p;
+      switch (ref.provider) {
+        case "openai-compatible":
+          p = new OpenAICompatibleProvider(ref);
+          break;
+        case "anthropic":
+          p = new AnthropicProvider(ref);
+          break;
+        case "google-genai":
+          p = new GoogleGenAIProvider(ref);
+          break;
+        case "custom":
+          if (!opts.customChat || !opts.customEmbed) {
+            throw new Error("custom provider needs customChat and customEmbed functions in DefaultDepsOptions");
+          }
+          p = new CustomProvider(ref, opts.customChat, opts.customEmbed);
+          break;
+      }
+      cache.set(key, p);
+      return p;
     }
   };
 }
