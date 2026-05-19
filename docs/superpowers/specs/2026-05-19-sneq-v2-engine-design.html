@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>SNEQ V2 Engine — Design Brief</title>
+<style>
+  :root{
+    --bg: #0a0b0d;
+    --surface: #14161a;
+    --surface-2: #1a1d22;
+    --line: #262a31;
+    --line-soft: #1f2228;
+    --fg: #e7e7ea;
+    --fg-soft: #a3a6ad;
+    --fg-dim: #6e7178;
+    --accent: #7dd3fc;     /* sky-300 — V2 additions */
+    --accent-2: #c4b5fd;   /* violet-300 — V1 carry-forward */
+    --accent-3: #fcd34d;   /* amber-300 — out of scope / deferred */
+    --accent-4: #86efac;   /* green-300 — locked / approved */
+    --danger: #fda4af;     /* rose-300 */
+    --mono: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, system-ui, "Inter", "Segoe UI", Helvetica, Arial, sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--fg);font-family:var(--sans);font-feature-settings:"ss01","cv01"}
+  body{overflow:hidden}
+
+  /* ─── Frame ──────────────────────────────────────────── */
+  .deck{display:grid;grid-template-rows:48px 1fr 56px;height:100vh}
+
+  .hud{display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid var(--line);background:var(--bg);position:relative;z-index:10}
+  .hud .id{display:flex;gap:14px;align-items:baseline;font-family:var(--mono);font-size:12px;color:var(--fg-soft);letter-spacing:.04em}
+  .hud .id strong{color:var(--fg)}
+  .hud .pos{font-family:var(--mono);font-size:12px;color:var(--fg-dim)}
+
+  .nav{display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-top:1px solid var(--line);background:var(--bg);position:relative;z-index:10}
+  .nav .dots{display:flex;gap:6px;flex:1;justify-content:center;flex-wrap:wrap;max-width:60%}
+  .nav .dot{width:6px;height:6px;border-radius:50%;background:var(--line);cursor:pointer;transition:background .15s ease,transform .15s ease}
+  .nav .dot:hover{background:var(--fg-dim);transform:scale(1.4)}
+  .nav .dot.active{background:var(--accent);transform:scale(1.4)}
+  .nav button{background:transparent;border:1px solid var(--line);color:var(--fg-soft);padding:8px 14px;border-radius:6px;font-family:var(--mono);font-size:11px;cursor:pointer;letter-spacing:.04em}
+  .nav button:hover{color:var(--fg);border-color:var(--fg-dim)}
+  .nav .keys{font-family:var(--mono);font-size:11px;color:var(--fg-dim)}
+  .nav .keys kbd{background:var(--surface);border:1px solid var(--line);padding:1px 5px;border-radius:3px;font-size:10px;color:var(--fg-soft)}
+
+  /* ─── Slides ─────────────────────────────────────────── */
+  .slides{position:relative;overflow:hidden}
+  .slide{position:absolute;inset:0;padding:48px 80px;overflow:auto;opacity:0;pointer-events:none;transition:opacity .25s ease;display:flex;flex-direction:column}
+  .slide.active{opacity:1;pointer-events:auto}
+  .slide h1{font-size:36px;font-weight:600;margin:0 0 12px;letter-spacing:-.02em}
+  .slide h1 .num{color:var(--fg-dim);font-family:var(--mono);font-weight:400;font-size:18px;margin-right:14px;vertical-align:middle}
+  .slide .lead{color:var(--fg-soft);font-size:15px;max-width:920px;line-height:1.55;margin-bottom:28px}
+
+  /* ─── Components ─────────────────────────────────────── */
+  .badge{display:inline-block;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:4px;border:1px solid;background:transparent}
+  .badge.v2{color:var(--accent);border-color:color-mix(in srgb,var(--accent) 40%,transparent)}
+  .badge.v1{color:var(--accent-2);border-color:color-mix(in srgb,var(--accent-2) 40%,transparent)}
+  .badge.out{color:var(--accent-3);border-color:color-mix(in srgb,var(--accent-3) 40%,transparent)}
+  .badge.lock{color:var(--accent-4);border-color:color-mix(in srgb,var(--accent-4) 40%,transparent)}
+  .badge.danger{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 40%,transparent)}
+  .badge.solid{background:var(--surface-2);color:var(--fg-soft);border-color:var(--line)}
+
+  .grid{display:grid;gap:14px}
+  .grid.cols-2{grid-template-columns:1fr 1fr}
+  .grid.cols-3{grid-template-columns:repeat(3,1fr)}
+  .grid.cols-4{grid-template-columns:repeat(4,1fr)}
+
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px 20px}
+  .card h3{margin:0 0 6px;font-size:14px;font-weight:600;color:var(--fg);display:flex;gap:10px;align-items:center}
+  .card p{margin:0;color:var(--fg-soft);font-size:13px;line-height:1.5}
+  .card .kbd{font-family:var(--mono);color:var(--accent);font-size:11px}
+  .card.muted{opacity:.7}
+
+  .deck-table{width:100%;border-collapse:collapse;font-size:13px}
+  .deck-table th,.deck-table td{padding:9px 14px;text-align:left;border-bottom:1px solid var(--line-soft);vertical-align:top}
+  .deck-table th{color:var(--fg-soft);font-weight:500;font-size:11px;letter-spacing:.06em;text-transform:uppercase;background:var(--surface)}
+  .deck-table td{color:var(--fg)}
+  .deck-table td.label{color:var(--fg-soft);font-family:var(--mono);font-size:12px;width:1%;white-space:nowrap}
+  .deck-table tr:last-child td{border-bottom:none}
+
+  pre.code,code.inline{font-family:var(--mono);font-size:12px}
+  pre.code{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px 18px;overflow:auto;color:var(--fg-soft);line-height:1.55}
+  pre.code .kw{color:#a5b4fc}
+  pre.code .ty{color:#7dd3fc}
+  pre.code .st{color:#fcd34d}
+  pre.code .cm{color:#71717a;font-style:italic}
+  code.inline{background:var(--surface);border:1px solid var(--line);padding:1px 6px;border-radius:4px;color:var(--accent)}
+
+  .mermaid{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:24px;display:flex;justify-content:center;align-items:center;min-height:260px;font-family:var(--mono)}
+
+  .columns{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  .columns.uneven{grid-template-columns:1.2fr 1fr}
+
+  ul.bare{list-style:none;padding:0;margin:0}
+  ul.bare li{padding:6px 0;color:var(--fg-soft);font-size:13.5px;line-height:1.5}
+  ul.bare li::before{content:"▸";color:var(--fg-dim);margin-right:10px}
+
+  ul.def-list{list-style:none;padding:0;margin:0}
+  ul.def-list li{padding:8px 0;border-bottom:1px solid var(--line-soft);font-size:13px}
+  ul.def-list li:last-child{border-bottom:none}
+  ul.def-list li strong{display:inline-block;min-width:170px;color:var(--accent-2);font-family:var(--mono);font-size:12px;font-weight:500}
+
+  .pill-row{display:flex;flex-wrap:wrap;gap:8px}
+
+  .state-row{display:flex;align-items:center;justify-content:center;gap:24px;padding:24px;background:var(--surface);border:1px solid var(--line);border-radius:10px}
+  .state{padding:14px 22px;border-radius:8px;border:1px solid var(--line);background:var(--surface-2);text-align:center;min-width:160px}
+  .state .label{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--fg-soft);margin-bottom:4px}
+  .state .name{font-size:18px;font-weight:600;color:var(--fg)}
+  .state .desc{font-size:11.5px;color:var(--fg-dim);margin-top:6px;line-height:1.4}
+  .state.indef{border-color:color-mix(in srgb,var(--fg-dim) 60%,transparent)}
+  .state.contr{border-color:color-mix(in srgb,var(--accent-3) 60%,transparent)}
+  .state.fige{border-color:color-mix(in srgb,var(--accent-4) 60%,transparent)}
+  .arrow{font-family:var(--mono);color:var(--fg-dim);font-size:24px}
+
+  .callout{padding:12px 18px;border-left:3px solid var(--accent);background:color-mix(in srgb,var(--accent) 6%,transparent);border-radius:0 8px 8px 0;font-size:13px;color:var(--fg-soft);line-height:1.55}
+  .callout.warn{border-color:var(--accent-3);background:color-mix(in srgb,var(--accent-3) 6%,transparent)}
+  .callout.danger{border-color:var(--danger);background:color-mix(in srgb,var(--danger) 6%,transparent)}
+  .callout strong{color:var(--fg)}
+
+  /* Title slide special styling */
+  .slide.title{justify-content:center;align-items:flex-start;padding-left:120px;padding-right:120px}
+  .slide.title .super{font-family:var(--mono);font-size:12px;letter-spacing:.18em;color:var(--fg-dim);text-transform:uppercase;margin-bottom:18px}
+  .slide.title h1{font-size:72px;line-height:1;margin-bottom:14px;letter-spacing:-.03em}
+  .slide.title h1 .accent{color:var(--accent)}
+  .slide.title .tag{font-size:18px;color:var(--fg-soft);max-width:720px;line-height:1.5}
+  .slide.title .meta{display:flex;gap:18px;margin-top:36px;font-family:var(--mono);font-size:12px;color:var(--fg-dim)}
+  .slide.title .meta span strong{color:var(--fg-soft);font-weight:500}
+
+  .slide.end{justify-content:center;align-items:center;text-align:center}
+  .slide.end h1{font-size:54px}
+  .slide.end .cta{display:flex;gap:14px;margin-top:36px;justify-content:center;flex-wrap:wrap}
+  .slide.end .cta .card{min-width:240px;cursor:default}
+</style>
+</head>
+<body>
+
+<div class="deck" id="deck">
+  <header class="hud">
+    <div class="id">
+      <strong>SNEQ V2 Engine</strong>
+      <span>Design Brief</span>
+      <span>2026-05-19</span>
+    </div>
+    <div class="pos"><span id="cur">01</span> / <span id="total">17</span></div>
+  </header>
+
+  <main class="slides" id="slides">
+
+    <!-- ─── 1 · Title ─────────────────────────────────── -->
+    <section class="slide title active" data-title="Title">
+      <div class="super">Design Brief · Approved for planning</div>
+      <h1>SNEQ <span class="accent">V2</span> Engine</h1>
+      <div class="tag">A bookkeeping-only narrative engine for turn-based AI-narrated games. Reframes the v1 spec for TTRPG apps and Discord GM agents, with cross-session entity resolution and provider-fallback baked in.</div>
+      <div class="meta">
+        <span><strong>Status</strong> · <span class="badge lock">locked</span></span>
+        <span><strong>Package</strong> · @sneq/engine</span>
+        <span><strong>Language</strong> · TypeScript · Node 20+</span>
+        <span><strong>Author</strong> · Jean + Nemo</span>
+      </div>
+    </section>
+
+    <!-- ─── 2 · TL;DR ─────────────────────────────────── -->
+    <section class="slide" data-title="TL;DR">
+      <h1><span class="num">02</span>TL;DR</h1>
+      <div class="lead">Six things to hold in your head as you scroll the rest.</div>
+      <div class="grid cols-3">
+        <div class="card"><h3><span class="badge v2">v2</span> Bookkeeping library</h3><p>Single TS package <code class="inline">@sneq/engine</code>. Consumer owns the GM loop; engine owns facts, entities, constraints, propagation.</p></div>
+        <div class="card"><h3><span class="badge v2">v2</span> Multi-campaign</h3><p>One Engine instance manages many campaigns. <code class="inline">engine.campaign(id).…</code> facade, <code class="inline">campaignId</code> on every record.</p></div>
+        <div class="card"><h3><span class="badge v2">v2</span> Layered entity resolution</h3><p>alias → vector → LLM judge → user-prompt. Solves the "is this the same blacksmith we met 3 sessions ago?" gap in v1.</p></div>
+        <div class="card"><h3><span class="badge v2">v2</span> Provider router</h3><p>Three tiers — heavy, light, embeddings — each with primary + fallback chain. Quota-aware. No OpenAI, no Grok.</p></div>
+        <div class="card"><h3><span class="badge v2">v2</span> Tool-call protocol</h3><p>JSON Schema + Zod tool definitions. GM emits tool calls; consumer dispatches via <code class="inline">handleToolCall()</code>.</p></div>
+        <div class="card"><h3><span class="badge out">deferred</span> Pre-gen &amp; bindings</h3><p>v1's real-time pre-generation lives behind a no-op hook. TTRPG app and Hermes bindings get their own future specs.</p></div>
+      </div>
+    </section>
+
+    <!-- ─── 3 · Context ───────────────────────────────── -->
+    <section class="slide" data-title="Context">
+      <h1><span class="num">03</span>Why V2</h1>
+      <div class="lead">v1 is conceptually solid but written for a real-time RPG-Maker-style consumer. Jean's real targets are turn-based dialog.</div>
+      <div class="columns">
+        <div class="card">
+          <h3><span class="badge v1">v1 framing</span></h3>
+          <p style="margin-top:10px"><strong style="color:var(--fg)">Real-time RPG.</strong> Sub-200ms cache hits. Elaborate pre-generation: predictor + workers + priority queue (chapter 5). Optimized for a player who can't wait.</p>
+          <p style="margin-top:8px"><strong style="color:var(--fg)">Missing.</strong> Cross-session entity resolution. How does the engine know "the blacksmith" in session 7 is the same Aldric from session 4? No machinery for it.</p>
+        </div>
+        <div class="card">
+          <h3><span class="badge v2">v2 reframing</span></h3>
+          <p style="margin-top:10px"><strong style="color:var(--fg)">Turn-based dialog.</strong> 2–5s LLM latency tolerated. Pre-gen deferred behind an extension hook. Engine optimizes for correctness and persistence, not latency.</p>
+          <p style="margin-top:8px"><strong style="color:var(--fg)">Adds.</strong> Layered entity resolver. Provider router with quota-aware fallback. Tool-call protocol for GM-to-engine fact ingestion. Multi-campaign scoping.</p>
+        </div>
+      </div>
+      <div class="callout" style="margin-top:18px"><strong>Stack rule</strong> · No OpenAI, no xAI/Grok in any default chain — carried from <code class="inline">~/.claude/Contexts/about-me.md</code>.</div>
+    </section>
+
+    <!-- ─── 4 · 9 Locked Decisions ────────────────────── -->
+    <section class="slide" data-title="Locked Decisions">
+      <h1><span class="num">04</span>9 Locked Decisions</h1>
+      <div class="lead">Each card = one decision made during brainstorming. All locked before the spec was written.</div>
+      <div class="grid cols-3">
+        <div class="card"><h3><span class="badge lock">01</span> Scope</h3><p>Engine-only spec. Consumer bindings (TTRPG, Hermes) get their own future specs.</p></div>
+        <div class="card"><h3><span class="badge lock">02</span> Latency</h3><p>Turn-based first. Real-time pre-gen reachable via extension hook, not built in V2.</p></div>
+        <div class="card"><h3><span class="badge lock">03</span> Language</h3><p>TypeScript · Node 20+ · ESM-first · single package <code class="inline">@sneq/engine</code>.</p></div>
+        <div class="card"><h3><span class="badge lock">04</span> Persistence</h3><p>Repository interface + reference SQLite adapter using <code class="inline">better-sqlite3</code> + <code class="inline">sqlite-vec</code>.</p></div>
+        <div class="card"><h3><span class="badge lock">05</span> Entity resolution</h3><p>Layered cascade — alias → vector → LLM judge → user-prompt callback.</p></div>
+        <div class="card"><h3><span class="badge lock">06</span> AI routing</h3><p>Router with three task tiers — <em>heavy / light / embeddings</em> — each with primary + ordered fallbacks.</p></div>
+        <div class="card"><h3><span class="badge lock">07</span> Engine role</h3><p>Bookkeeping library, not GM. Consumer owns the GM loop. Engine exposes facts + tool dispatcher.</p></div>
+        <div class="card"><h3><span class="badge lock">08</span> Fact protocol</h3><p>LLM tool calls. Consumer wires engine-exported tool schemas into their LLM call.</p></div>
+        <div class="card"><h3><span class="badge lock">09</span> Multi-tenancy</h3><p>Single Engine, many campaigns, scoped via <code class="inline">campaignId</code>. Facade: <code class="inline">engine.campaign(id)</code>.</p></div>
+      </div>
+    </section>
+
+    <!-- ─── 5 · Architecture ──────────────────────────── -->
+    <section class="slide" data-title="Architecture">
+      <h1><span class="num">05</span>Architecture</h1>
+      <div class="lead">Public surface is the <code class="inline">Engine</code> class. Reference adapters live in subpath exports and lazy-require their backing modules.</div>
+      <div class="mermaid">
+flowchart TD
+  C["Consumer<br/>(Hermes, TTRPG app)"] --> E["Engine (facade)<br/>engine.campaign(id).…"]
+  E --> D[Domain · RC + CP]
+  E --> G[GCN]
+  E --> R[Resolver cascade]
+  E --> RT[Router · tiers]
+  E --> T[Tool schemas]
+  E --> H["Hooks<br/>(pre-gen, extract)"]
+  RT --> PI[Provider interface]
+  E --> RP[Repository interface]
+  PI --> POA["OpenAI-compatible adapter<br/>DeepSeek · Mistral · Together · …"]
+  PI --> PAN[Anthropic adapter]
+  PI --> PGG[Google GenAI adapter]
+  RP --> SQL["SQLite + sqlite-vec<br/>(reference adapter)"]
+  RP --> CVX["Convex / Postgres<br/>(future, not in V2)"]
+  classDef ext fill:#1a1d22,stroke:#3a3f47,color:#a3a6ad,stroke-dasharray:3 3
+  class CVX ext
+      </div>
+    </section>
+
+    <!-- ─── 6 · Domain · State Machine ────────────────── -->
+    <section class="slide" data-title="Domain Model">
+      <h1><span class="num">06</span>Domain Model</h1>
+      <div class="lead">Carries v1 unchanged. The three-state attribute machine is absolute: a FIGÉ attribute is never modified.</div>
+
+      <div class="state-row">
+        <div class="state indef"><div class="label">i</div><div class="name">INDÉFINI</div><div class="desc">No constraint, pure potential. Never evoked.</div></div>
+        <div class="arrow">→</div>
+        <div class="state contr"><div class="label">c</div><div class="name">CONTRAINT</div><div class="desc">Narrowed by inference, not yet locked.</div></div>
+        <div class="arrow">→</div>
+        <div class="state fige"><div class="label">f</div><div class="name">FIGÉ</div><div class="desc">Canonical, immutable. One-way transition.</div></div>
+      </div>
+
+      <h3 style="margin:24px 0 12px;font-size:14px;font-weight:600;color:var(--fg-soft);letter-spacing:.04em;text-transform:uppercase">V2 additions to the v1 domain</h3>
+      <table class="deck-table">
+        <thead><tr><th>Addition</th><th>Purpose</th></tr></thead>
+        <tbody>
+          <tr><td class="label">campaignId discriminator</td><td>Multi-campaign isolation in a shared store</td></tr>
+          <tr><td class="label">Entity.embedding</td><td>Float32Array, lazily refreshed; powers resolver layer 2</td></tr>
+          <tr><td class="label">Entity.aliases (upgraded)</td><td><code class="inline">{ text, source, observedAt }[]</code> with provenance — resolver layer 1</td></tr>
+          <tr><td class="label">SCENE entity type</td><td>Snapshot of "where the player is" — bounds context retrieval</td></tr>
+          <tr><td class="label">Turn record</td><td>Monotonic int per campaign. Replaces v1's wall-clock GameTimestamp.</td></tr>
+          <tr><td class="label">Observation.source</td><td><code class="inline">GM_NARRATION | PLAYER_UTTERANCE | DICE_ROLL | SYSTEM</code></td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- ─── 7 · Entity Resolution Cascade ─────────────── -->
+    <section class="slide" data-title="Entity Resolution">
+      <h1><span class="num">07</span>Entity Resolution Cascade</h1>
+      <div class="lead">The single biggest v2 addition. Each layer escalates only when the previous is uncertain.</div>
+      <div class="columns uneven">
+        <div class="mermaid" style="min-height:380px">
+flowchart TD
+  S["resolveEntity(mention, type?, scene?)"] --> L1{"L1 · Alias / canonical-name<br/>exact match"}
+  L1 -- "hit ≥ 0.95" --> OK([return match])
+  L1 -- "miss" --> L2{"L2 · Vector similarity<br/>sqlite-vec ANN · top-K=5"}
+  L2 -- "top1 ≥ τ_HIGH<br/>gap ≥ Δ" --> OK
+  L2 -- "top1 &lt; τ_LOW" --> NEW([no match · NEW])
+  L2 -- "ambiguous band" --> L3{"L3 · LLM judge<br/>(light tier)"}
+  L3 -- "confident" --> OK
+  L3 -- "unsure" --> L4{"L4 · askUser callback<br/>(consumer-supplied)"}
+  L4 --> OK
+  L4 -- "no handler" --> NEW
+  classDef ok fill:#0c2419,stroke:#86efac,color:#86efac
+  classDef new fill:#291d05,stroke:#fcd34d,color:#fcd34d
+  class OK ok
+  class NEW new
+        </div>
+        <div>
+          <table class="deck-table">
+            <thead><tr><th colspan="2">Defaults</th></tr></thead>
+            <tbody>
+              <tr><td class="label">τ_HIGH</td><td>0.88 · confident match</td></tr>
+              <tr><td class="label">τ_LOW</td><td>0.65 · no plausible match</td></tr>
+              <tr><td class="label">Δ (gap)</td><td>0.05 · top1 vs top2</td></tr>
+              <tr><td class="label">top-K</td><td>5 candidates passed to L3</td></tr>
+              <tr><td class="label">Refresh threshold</td><td>5 attribute changes</td></tr>
+            </tbody>
+          </table>
+          <div class="callout warn" style="margin-top:14px"><strong>Threshold tuning</strong> · Defaults assume Gemini-class cosine similarity. Different embedding providers need different thresholds. Per-campaign configurable.</div>
+          <div class="callout" style="margin-top:10px"><strong>Generation direction</strong> · <code class="inline">suggestExisting()</code> uses the same cascade <em>before</em> the GM commits to a new entity name, so canonical reality doesn't accidentally fork.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── 8 · Router & Provider ─────────────────────── -->
+    <section class="slide" data-title="Router">
+      <h1><span class="num">08</span>Router &amp; Providers</h1>
+      <div class="lead">Three task tiers, each with a primary and an ordered fallback list. Triggers: 429 · 401/403 · 5xx · timeout · malformed.</div>
+      <div class="grid cols-3">
+        <div class="card">
+          <h3><span class="badge solid">tier</span> heavy</h3>
+          <p style="margin-top:10px;font-family:var(--mono);font-size:12px;line-height:1.7">
+          <span style="color:var(--accent)">deepseek-chat</span><br/>
+          ↳ <span style="color:var(--fg-soft)">gemini-2.5-pro</span><br/>
+          ↳ <span style="color:var(--fg-soft)">claude-haiku-4-5</span><span style="color:var(--fg-dim)"> (paid floor)</span>
+          </p>
+          <p style="margin-top:12px">Collapse generation, narration-grade reasoning.</p>
+        </div>
+        <div class="card">
+          <h3><span class="badge solid">tier</span> light</h3>
+          <p style="margin-top:10px;font-family:var(--mono);font-size:12px;line-height:1.7">
+          <span style="color:var(--accent)">gemini-2.5-flash</span><br/>
+          ↳ <span style="color:var(--fg-soft)">mistral-small-latest</span><br/>
+          ↳ <span style="color:var(--fg-soft)">deepseek-chat</span>
+          </p>
+          <p style="margin-top:12px">Resolver judge, validation, classification.</p>
+        </div>
+        <div class="card">
+          <h3><span class="badge solid">tier</span> embeddings</h3>
+          <p style="margin-top:10px;font-family:var(--mono);font-size:12px;line-height:1.7">
+          <span style="color:var(--accent)">gemini-text-embedding-004</span><br/>
+          ↳ <span style="color:var(--fg-soft)">mistral-embed</span>
+          </p>
+          <p style="margin-top:12px">Entity embeddings. Cheap, fast, dimension-fixed per file.</p>
+        </div>
+      </div>
+
+      <h3 style="margin:22px 0 10px;font-size:14px;font-weight:600;color:var(--fg-soft);letter-spacing:.04em;text-transform:uppercase">Built-in provider types</h3>
+      <div class="pill-row">
+        <span class="badge solid">openai-compatible</span>
+        <span class="badge solid">anthropic</span>
+        <span class="badge solid">google-genai</span>
+        <span class="badge solid">custom (escape hatch)</span>
+        <span class="badge danger" style="margin-left:18px">not shipped · OpenAI</span>
+        <span class="badge danger">not shipped · xAI / Grok</span>
+      </div>
+      <div class="callout warn" style="margin-top:16px"><strong>Disambiguation</strong> · <em>Groq</em> the chip company (inference platform) is fine. <em>Grok</em> the xAI model is banned. The router supports the former via <code class="inline">openai-compatible</code> with Groq's base URL.</div>
+    </section>
+
+    <!-- ─── 9 · Tool Protocol ─────────────────────────── -->
+    <section class="slide" data-title="Tool Protocol">
+      <h1><span class="num">09</span>Tool Call Protocol</h1>
+      <div class="lead">Tool schemas exported as Tool objects, Zod, and JSON Schema. Consumer wires them into the LLM call; engine dispatches via <code class="inline">handleToolCall()</code>.</div>
+      <div class="grid cols-2">
+        <div class="card">
+          <h3><span class="badge solid">read</span></h3>
+          <ul class="def-list">
+            <li><strong>sneq__lookup_entity</strong> resolve a mention to an existing entity</li>
+            <li><strong>sneq__get_entity</strong> full entity + figed attributes</li>
+            <li><strong>sneq__get_relevant_facts</strong> facts for an entity, optionally by depth</li>
+            <li><strong>sneq__suggest_existing</strong> generation-direction resolver</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3><span class="badge solid">register</span></h3>
+          <ul class="def-list">
+            <li><strong>sneq__mention_entity</strong> introduces or re-uses an entity; returns <code class="inline">isNew</code></li>
+            <li><strong>sneq__register_fact</strong> appends a figed attribute · returns <code class="inline">contradictions[]</code> instead of throwing</li>
+            <li><strong>sneq__add_constraint</strong> adds a CP constraint</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3><span class="badge solid">collapse</span></h3>
+          <ul class="def-list">
+            <li><strong>sneq__collapse_attribute</strong> engine drives an LLM call (heavy tier) to fill a specific attribute, validates, inscribes, propagates</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3><span class="badge solid">scene / turn</span></h3>
+          <ul class="def-list">
+            <li><strong>sneq__set_scene</strong> declares current location + present entities</li>
+            <li><strong>sneq__advance_turn</strong> bumps the monotonic turn counter</li>
+          </ul>
+        </div>
+      </div>
+      <div class="callout" style="margin-top:16px"><strong>Deliberate split</strong> · <code class="inline">register_fact</code> never throws on contradiction. Engine validates, consumer's GM adjudicates (regen · reinterpret · reject). Honors the bookkeeping-library contract.</div>
+    </section>
+
+    <!-- ─── 10 · Repository & SQLite ──────────────────── -->
+    <section class="slide" data-title="Storage">
+      <h1><span class="num">10</span>Repository &amp; Storage</h1>
+      <div class="lead">Reference adapter: <code class="inline">SqliteRepository</code> using <code class="inline">better-sqlite3</code> + <code class="inline">sqlite-vec</code>. WAL mode, single-writer, migrations idempotent.</div>
+      <div class="columns">
+        <div>
+          <pre class="code"><span class="cm">-- One file, many campaigns, scoped via campaign_id</span>
+<span class="kw">CREATE TABLE</span> entities      (campaign_id, id, type, name,
+                              aliases <span class="ty">JSON</span>, embedding <span class="ty">BLOB</span>, …);
+<span class="kw">CREATE TABLE</span> figed         (campaign_id, entity_id,
+                              attribute_key, value <span class="ty">JSON</span>,
+                              observation <span class="ty">JSON</span>, turn);
+<span class="kw">CREATE TABLE</span> potentialites (campaign_id, entity_id,
+                              attribute_key, etat,
+                              constraints <span class="ty">JSON</span>);
+<span class="kw">CREATE TABLE</span> edges         (campaign_id, src, dst, type,
+                              attrs <span class="ty">JSON</span>, etat);
+<span class="kw">CREATE TABLE</span> turns         (campaign_id, turn_number,
+                              summary, scene_id, created_at);
+<span class="kw">CREATE TABLE</span> scenes        (campaign_id, id, location_id,
+                              present <span class="ty">JSON</span>, description);
+<span class="kw">CREATE VIRTUAL TABLE</span> entity_vec
+  <span class="kw">USING</span> vec0(entity_id <span class="ty">TEXT</span>, embedding <span class="ty">FLOAT</span>[D]);</pre>
+        </div>
+        <div>
+          <h3 style="margin:0 0 12px;font-size:14px;font-weight:600;color:var(--fg-soft);letter-spacing:.04em;text-transform:uppercase">Key contract</h3>
+          <ul class="def-list">
+            <li><strong>transaction()</strong> mandatory · <code class="inline">appendFact</code> + propagation must be atomic</li>
+            <li><strong>upsertEntity</strong> · keyed by <code class="inline">(campaignId, id)</code></li>
+            <li><strong>searchEntitiesByVector</strong> · campaign + type filtered ANN</li>
+            <li><strong>findEntitiesByAlias</strong> · normalized lookup, layer 1</li>
+            <li><strong>neighbors(depth)</strong> · GCN traversal for propagation</li>
+          </ul>
+          <div class="callout danger" style="margin-top:14px"><strong>Embedding dimension is fixed per file.</strong> <code class="inline">vec0</code> pins <code class="inline">D</code> at table creation. All campaigns in one SQLite file must use the same embedding model. Mixing models = use separate Repository instances.</div>
+          <div class="callout warn" style="margin-top:10px"><strong>Out of scope for V2</strong> · Convex, Postgres, Redis adapters. Interface is the contract; future contributions can follow.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── 11 · Public API ───────────────────────────── -->
+    <section class="slide" data-title="Public API">
+      <h1><span class="num">11</span>Public API Surface</h1>
+      <div class="lead">Single <code class="inline">Engine</code> class with a <code class="inline">CampaignContext</code> facade. All methods async. No streaming on the engine API itself — opt-in per-call.</div>
+      <pre class="code"><span class="kw">class</span> <span class="ty">Engine</span> {
+  <span class="kw">constructor</span>(config: <span class="ty">EngineConfig</span>)
+  campaign(id: <span class="ty">CampaignId</span>): <span class="ty">CampaignContext</span>
+  listCampaigns(): <span class="ty">Promise</span>&lt;<span class="ty">CampaignMeta</span>[]&gt;
+  createCampaign(meta: <span class="ty">NewCampaignInput</span>): <span class="ty">Promise</span>&lt;<span class="ty">CampaignContext</span>&gt;
+  deleteCampaign(id: <span class="ty">CampaignId</span>): <span class="ty">Promise</span>&lt;<span class="ty">void</span>&gt;
+
+  <span class="kw">static</span> defaultRouterConfig(): <span class="ty">RouterConfig</span>
+  <span class="kw">static</span> loadConfigFromFile(path: <span class="ty">string</span>): <span class="ty">EngineConfig</span>   <span class="cm">// .json | .yaml | .ts</span>
+  <span class="kw">static get</span> tools(): <span class="ty">ToolBundle</span>                          <span class="cm">// exported tool schemas</span>
+}
+
+<span class="kw">interface</span> <span class="ty">CampaignContext</span> {
+  <span class="cm">// Resolution</span>
+  resolveEntity   (mention, opts?): <span class="ty">Promise</span>&lt;<span class="ty">ResolutionResult</span>&gt;
+  suggestExisting (mention, type):  <span class="ty">Promise</span>&lt;<span class="ty">SuggestionResult</span>&gt;
+
+  <span class="cm">// Reads &amp; writes</span>
+  getEntity / getRelevantFacts / currentScene
+  mentionEntity / registerFact / addConstraint / collapseAttribute
+  setScene / advanceTurn
+
+  <span class="cm">// One-call integration point for consumers</span>
+  handleToolCall(name: <span class="ty">string</span>, args: <span class="ty">unknown</span>): <span class="ty">Promise</span>&lt;<span class="ty">unknown</span>&gt;
+
+  <span class="cm">// Extension points</span>
+  registerPreGenerationHook(hook): <span class="ty">Disposable</span>
+  registerUserPromptHandler(handler): <span class="ty">Disposable</span>
+}</pre>
+    </section>
+
+    <!-- ─── 12 · Errors & Validation ──────────────────── -->
+    <section class="slide" data-title="Errors">
+      <h1><span class="num">12</span>Error Handling &amp; Validation</h1>
+      <div class="lead">Five-step validation pipeline. <code class="inline">collapseAttribute</code> regenerates on recoverable failures; <code class="inline">registerFact</code> never throws on contradiction.</div>
+      <div class="columns">
+        <div>
+          <div class="mermaid" style="min-height:340px">
+flowchart TD
+  V["validate(value, ctx)"] --> S1{"1 · Format"}
+  S1 -- "bad" --> R1[regen · ≤2 retries]
+  S1 -- "ok" --> S2{"2 · Strict constraint"}
+  S2 -- "violated" --> R2[regen · emphasis · ≤2 retries]
+  S2 -- "ok" --> S3{"3 · RC contradiction"}
+  S3 -- "yes" --> EC[["throw SneqContradictionError"]]
+  S3 -- "no" --> S4{"4 · Semantic check<br/>(optional)"}
+  S4 -- "off / pass" --> S5{"5 · Soft constraints"}
+  S4 -- "fail" --> W[log warning · continue]
+  W --> S5
+  S5 --> OK([accept])
+  classDef err fill:#2a1517,stroke:#fda4af,color:#fda4af
+  class EC err
+          </div>
+        </div>
+        <div>
+          <h3 style="margin:0 0 12px;font-size:14px;font-weight:600;color:var(--fg-soft);letter-spacing:.04em;text-transform:uppercase">Error classes</h3>
+          <ul class="def-list">
+            <li><strong>SneqValidationError</strong> recoverable · carries <code class="inline">details</code></li>
+            <li><strong>SneqContradictionError</strong> signal, not always fatal · carries <code class="inline">contradictions</code></li>
+            <li><strong>SneqProviderError</strong> chain exhausted · carries <code class="inline">tier</code> + <code class="inline">exhausted</code></li>
+          </ul>
+
+          <h3 style="margin:18px 0 12px;font-size:14px;font-weight:600;color:var(--fg-soft);letter-spacing:.04em;text-transform:uppercase">Retry budget</h3>
+          <table class="deck-table">
+            <tbody>
+              <tr><td class="label">format</td><td>≤ 2 retries · strengthened instruction</td></tr>
+              <tr><td class="label">strict constraint</td><td>≤ 2 retries · explicit emphasis</td></tr>
+              <tr><td class="label">RC contradiction</td><td>throws · consumer decides</td></tr>
+              <tr><td class="label">provider 429/5xx</td><td>fallback chain</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── 13 · Testing Strategy ─────────────────────── -->
+    <section class="slide" data-title="Testing">
+      <h1><span class="num">13</span>Testing Strategy</h1>
+      <div class="lead">Five layers. Default CI hermetic — no real LLM calls. Integration smoke env-gated for regression and prompt-drift detection.</div>
+      <table class="deck-table">
+        <thead><tr><th>Layer</th><th>Tooling</th><th>What it covers</th></tr></thead>
+        <tbody>
+          <tr><td class="label">Pure logic</td><td>vitest</td><td>RC inscription · CP constraints · GCN propagation · state machine</td></tr>
+          <tr><td class="label">Repository</td><td>vitest + <code class="inline">:memory:</code> SQLite</td><td>Migrations · transactions · vector search round-trip</td></tr>
+          <tr><td class="label">Resolver</td><td>vitest + fixture embeddings + mock judge</td><td>Each cascade layer · escalation paths · threshold edges</td></tr>
+          <tr><td class="label">Router</td><td>vitest + mock providers</td><td>Scripted 429 / 5xx / timeout / malformed → fallback chain + cooldown</td></tr>
+          <tr><td class="label">Integration smoke</td><td>env-var-gated, off in default CI</td><td>Tiny scripted campaign against a real provider chain</td></tr>
+        </tbody>
+      </table>
+      <div class="callout" style="margin-top:18px"><strong>Fixture helpers shipped in V2</strong> · <code class="inline">replayProvider(fixtures)</code> scripts canned responses · <code class="inline">recordProvider(real, file)</code> records once and replays forever.</div>
+    </section>
+
+    <!-- ─── 14 · Distribution & Docs ──────────────────── -->
+    <section class="slide" data-title="Distribution">
+      <h1><span class="num">14</span>Distribution &amp; Docs</h1>
+      <div class="lead">Two documentation artifacts ship inside the npm package. Both audiences (TS devs, agent runtimes) get a tailored entry point pointing at the same source of truth.</div>
+      <div class="columns">
+        <div class="card">
+          <h3><span class="badge v2">artifact</span> docs/api.md</h3>
+          <p style="margin-top:10px"><strong style="color:var(--fg)">Audience</strong> · TypeScript / Node developers</p>
+          <p style="margin-top:6px"><strong style="color:var(--fg)">Format</strong> · TypeDoc-generated from JSDoc on the public API</p>
+          <p style="margin-top:6px"><strong style="color:var(--fg)">Contains</strong> · authoritative method signatures, parameter shapes, return types, config schema</p>
+          <p style="margin-top:6px"><strong style="color:var(--fg)">Refresh</strong> · regenerated on every release</p>
+        </div>
+        <div class="card">
+          <h3><span class="badge v2">artifact</span> skills/sneq-narrative-engine.md</h3>
+          <p style="margin-top:10px"><strong style="color:var(--fg)">Audience</strong> · Hermes-Agent · Claude-Code-style agent runtimes</p>
+          <p style="margin-top:6px"><strong style="color:var(--fg)">Format</strong> · Anthropic skill — YAML frontmatter + markdown body</p>
+          <p style="margin-top:6px"><strong style="color:var(--fg)">Contains</strong> · <em>when</em> to invoke each tool, narrative usage patterns, config field guidance</p>
+          <p style="margin-top:6px"><strong style="color:var(--fg)">Refs</strong> · points at <code class="inline">docs/api.md</code> for ground-truth signatures</p>
+        </div>
+      </div>
+      <div class="callout" style="margin-top:18px"><strong>Hermes integration pattern</strong> · <code class="inline">cp node_modules/@sneq/engine/skills/sneq-narrative-engine.md ~/.hermes/skills/</code></div>
+    </section>
+
+    <!-- ─── 15 · Out of Scope ─────────────────────────── -->
+    <section class="slide" data-title="Out of Scope">
+      <h1><span class="num">15</span>Out of Scope for V2</h1>
+      <div class="lead">Eight things deferred. The interface points exist; the implementations don't. Each picked up in follow-up specs once V2 is real.</div>
+      <div class="grid cols-2">
+        <div class="card muted"><h3><span class="badge out">defer</span> Pre-generation / cache</h3><p>v1 chapter 5. Hook interface exists; default = no-op. Predictor + workers + priority queue not built.</p></div>
+        <div class="card muted"><h3><span class="badge out">defer</span> Consumer bindings</h3><p>TTRPG single-player app + Hermes-Agent MCP / skill integration. Each gets its own spec.</p></div>
+        <div class="card muted"><h3><span class="badge out">defer</span> Convex / Postgres adapters</h3><p>Repository interface is the contract. Adapters are future work.</p></div>
+        <div class="card muted"><h3><span class="badge out">defer</span> Multi-PC / party support</h3><p>V2 assumes single-PC sessions. Multi-party is a schema delta.</p></div>
+        <div class="card muted"><h3><span class="badge out">defer</span> Auto-summarization</h3><p>Compressing old turns into history blocks. Out for V2.</p></div>
+        <div class="card muted"><h3><span class="badge out">defer</span> Fact / schema migration</h3><p>Versioning of figed facts across schema versions. Out for V2.</p></div>
+        <div class="card muted"><h3><span class="badge out">defer</span> Web / HTTP gateway</h3><p>Engine stays in-process. Wrap trivially later if needed.</p></div>
+        <div class="card muted"><h3><span class="badge out">defer</span> GM personality library</h3><p>Opinionated prompt templates. Consumer's problem.</p></div>
+      </div>
+    </section>
+
+    <!-- ─── 16 · Open Questions ───────────────────────── -->
+    <section class="slide" data-title="Open Questions">
+      <h1><span class="num">16</span>Open Questions</h1>
+      <div class="lead">None blocking V2 — tracked so V2 doesn't accidentally close them off.</div>
+      <div class="grid cols-2">
+        <div class="card">
+          <h3><span class="badge solid">Q1</span> Embedding interoperability</h3>
+          <p>Switching embedding providers mid-campaign breaks vector comparability. V2 doesn't migrate — embeddings must be regenerated. Migration tool is future work.</p>
+        </div>
+        <div class="card">
+          <h3><span class="badge solid">Q2</span> Resolver cold-start</h3>
+          <p>At campaign start, vector search has no data; L2 always misses. Acceptable — L1 covers explicit names, L3 rarely needed early.</p>
+        </div>
+        <div class="card">
+          <h3><span class="badge solid">Q3</span> Propagation depth</h3>
+          <p>v1 recommends 2–3 hops with decay. V2 keeps the default but exposes depth via <code class="inline">EngineConfig</code>. Defaults stand until evidence says otherwise.</p>
+        </div>
+        <div class="card">
+          <h3><span class="badge solid">Q4</span> Authority weighting</h3>
+          <p>GM-attributed vs dice-attributed claims both go through <code class="inline">registerFact</code> with different <code class="inline">Observation.source</code>. V2 treats them equally in validation; future may weight dice as more authoritative.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── 17 · Next Steps ───────────────────────────── -->
+    <section class="slide end" data-title="Next Steps">
+      <h1>Ready to plan</h1>
+      <div class="lead" style="text-align:center;max-width:680px;margin:0 auto">Once you confirm the spec, next move is <code class="inline">superpowers:writing-plans</code> — breaks the V2 design into milestones with concrete tasks (domain → repo → router → resolver → tools → docs).</div>
+      <div class="cta">
+        <div class="card"><h3 style="justify-content:center"><span class="badge lock">option a</span></h3><p style="text-align:center;margin-top:6px">Approve as-is · proceed to writing-plans</p></div>
+        <div class="card"><h3 style="justify-content:center"><span class="badge v1">option b</span></h3><p style="text-align:center;margin-top:6px">Tell me what to revise · I update spec + re-commit</p></div>
+        <div class="card"><h3 style="justify-content:center"><span class="badge out">option c</span></h3><p style="text-align:center;margin-top:6px">Pause · review more later</p></div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="nav">
+    <button id="prev">◂ prev</button>
+    <div class="dots" id="dots"></div>
+    <div class="keys"><kbd>←</kbd> <kbd>→</kbd> nav · <kbd>esc</kbd> first</div>
+    <button id="next">next ▸</button>
+  </footer>
+</div>
+
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({
+    startOnLoad: false,
+    theme: "base",
+    themeVariables: {
+      darkMode: true,
+      background: "#14161a",
+      primaryColor: "#1a1d22",
+      primaryTextColor: "#e7e7ea",
+      primaryBorderColor: "#3a3f47",
+      lineColor: "#6e7178",
+      secondaryColor: "#14161a",
+      tertiaryColor: "#1a1d22",
+      nodeBorder: "#3a3f47",
+      mainBkg: "#1a1d22",
+      fontFamily: "ui-monospace, JetBrains Mono, SF Mono, Menlo, monospace",
+      fontSize: "13px"
+    }
+  });
+  mermaid.run({ querySelector: ".mermaid" });
+
+  const slides = [...document.querySelectorAll(".slide")];
+  const total = slides.length;
+  document.getElementById("total").textContent = String(total).padStart(2, "0");
+
+  const dotsEl = document.getElementById("dots");
+  slides.forEach((s, i) => {
+    const d = document.createElement("div");
+    d.className = "dot" + (i === 0 ? " active" : "");
+    d.title = s.dataset.title || `Slide ${i+1}`;
+    d.addEventListener("click", () => goTo(i));
+    dotsEl.appendChild(d);
+  });
+  const dots = [...dotsEl.children];
+
+  let idx = 0;
+  function goTo(n){
+    idx = Math.max(0, Math.min(total - 1, n));
+    slides.forEach((s, i) => s.classList.toggle("active", i === idx));
+    dots.forEach((d, i) => d.classList.toggle("active", i === idx));
+    document.getElementById("cur").textContent = String(idx + 1).padStart(2, "0");
+  }
+
+  document.getElementById("prev").addEventListener("click", () => goTo(idx - 1));
+  document.getElementById("next").addEventListener("click", () => goTo(idx + 1));
+  window.addEventListener("keydown", e => {
+    if (e.key === "ArrowRight" || e.key === " " || e.key === "PageDown") { e.preventDefault(); goTo(idx + 1); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); goTo(idx - 1); }
+    else if (e.key === "Escape" || e.key === "Home") { e.preventDefault(); goTo(0); }
+    else if (e.key === "End") { e.preventDefault(); goTo(total - 1); }
+  });
+</script>
+
+</body>
+</html>
