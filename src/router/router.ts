@@ -71,6 +71,7 @@ function normalizeError(e: unknown): ProviderHttpError {
   return new ProviderHttpError("NETWORK", null, String(e));
 }
 
+// Task 4.8 — stub factory; real providers (openai-compatible / anthropic / google-genai) land in the next dispatch.
 export function createDefaultDeps(): RouterDeps {
   return {
     resolveProvider(ref) {
