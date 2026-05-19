@@ -3,15 +3,31 @@
   "version": "0.0.0",
   "description": "Bookkeeping engine for turn-based AI-narrated games (SNEQ V2)",
   "type": "module",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": { "types": "./dist/index.d.ts", "default": "./dist/index.js" },
-    "./sqlite": { "types": "./dist/repository/sqlite/index.d.ts", "default": "./dist/repository/sqlite/index.js" },
-    "./openai-compat": { "types": "./dist/router/providers/openai-compatible.d.ts", "default": "./dist/router/providers/openai-compatible.js" }
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./sqlite": {
+      "types": "./dist/repository/sqlite/index.d.ts",
+      "default": "./dist/repository/sqlite/index.js"
+    },
+    "./openai-compat": {
+      "types": "./dist/router/providers/openai-compatible.d.ts",
+      "default": "./dist/router/providers/openai-compatible.js"
+    }
   },
-  "files": ["dist", "skills", "docs/api.md", "README.md"],
+  "files": [
+    "dist",
+    "skills",
+    "docs/api.md",
+    "README.md"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "test": "vitest run",
@@ -21,19 +37,28 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "zod": "^3.23.0"
+    "zod": "^3.23.0",
+    "zod-to-json-schema": "^3.25.2"
   },
   "peerDependencies": {
-    "better-sqlite3": "^11.0.0",
-    "sqlite-vec": "^0.1.0",
     "@anthropic-ai/sdk": "^0.30.0",
-    "@google/generative-ai": "^0.21.0"
+    "@google/generative-ai": "^0.21.0",
+    "better-sqlite3": "^11.0.0",
+    "sqlite-vec": "^0.1.0"
   },
   "peerDependenciesMeta": {
-    "better-sqlite3": { "optional": true },
-    "sqlite-vec": { "optional": true },
-    "@anthropic-ai/sdk": { "optional": true },
-    "@google/generative-ai": { "optional": true }
+    "better-sqlite3": {
+      "optional": true
+    },
+    "sqlite-vec": {
+      "optional": true
+    },
+    "@anthropic-ai/sdk": {
+      "optional": true
+    },
+    "@google/generative-ai": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@anthropic-ai/sdk": "^0.30.0",
