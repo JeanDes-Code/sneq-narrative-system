@@ -1,6 +1,6 @@
 import type { Repository } from "./repository/interface.js";
 import type { Router } from "./router/router.js";
-import type { Resolver, ResolutionResult, SuggestionResult } from "./resolver/resolver.js";
+import type { Resolver, ResolutionResult, SuggestionResult, Embedder } from "./resolver/resolver.js";
 import type { UserPromptRegistry, AskUserFn } from "./hooks/user-prompt.js";
 import type { PreGenerationRegistry, PreGenerationHook } from "./hooks/pre-generation.js";
 import type { Logger } from "./logger.js";
@@ -18,6 +18,7 @@ export interface CampaignContextDeps {
   repo: Repository;
   router: Router;
   resolver: Resolver;
+  embedder: Embedder;
   userPrompt: UserPromptRegistry;
   preGen: PreGenerationRegistry;
   logger: Logger;
@@ -85,12 +86,14 @@ export class CampaignContext implements ToolCallContext {
       return { entityId: resolution.match.id, isNew: false, resolvedTo: resolution.match.id };
     }
     const id = asEntityID(`${input.type.toLowerCase()}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
+    const embeddingText = `${input.canonicalName}. ${input.description}`;
+    const embedding = await this.deps.embedder.embed(embeddingText);
     const entity: Entity = {
       campaignId: this.id, id, type: input.type, name: input.canonicalName,
       nomConnu: true,
       aliases: (input.aliases ?? []).map(text => ({ text, source: { kind: "GM_NARRATION" as const }, observedAt: Date.now() })),
       tags: [], createdAt: Date.now(),
-      embedding: null, embeddingRefreshedAt: null
+      embedding, embeddingRefreshedAt: Date.now()
     };
     await this.deps.repo.upsertEntity(entity);
     return { entityId: id, isNew: true };

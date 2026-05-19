@@ -27,18 +27,20 @@ export class Engine {
   private readonly logger: Logger;
   private readonly contexts = new Map<string, CampaignContext>();
 
+  private readonly embedder: Embedder;
+
   constructor(cfg: EngineConfig) {
     this.repo = cfg.repository;
-    this.router = new Router(cfg.router, createDefaultDeps());
+    this.router = new Router(cfg.router, cfg._routerDeps ?? createDefaultDeps());
     this.logger = cfg.logger ?? noopLogger;
-    const embedder: Embedder = {
+    this.embedder = {
       embed: async (text: string) => {
         const r = await this.router.embed({ texts: [text] });
         return r.vectors[0]!;
       }
     };
     this.resolver = new Resolver({
-      repo: this.repo, router: this.router, embedder,
+      repo: this.repo, router: this.router, embedder: this.embedder,
       userPromptRegistry: this.userPrompt,
       ...(cfg.resolver !== undefined ? { thresholds: cfg.resolver } : {})
     });
@@ -49,6 +51,7 @@ export class Engine {
     if (cached) return cached;
     const ctx = new CampaignContext({
       campaignId: id, repo: this.repo, router: this.router, resolver: this.resolver,
+      embedder: this.embedder,
       userPrompt: this.userPrompt, preGen: this.preGen, logger: this.logger
     });
     this.contexts.set(id, ctx);
