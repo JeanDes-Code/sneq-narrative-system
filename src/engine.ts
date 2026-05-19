@@ -33,6 +33,7 @@ export class Engine {
     this.repo = cfg.repository;
     this.router = new Router(cfg.router, cfg._routerDeps ?? createDefaultDeps());
     this.logger = cfg.logger ?? noopLogger;
+    this.preGen.setErrorHandler(err => this.logger.warn("pregen-hook error", { err: String(err) }));
     this.embedder = {
       embed: async (text: string) => {
         const r = await this.router.embed({ texts: [text] });
