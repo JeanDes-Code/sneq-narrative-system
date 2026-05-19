@@ -1,9 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { Engine } from "../src/engine.js";
 import { sqliteRepository } from "../src/repository/sqlite/factory.js";
-import { asCampaignId } from "../src/domain/ids.js";
+import { asCampaignId, asEntityID } from "../src/domain/ids.js";
 import type { RouterConfig } from "../src/router/interface.js";
 import type { Provider, ProviderRef, ChatRequest, EmbeddingRequest } from "../src/router/interface.js";
+import type { Observation } from "../src/domain/observation.js";
 
 function makeEmbedRouter(vec: number[]): { config: RouterConfig; deps: { resolveProvider(ref: ProviderRef): Provider } } {
   const ref: ProviderRef = { provider: "custom", apiKeyEnv: "_NOOP", model: "fake-embed" };
@@ -65,6 +66,49 @@ describe("CampaignContext · mentionEntity", () => {
     // Vector search must find the entity (same fake vector each time)
     const s = await c.suggestExisting("the smith", "PERSONNAGE");
     expect(s.candidates.length).toBeGreaterThan(0);
+    await engine.close();
+  });
+});
+
+describe("CampaignContext · registerFact", () => {
+  const observation: Observation = {
+    source: { kind: "GM_NARRATION" },
+    method: "DIRECT",
+    fiabilite: "CERTAINE"
+  };
+
+  it("returns factId: null when fact contradicts existing canon", async () => {
+    const { config, deps } = makeEmbedRouter([0.5, 0.5, 0.0]);
+    const engine = new Engine({
+      repository: sqliteRepository({ path: ":memory:", embeddingDim: 3 }),
+      router: config,
+      _routerDeps: deps
+    });
+    const c = await engine.createCampaign({ id: asCampaignId("c3"), name: "x", embeddingDim: 3 });
+    const entityId = asEntityID("ent1");
+
+    // Register the canonical fact
+    const first = await c.registerFact({
+      entityId,
+      attributeKey: "alignment",
+      value: { type: "STRING", value: "lawful-good" },
+      category: "PSYCHOLOGIE",
+      observation
+    });
+    expect(first.factId).not.toBeNull();
+    expect(first.contradictions).toHaveLength(0);
+
+    // Register a contradicting value
+    const second = await c.registerFact({
+      entityId,
+      attributeKey: "alignment",
+      value: { type: "STRING", value: "chaotic-evil" },
+      category: "PSYCHOLOGIE",
+      observation
+    });
+    expect(second.factId).toBeNull();
+    expect(second.contradictions.length).toBeGreaterThan(0);
+
     await engine.close();
   });
 });
