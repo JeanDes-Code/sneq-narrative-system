@@ -452,7 +452,7 @@ git commit -m "feat(domain): add Entity, Alias, EntityType"
 - [ ] **Step 1: Create `src/domain/attribute.ts`**
 
 ```ts
-import type { EntityID } from "./ids.js";
+import type { EntityID, FactId } from "./ids.js";
 import type { Observation } from "./observation.js";
 
 export type AttributValue =
@@ -475,7 +475,7 @@ export type CategorieAttribut =
   | "POSSESSION";
 
 export interface AttributFige {
-  factId: string;
+  factId: FactId;
   entityId: EntityID;
   key: string;
   value: AttributValue;
@@ -488,7 +488,7 @@ export interface AttributFige {
 - [ ] **Step 2: Create `src/domain/observation.ts`**
 
 ```ts
-import type { EntityID } from "./ids.js";
+import type { EntityID, SceneId } from "./ids.js";
 
 export type ObservationSource =
   | "GM_NARRATION"
@@ -510,7 +510,7 @@ export interface Observation {
   source: ObservationSource;
   method: ObservationMethod;
   emittedBy?: EntityID;
-  sceneId?: string;
+  sceneId?: SceneId;
   fiabilite: Fiabilite;
   excerpt?: string;
   timestamp: number;

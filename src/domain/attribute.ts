@@ -1,4 +1,4 @@
-import type { EntityID } from "./ids.js";
+import type { EntityID, FactId } from "./ids.js";
 import type { Observation } from "./observation.js";
 
 export type AttributValue =
@@ -21,7 +21,7 @@ export type CategorieAttribut =
   | "POSSESSION";
 
 export interface AttributFige {
-  factId: string;
+  factId: FactId;
   entityId: EntityID;
   key: string;
   value: AttributValue;
