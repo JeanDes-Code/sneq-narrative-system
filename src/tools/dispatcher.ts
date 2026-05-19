@@ -12,7 +12,7 @@ export interface ToolCallContext {
   getEntity(entityId: EntityID): Promise<Entity | null>;
   getRelevantFacts(entityId: EntityID, opts?: { attributeKeys?: string[]; depth?: number }): Promise<AttributFige[]>;
   mentionEntity(input: { canonicalName: string; type: EntityType; aliases?: string[]; sceneId?: string; description: string }): Promise<{ entityId: EntityID; isNew: boolean; resolvedTo?: EntityID }>;
-  registerFact(input: { entityId: EntityID; attributeKey: string; value: AttributValue; category: CategorieAttribut; observation: Observation }): Promise<{ factId: FactId; contradictions: AttributFige[] }>;
+  registerFact(input: { entityId: EntityID; attributeKey: string; value: AttributValue; category: CategorieAttribut; observation: Observation }): Promise<{ factId: FactId | null; contradictions: AttributFige[] }>;
   addConstraint(input: { entityId: EntityID; attributeKey: string; rule: RegleContrainte; justification: string }): Promise<{ constraintId: ContraintId }>;
   collapseAttribute(entityId: EntityID, attributeKey: string, opts?: { profondeur?: "MINIMAL" | "STANDARD" | "DETAILLE"; registre?: "NEUTRE" | "DRAMATIQUE" | "HUMORISTIQUE" | "SOMBRE" }): Promise<{ value: AttributValue; reasoning: string; propagation: { entitesImpactees: EntityID[] } }>;
   setScene(input: { locationEntityId: EntityID; presentEntityIds: EntityID[]; description: string }): Promise<{ sceneId: SceneId; turnNumber: number }>;

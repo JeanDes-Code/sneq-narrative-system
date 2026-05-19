@@ -99,14 +99,14 @@ export class CampaignContext implements ToolCallContext {
     return { entityId: id, isNew: true };
   }
 
-  async registerFact(input: RegisterFactInput): Promise<{ factId: FactId; contradictions: AttributFige[] }> {
+  async registerFact(input: RegisterFactInput): Promise<{ factId: FactId | null; contradictions: AttributFige[] }> {
     const existing = await this.deps.repo.queryFacts(this.id, {
       entityId: input.entityId,
       attributeKey: input.attributeKey
     });
     const contradictions = existing.filter(e => JSON.stringify(e.value) !== JSON.stringify(input.value));
     if (contradictions.length > 0) {
-      return { factId: asFactId("none"), contradictions };
+      return { factId: null, contradictions };
     }
     const factId = asFactId(`f_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
     const latest = await this.deps.repo.latestTurn(this.id);
