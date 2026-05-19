@@ -13,6 +13,7 @@ import type { CampaignId, EntityID, FactId } from "../../domain/ids.js";
 import { asCampaignId, asFactId } from "../../domain/ids.js";
 import { runMigrations } from "./migrations.js";
 import { loadVec, ensureVecTable, upsertVec, searchVec } from "./vec.js";
+import { normalizeAlias } from "../../resolver/normalize.js";
 import {
   entityToRow, rowToEntity, type EntityRow,
   figedToRow, rowToFiged, type FigedRow,
@@ -83,9 +84,14 @@ export class SqliteRepository implements Repository {
       });
 
       this.db.prepare(`DELETE FROM aliases_norm WHERE campaign_id = ? AND entity_id = ?`).run(e.campaignId, e.id);
-      const ins = this.db.prepare(`INSERT INTO aliases_norm (campaign_id, entity_id, normalized) VALUES (?, ?, ?)`);
-      ins.run(e.campaignId, e.id, normalize(e.name));
-      for (const a of e.aliases) ins.run(e.campaignId, e.id, normalize(a.text));
+      const ins = this.db.prepare(`INSERT OR IGNORE INTO aliases_norm (campaign_id, entity_id, normalized) VALUES (?, ?, ?)`);
+      const insertAlias = (text: string) => {
+        ins.run(e.campaignId, e.id, normalize(text));
+        const stripped = normalizeAlias(text);
+        if (stripped !== normalize(text)) ins.run(e.campaignId, e.id, stripped);
+      };
+      insertAlias(e.name);
+      for (const a of e.aliases) insertAlias(a.text);
 
       if (r._embedding) {
         upsertVec(this.db, e.id, e.embedding!);

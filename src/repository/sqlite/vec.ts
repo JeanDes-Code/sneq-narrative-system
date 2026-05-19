@@ -27,9 +27,8 @@ export function upsertVec(db: BetterSqlite3.Database, entityId: string, vec: Flo
 export function searchVec(db: BetterSqlite3.Database, vec: Float32Array, topK: number): Array<{ entity_id: string; distance: number }> {
   const buf = Buffer.from(vec.buffer, vec.byteOffset, vec.byteLength);
   return db.prepare(`
-    SELECT entity_id, distance
+    SELECT entity_id, vec_distance_cosine(embedding, ?) AS distance
     FROM entity_vec
-    WHERE embedding MATCH ?
     ORDER BY distance
     LIMIT ?
   `).all(buf, topK) as Array<{ entity_id: string; distance: number }>;
