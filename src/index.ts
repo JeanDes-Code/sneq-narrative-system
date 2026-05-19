@@ -65,3 +65,12 @@ export { PreGenerationRegistry, noopPreGenerationHook } from "./hooks/pre-genera
 
 // Logger
 export { type Logger, noopLogger } from "./logger.js";
+
+// Validation utility (for consumers composing their own collapse)
+export {
+  validateValue,
+  type ValidationContext, type ValidationResult, type ValidationFailure, type Avertissement
+} from "./core/validation.js";
+
+// Propagation utility (for consumers composing manual propagation after fact registration)
+export { propagate, type PropagationInput, type PropagationResult, type ContraintePropagee } from "./core/propagation.js";
