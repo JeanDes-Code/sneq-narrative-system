@@ -6,7 +6,7 @@
 
 **Architecture:** Single npm package, ESM-first, Node 20+. Internal modules: domain types → core logic → repository (SQLite reference) → router (provider abstraction with fallback) → resolver (layered cascade) → tools (LLM tool-call schemas) → engine facade. All modules pure-functional or with injectable I/O; no global state.
 
-**Tech Stack:** TypeScript 5.4+, Vitest 2.x, `better-sqlite3` 11.x, `sqlite-vec`, Zod 3.x, TypeDoc 0.26+, pnpm 9.x. No runtime framework — plain Node.
+**Tech Stack:** TypeScript 5.4+, Vitest 2.x, `better-sqlite3` 11.x, `sqlite-vec`, Zod 3.x, TypeDoc 0.28+, pnpm 9.x. No runtime framework — plain Node.
 
 ---
 
@@ -171,8 +171,8 @@ Outcome: empty package compiles, vitest runs, one passing smoke test.
     "@types/node": "^20.12.0",
     "better-sqlite3": "^11.0.0",
     "sqlite-vec": "^0.1.0",
-    "typedoc": "^0.26.0",
-    "typedoc-plugin-markdown": "^4.0.0",
+    "typedoc": "^0.28.0",
+    "typedoc-plugin-markdown": "^4.2.0",
     "typescript": "^5.4.0",
     "vitest": "^2.0.0"
   }
@@ -186,10 +186,13 @@ git add package.json
 git commit -m "chore: init package.json for @sneq/engine"
 ```
 
-### Task 0.2: TypeScript config
+### Task 0.2: TypeScript config (split — IDE + build)
 
 **Files:**
-- Create: `tsconfig.json`
+- Create: `tsconfig.json` (IDE-facing, covers all TS, `noEmit`)
+- Create: `tsconfig.build.json` (build-only, emits to `dist/` from `src/`)
+
+We split the TS config in two so the IDE can typecheck `vitest.config.ts` (a root-level file outside `src/`) without polluting the published build output. The IDE picks up `tsconfig.json` by default; `pnpm build` explicitly uses `tsconfig.build.json`.
 
 - [ ] **Step 1: Create `tsconfig.json`**
 
@@ -200,11 +203,8 @@ git commit -m "chore: init package.json for @sneq/engine"
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "lib": ["ES2022"],
-    "outDir": "./dist",
-    "rootDir": "./src",
+    "types": ["node"],
     "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
     "strict": true,
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
@@ -213,18 +213,44 @@ git commit -m "chore: init package.json for @sneq/engine"
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
     "resolveJsonModule": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "noEmit": true
   },
-  "include": ["src/**/*"],
-  "exclude": ["dist", "node_modules", "test"]
+  "include": ["src/**/*", "test/**/*", "vitest.config.ts"]
 }
 ```
 
-- [ ] **Step 2: Commit**
+- [ ] **Step 2: Create `tsconfig.build.json`**
+
+```json
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "declarationMap": true,
+    "sourceMap": true,
+    "noEmit": false
+  },
+  "include": ["src/**/*"],
+  "exclude": ["dist", "node_modules", "test", "vitest.config.ts"]
+}
+```
+
+- [ ] **Step 3: Update `package.json` scripts**
+
+```diff
+-    "build": "tsc -p tsconfig.json",
+-    "typecheck": "tsc -p tsconfig.json --noEmit",
++    "build": "tsc -p tsconfig.build.json",
++    "typecheck": "tsc -p tsconfig.json",
+```
+
+- [ ] **Step 4: Commit**
 
 ```bash
-git add tsconfig.json
-git commit -m "chore: add TypeScript config (NodeNext ESM, strict)"
+git add tsconfig.json tsconfig.build.json package.json
+git commit -m "chore: add TypeScript config (split IDE + build, NodeNext ESM, strict)"
 ```
 
 ### Task 0.3: Vitest config
