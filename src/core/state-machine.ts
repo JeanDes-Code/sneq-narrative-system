@@ -2,6 +2,7 @@ import type { EtatAttribut } from "../domain/potentialite.js";
 
 const ALLOWED: ReadonlyArray<[EtatAttribut, EtatAttribut]> = [
   ["INDEFINI", "CONTRAINT"],
+  // Direct observation collapses straight to FIGE without passing CONTRAINT.
   ["INDEFINI", "FIGE"],
   ["CONTRAINT", "FIGE"]
 ];
