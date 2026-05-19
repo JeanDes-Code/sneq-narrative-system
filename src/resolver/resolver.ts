@@ -98,8 +98,7 @@ export class Resolver {
         match: chosen,
         confidence: chosen ? 0.9 : 0,
         candidates: hits.map(h => h.entity),
-        layerUsed: "user-prompt",
-        reasoning: j.reasoning
+        layerUsed: "user-prompt"
       };
     }
 
