@@ -6,6 +6,14 @@ import type { Entity } from "../../src/domain/entity.js";
 let repo: SqliteRepository;
 const cid = asCampaignId("c1");
 
+function someEntity(id: string): Entity {
+  return {
+    campaignId: cid, id: asEntityID(id), type: "PERSONNAGE", name: id,
+    nomConnu: true, aliases: [], tags: [], createdAt: 0,
+    embedding: null, embeddingRefreshedAt: null
+  };
+}
+
 beforeEach(async () => {
   repo = new SqliteRepository({ path: ":memory:", embeddingDim: 4 });
   await repo.createCampaign({ id: cid, name: "Test", createdAt: 0, embeddingDim: 4 });
@@ -66,5 +74,19 @@ describe("SqliteRepository · campaigns + entities", () => {
   it("returns null for unknown entity", async () => {
     const got = await repo.getEntity(cid, asEntityID("nope"));
     expect(got).toBeNull();
+  });
+});
+
+describe("SqliteRepository · transaction serialization", () => {
+  it("serializes concurrent transactions", async () => {
+    const [a, b] = await Promise.all([
+      repo.transaction(async (tx) => { await tx.upsertEntity(someEntity("X")); return "a"; }),
+      repo.transaction(async (tx) => { await tx.upsertEntity(someEntity("Y")); return "b"; })
+    ]);
+    expect([a, b]).toEqual(["a", "b"]);
+    const x = await repo.getEntity(cid, asEntityID("X"));
+    const y = await repo.getEntity(cid, asEntityID("Y"));
+    expect(x).not.toBeNull();
+    expect(y).not.toBeNull();
   });
 });

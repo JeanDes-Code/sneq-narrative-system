@@ -31,6 +31,7 @@ export interface SqliteRepositoryOptions {
 export class SqliteRepository implements Repository {
   private readonly db: BetterSqlite3.Database;
   private readonly dim: number;
+  private txChain: Promise<unknown> = Promise.resolve();
 
   constructor(opts: SqliteRepositoryOptions) {
     this.db = new Database(opts.path, { readonly: opts.readonly ?? false });
@@ -281,16 +282,23 @@ export class SqliteRepository implements Repository {
 
   // Manual BEGIN/COMMIT so the transaction lifetime matches the async fn's await.
   // better-sqlite3's .transaction() wrapper is sync-only and would commit before fn resolves.
+  // A promise-chain mutex (txChain) serializes concurrent callers to prevent
+  // "cannot start a transaction within a transaction" errors.
   async transaction<T>(fn: (tx: Repository) => Promise<T>): Promise<T> {
-    this.db.exec("BEGIN");
-    try {
-      const result = await fn(this);
-      this.db.exec("COMMIT");
-      return result;
-    } catch (e) {
-      this.db.exec("ROLLBACK");
-      throw e;
-    }
+    const result = this.txChain.then(async () => {
+      this.db.exec("BEGIN");
+      try {
+        const r = await fn(this);
+        this.db.exec("COMMIT");
+        return r;
+      } catch (e) {
+        this.db.exec("ROLLBACK");
+        throw e;
+      }
+    });
+    // Chain advances even if the inner promise rejects
+    this.txChain = result.catch(() => undefined);
+    return result;
   }
 
   async close(): Promise<void> {
