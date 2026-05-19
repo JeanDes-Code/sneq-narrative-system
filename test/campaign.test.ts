@@ -6,6 +6,7 @@ import type { RouterConfig } from "../src/router/interface.js";
 import type { Provider, ProviderRef, ChatRequest, EmbeddingRequest } from "../src/router/interface.js";
 import type { Observation } from "../src/domain/observation.js";
 
+
 function makeEmbedRouter(vec: number[]): { config: RouterConfig; deps: { resolveProvider(ref: ProviderRef): Provider } } {
   const ref: ProviderRef = { provider: "custom", apiKeyEnv: "_NOOP", model: "fake-embed" };
   const provider: Provider = {
@@ -72,9 +73,10 @@ describe("CampaignContext · mentionEntity", () => {
 
 describe("CampaignContext · registerFact", () => {
   const observation: Observation = {
-    source: { kind: "GM_NARRATION" },
-    method: "DIRECT",
-    fiabilite: "CERTAINE"
+    source: "GM_NARRATION",
+    method: "OBSERVATION_VISUELLE",
+    fiabilite: "CERTAINE",
+    timestamp: 0
   };
 
   it("returns factId: null when fact contradicts existing canon", async () => {
