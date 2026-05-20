@@ -2,6 +2,8 @@ import type { Engine } from "../engine.js";
 import type { ParsedInvocation, RunDeps } from "./types.js";
 import { CliError, formatError } from "./errors.js";
 import { asCampaignId } from "../domain/ids.js";
+import { dispatchToolCall } from "../tools/dispatcher.js";
+import { buildObservation } from "./observation.js";
 
 export interface FullRunDeps extends RunDeps {
   engine: Engine;
@@ -14,6 +16,22 @@ export async function run(invocation: ParsedInvocation, deps: FullRunDeps): Prom
     const f = formatError(err);
     deps.stdout.write(f.json + "\n");
     return f.exitCode;
+  }
+}
+
+async function readStdinJson(stdin: NodeJS.ReadableStream): Promise<unknown | undefined> {
+  if ((stdin as { isTTY?: boolean }).isTTY) return undefined;
+  let buf = "";
+  for await (const chunk of stdin as AsyncIterable<Buffer | string>) {
+    buf += typeof chunk === "string" ? chunk : chunk.toString("utf8");
+    if (buf.length > 1_000_000) throw new CliError("INVALID_ARGS", "stdin payload exceeds 1 MB");
+  }
+  const trimmed = buf.trim();
+  if (trimmed.length === 0) return undefined;
+  try {
+    return JSON.parse(trimmed);
+  } catch (err) {
+    throw new CliError("INVALID_ARGS", `stdin is not valid JSON: ${(err as Error).message}`);
   }
 }
 
@@ -51,7 +69,54 @@ async function dispatch(inv: ParsedInvocation, deps: FullRunDeps): Promise<numbe
       deps.stdout.write(JSON.stringify({ campaignId: inv.campaign, created: true }) + "\n");
       return 0;
     }
-    default:
-      throw new CliError("INTERNAL_ERROR", `command not yet wired: ${inv.command}`);
+    case "get-scene": {
+      const campaign = deps.engine.campaign(campaignId);
+      const scene = await campaign.currentScene();
+      deps.stdout.write(JSON.stringify(scene) + "\n");
+      return 0;
+    }
+    default: {
+      // 10 tool commands: kebab-case → sneq__snake_case
+      const toolName = `sneq__${inv.command.replaceAll("-", "_")}`;
+      const finalArgs = await assembleToolArgs(inv, deps, args);
+      const campaign = deps.engine.campaign(campaignId);
+      const result = await dispatchToolCall(toolName, finalArgs, campaign);
+      deps.stdout.write(JSON.stringify(result) + "\n");
+      return 0;
+    }
   }
+}
+
+async function assembleToolArgs(
+  inv: ParsedInvocation,
+  deps: FullRunDeps,
+  inlineArgs: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  let merged: Record<string, unknown> = { ...inlineArgs };
+  if (inv.argsInline === undefined) {
+    const fromStdin = await readStdinJson(deps.stdin);
+    if (fromStdin && typeof fromStdin === "object") {
+      merged = { ...(fromStdin as Record<string, unknown>) };
+    }
+  }
+  if (inv.command === "register-fact" && merged["observation"] === undefined) {
+    const sceneId = await currentSceneId(deps, campaignIdFromInv(inv));
+    merged["observation"] = buildObservation(
+      inv.source,
+      inv.observationOverride,
+      sceneId
+    );
+  }
+  return merged;
+}
+
+function campaignIdFromInv(inv: ParsedInvocation): string {
+  // inv.campaign is asserted non-null at this point (dispatch checks earlier).
+  return inv.campaign!;
+}
+
+async function currentSceneId(deps: FullRunDeps, campaignIdStr: string): Promise<string | undefined> {
+  const ctx = deps.engine.campaign(asCampaignId(campaignIdStr));
+  const scene = await ctx.currentScene();
+  return scene?.id;
 }
