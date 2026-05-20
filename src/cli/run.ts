@@ -1,6 +1,7 @@
 import type { Engine } from "../engine.js";
 import type { ParsedInvocation, RunDeps } from "./types.js";
 import { CliError, formatError } from "./errors.js";
+import { helpText } from "./help.js";
 import { asCampaignId } from "../domain/ids.js";
 import { dispatchToolCall } from "../tools/dispatcher.js";
 import { buildObservation } from "./observation.js";
@@ -36,13 +37,13 @@ async function readStdinJson(stdin: NodeJS.ReadableStream): Promise<unknown | un
 }
 
 async function dispatch(inv: ParsedInvocation, deps: FullRunDeps): Promise<number> {
+  if (inv.command === "help" || inv.help) {
+    const target = (inv.command !== "help" && inv.command !== "unknown") ? inv.command : undefined;
+    deps.stdout.write(helpText(target));
+    return 0;
+  }
   if (inv.command === "unknown") {
     throw new CliError("UNKNOWN_COMMAND", `unknown command: ${inv.rawCommand}`);
-  }
-  if (inv.command === "help" || inv.help) {
-    // Help text rendering arrives in a later task.
-    deps.stdout.write("sneq-engine: help not yet implemented\n");
-    return 0;
   }
   if (!inv.db) throw new CliError("INVALID_ARGS", "--db is required");
   if (!inv.campaign) throw new CliError("INVALID_ARGS", "--campaign is required");
