@@ -264,4 +264,21 @@ describe("CLI e2e — 10 tool commands", () => {
     ], '{"canonicalName":"Aldric","type":"PERSONNAGE","description":"smith"}');
     expect((mention.out as { isNew: boolean }).isNew).toBe(true);
   });
+
+  it("register-fact returns exit 0 with contradictions when fact already figed", async () => {
+    const mention = await call([
+      "mention-entity", "--db", dbPath, "--campaign", "c1",
+      "--args", '{"canonicalName":"Aldric","type":"PERSONNAGE","description":"smith"}'
+    ]);
+    const entityId = (mention.out as { entityId: string }).entityId;
+    const baseArgs = (val: string) => JSON.stringify({
+      entityId, attributeKey: "metier", category: "HISTORIQUE",
+      value: { type: "STRING", value: val }
+    });
+    await call(["register-fact", "--db", dbPath, "--campaign", "c1", "--args", baseArgs("capitaine")]);
+    const second = await call(["register-fact", "--db", dbPath, "--campaign", "c1", "--args", baseArgs("simple soldat")]);
+    expect(second.code).toBe(0);
+    expect((second.out as { factId: string | null; contradictions: unknown[] }).factId).toBeNull();
+    expect((second.out as { contradictions: unknown[] }).contradictions.length).toBeGreaterThan(0);
+  });
 });
