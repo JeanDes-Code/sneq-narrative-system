@@ -281,4 +281,22 @@ describe("CLI e2e — 10 tool commands", () => {
     expect((second.out as { factId: string | null; contradictions: unknown[] }).factId).toBeNull();
     expect((second.out as { contradictions: unknown[] }).contradictions.length).toBeGreaterThan(0);
   });
+
+  it("lookup-entity returns candidates when ambiguous, never prompts", async () => {
+    await call([
+      "mention-entity", "--db", dbPath, "--campaign", "c1",
+      "--args", '{"canonicalName":"Captain Aldric","type":"PERSONNAGE","description":"old guard captain"}'
+    ]);
+    await call([
+      "mention-entity", "--db", dbPath, "--campaign", "c1",
+      "--args", '{"canonicalName":"Captain Brennus","type":"PERSONNAGE","description":"new guard captain"}'
+    ]);
+    const r = await call([
+      "lookup-entity", "--db", dbPath, "--campaign", "c1",
+      "--args", '{"mention":"the captain","type":"PERSONNAGE"}'
+    ]);
+    expect(r.code).toBe(0);
+    const out = r.out as { candidates: unknown[] };
+    expect(Array.isArray(out.candidates)).toBe(true);
+  });
 });
