@@ -85,6 +85,41 @@ if (r.match) {
 }
 ```
 
+## CLI usage (out-of-process consumers)
+
+For agents that can't (or don't want to) embed the TypeScript library — Hermes-Agent
+on Discord, scripts in other languages, smoke-test sessions — install the package and
+use the `sneq-engine` binary. Every call reads/writes a single line of JSON on stdout.
+
+```bash
+# Create a campaign
+sneq-engine init-campaign --db ./campaign.db --campaign sang-artemis \
+  --args '{"name":"Le Sang dArtemis","embeddingDim":768}'
+
+# Resolve a mention
+sneq-engine lookup-entity --db ./campaign.db --campaign sang-artemis \
+  --args '{"mention":"the blacksmith","type":"PERSONNAGE"}'
+
+# Register a fact (observation provenance via --source preset)
+sneq-engine register-fact --db ./campaign.db --campaign sang-artemis \
+  --source gm-narration \
+  --args '{"entityId":"ent_abc","attributeKey":"metier","category":"HISTORIQUE","value":{"type":"STRING","value":"capitaine"}}'
+
+# Args via stdin work too
+echo '{"entityId":"ent_abc"}' | sneq-engine get-entity --db ./campaign.db --campaign sang-artemis
+```
+
+- 12 commands: the 10 tool dispatcher entries (`lookup-entity`, `get-entity`,
+  `get-relevant-facts`, `suggest-existing`, `mention-entity`, `register-fact`,
+  `add-constraint`, `collapse-attribute`, `set-scene`, `advance-turn`) plus two
+  conveniences (`init-campaign`, `get-scene`).
+- Exit codes: `0` on success, `1` on user/validation errors, `2` on internal errors.
+- Errors emit `{"error":"…","code":"…","details":…}` on stdout — never on stderr.
+- Provider keys (`ANTHROPIC_API_KEY`, `MISTRAL_API_KEY`, etc.) are read from env.
+  Use `--config <path>` to override the router config.
+- Run `sneq-engine --help` or `sneq-engine <command> --help` for usage details.
+- Full spec: [`docs/superpowers/specs/2026-05-20-sneq-cli-design.md`](docs/superpowers/specs/2026-05-20-sneq-cli-design.md).
+
 ## Wiring as agent tools
 
 ```ts
