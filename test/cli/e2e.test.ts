@@ -309,3 +309,32 @@ describe("CLI e2e — 10 tool commands", () => {
     expect((r.out as { code: string }).code).toBe("VALIDATION_FAILED");
   });
 });
+
+describe("CLI e2e — help", () => {
+  let tmp: string;
+  let dbPath: string;
+  beforeEach(() => { tmp = mkdtempSync(join(tmpdir(), "sneq-cli-help-")); dbPath = join(tmp, "h.db"); });
+  afterEach(() => { rmSync(tmp, { recursive: true, force: true }); });
+
+  it("--help (no command) prints general help", async () => {
+    const engine = makeEngine(dbPath);
+    const out = captureStdout();
+    const code = await run(parseArgv(["--help"]), { stdin: emptyStdin(), stdout: out.stream, engine });
+    expect(code).toBe(0);
+    const text = out.lines.join("");
+    expect(text).toMatch(/sneq-engine — narrative-state engine CLI/);
+    expect(text).toMatch(/init-campaign/);
+    await engine.close();
+  });
+
+  it("<cmd> --help prints command-specific help", async () => {
+    const engine = makeEngine(dbPath);
+    const out = captureStdout();
+    const code = await run(parseArgv(["register-fact", "--help"]), {
+      stdin: emptyStdin(), stdout: out.stream, engine
+    });
+    expect(code).toBe(0);
+    expect(out.lines.join("")).toMatch(/sneq-engine register-fact/);
+    await engine.close();
+  });
+});
