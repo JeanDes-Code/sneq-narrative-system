@@ -116,3 +116,152 @@ describe("CLI e2e — campaign precheck", () => {
     await engine.close();
   });
 });
+
+describe("CLI e2e — 10 tool commands", () => {
+  let tmp: string;
+  let dbPath: string;
+  let engine: Engine;
+  beforeEach(async () => {
+    tmp = mkdtempSync(join(tmpdir(), "sneq-cli-"));
+    dbPath = join(tmp, "c.db");
+    engine = makeEngine(dbPath);
+    const inv = parseArgv([
+      "init-campaign", "--db", dbPath, "--campaign", "c1",
+      "--args", '{"name":"Test","embeddingDim":3}'
+    ]);
+    await run(inv, { stdin: emptyStdin(), stdout: captureStdout().stream, engine });
+  });
+  afterEach(async () => {
+    await engine.close();
+    rmSync(tmp, { recursive: true, force: true });
+  });
+
+  async function call(argv: string[], stdinPayload?: string): Promise<{ code: number; out: unknown }> {
+    const out = captureStdout();
+    const stdin = stdinPayload === undefined ? emptyStdin() : Readable.from([stdinPayload]);
+    const code = await run(parseArgv(argv), { stdin, stdout: out.stream, engine });
+    const text = out.lines.join("").trim();
+    return { code, out: text ? JSON.parse(text) : null };
+  }
+
+  it("lookup-entity returns match:null for an unknown mention", async () => {
+    const r = await call([
+      "lookup-entity", "--db", dbPath, "--campaign", "c1",
+      "--args", '{"mention":"the smith","type":"PERSONNAGE"}'
+    ]);
+    expect(r.code).toBe(0);
+    expect((r.out as { match: unknown }).match).toBeNull();
+  });
+
+  it("mention-entity creates a new entity", async () => {
+    const r = await call([
+      "mention-entity", "--db", dbPath, "--campaign", "c1",
+      "--args", '{"canonicalName":"Aldric","type":"PERSONNAGE","description":"A grizzled smith"}'
+    ]);
+    expect(r.code).toBe(0);
+    expect((r.out as { isNew: boolean }).isNew).toBe(true);
+  });
+
+  it("register-fact fills observation from --source default", async () => {
+    const mention = await call([
+      "mention-entity", "--db", dbPath, "--campaign", "c1",
+      "--args", '{"canonicalName":"Aldric","type":"PERSONNAGE","description":"smith"}'
+    ]);
+    const entityId = (mention.out as { entityId: string }).entityId;
+    const r = await call([
+      "register-fact", "--db", dbPath, "--campaign", "c1",
+      "--args", JSON.stringify({
+        entityId, attributeKey: "metier", category: "HISTORIQUE",
+        value: { type: "STRING", value: "capitaine" }
+      })
+    ]);
+    expect(r.code).toBe(0);
+    expect((r.out as { factId: string | null }).factId).not.toBeNull();
+  });
+
+  it("register-fact accepts --source player-utterance", async () => {
+    const mention = await call([
+      "mention-entity", "--db", dbPath, "--campaign", "c1",
+      "--args", '{"canonicalName":"Aldric","type":"PERSONNAGE","description":"smith"}'
+    ]);
+    const entityId = (mention.out as { entityId: string }).entityId;
+    const r = await call([
+      "register-fact", "--db", dbPath, "--campaign", "c1",
+      "--source", "player-utterance",
+      "--args", JSON.stringify({
+        entityId, attributeKey: "rumeur", category: "HISTORIQUE",
+        value: { type: "STRING", value: "déserteur" }
+      })
+    ]);
+    expect(r.code).toBe(0);
+    const facts = await call([
+      "get-relevant-facts", "--db", dbPath, "--campaign", "c1",
+      "--args", JSON.stringify({ entityId, attributeKeys: ["rumeur"] })
+    ]);
+    expect((facts.out as Array<{ observation: { fiabilite: string } }>)[0]?.observation.fiabilite).toBe("TEMOIGNAGE");
+  });
+
+  it("set-scene + advance-turn round-trip", async () => {
+    const loc = await call([
+      "mention-entity", "--db", dbPath, "--campaign", "c1",
+      "--args", '{"canonicalName":"Forge","type":"LIEU","description":"a smoky forge"}'
+    ]);
+    const locId = (loc.out as { entityId: string }).entityId;
+    const set = await call([
+      "set-scene", "--db", dbPath, "--campaign", "c1",
+      "--args", JSON.stringify({
+        locationEntityId: locId, presentEntityIds: [locId], description: "evening"
+      })
+    ]);
+    expect(set.code).toBe(0);
+    expect((set.out as { turnNumber: number }).turnNumber).toBeGreaterThan(0);
+    const turn = await call([
+      "advance-turn", "--db", dbPath, "--campaign", "c1",
+      "--args", '{"summary":"ok"}'
+    ]);
+    expect((turn.out as { turnNumber: number }).turnNumber).toBeGreaterThan(
+      (set.out as { turnNumber: number }).turnNumber
+    );
+  });
+
+  it("get-entity returns the entity by id", async () => {
+    const mention = await call([
+      "mention-entity", "--db", dbPath, "--campaign", "c1",
+      "--args", '{"canonicalName":"Aldric","type":"PERSONNAGE","description":"smith"}'
+    ]);
+    const entityId = (mention.out as { entityId: string }).entityId;
+    const r = await call([
+      "get-entity", "--db", dbPath, "--campaign", "c1",
+      "--args", JSON.stringify({ entityId })
+    ]);
+    expect((r.out as { id: string; name: string }).name).toBe("Aldric");
+  });
+
+  it("suggest-existing returns recommendsNew:true on empty world", async () => {
+    const r = await call([
+      "suggest-existing", "--db", dbPath, "--campaign", "c1",
+      "--args", '{"mention":"a smith","type":"PERSONNAGE"}'
+    ]);
+    expect((r.out as { recommendsNew: boolean }).recommendsNew).toBe(true);
+  });
+
+  it("get-relevant-facts returns [] for an entity with no facts", async () => {
+    const mention = await call([
+      "mention-entity", "--db", dbPath, "--campaign", "c1",
+      "--args", '{"canonicalName":"Aldric","type":"PERSONNAGE","description":"smith"}'
+    ]);
+    const entityId = (mention.out as { entityId: string }).entityId;
+    const r = await call([
+      "get-relevant-facts", "--db", dbPath, "--campaign", "c1",
+      "--args", JSON.stringify({ entityId })
+    ]);
+    expect(r.out).toEqual([]);
+  });
+
+  it("reads args from stdin when --args is absent", async () => {
+    const mention = await call([
+      "mention-entity", "--db", dbPath, "--campaign", "c1"
+    ], '{"canonicalName":"Aldric","type":"PERSONNAGE","description":"smith"}');
+    expect((mention.out as { isNew: boolean }).isNew).toBe(true);
+  });
+});
