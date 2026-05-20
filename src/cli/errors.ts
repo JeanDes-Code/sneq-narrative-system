@@ -1,3 +1,4 @@
+import { ZodError } from "zod";
 import { SneqValidationError, SneqContradictionError, SneqProviderError } from "../errors.js";
 
 export type ErrorCode =
@@ -65,6 +66,16 @@ export function formatError(err: unknown): FormattedError {
         error: err.message,
         code: "PROVIDER_ERROR",
         details: { tier: err.tier, exhausted: err.exhausted }
+      }),
+      exitCode: 1
+    };
+  }
+  if (err instanceof ZodError) {
+    return {
+      json: JSON.stringify({
+        error: "args validation failed",
+        code: "VALIDATION_FAILED",
+        details: err.issues
       }),
       exitCode: 1
     };

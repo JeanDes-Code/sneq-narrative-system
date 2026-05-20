@@ -299,4 +299,13 @@ describe("CLI e2e — 10 tool commands", () => {
     const out = r.out as { candidates: unknown[] };
     expect(Array.isArray(out.candidates)).toBe(true);
   });
+
+  it("returns VALIDATION_FAILED on bad args shape", async () => {
+    const r = await call([
+      "register-fact", "--db", dbPath, "--campaign", "c1",
+      "--args", '{"entityId":"x"}'  // missing attributeKey, value, category
+    ]);
+    expect(r.code).toBe(1);
+    expect((r.out as { code: string }).code).toBe("VALIDATION_FAILED");
+  });
 });
