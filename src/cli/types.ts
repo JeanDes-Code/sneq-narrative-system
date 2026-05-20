@@ -30,8 +30,3 @@ export interface ParsedInvocation {
   argsInline: unknown | undefined;
   help: boolean;
 }
-
-export interface RunDeps {
-  stdin: NodeJS.ReadableStream;
-  stdout: NodeJS.WritableStream;
-}

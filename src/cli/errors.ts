@@ -50,6 +50,8 @@ export function formatError(err: unknown): FormattedError {
       exitCode: 1
     };
   }
+  // Defensive: registerFact currently returns contradictions as a resolved value (exit 0),
+  // but other code paths may throw SneqContradictionError. Map to VALIDATION_FAILED to be safe.
   if (err instanceof SneqContradictionError) {
     return {
       json: JSON.stringify({
