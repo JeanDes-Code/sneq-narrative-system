@@ -7,7 +7,7 @@ const SOURCE_PRESETS: ReadonlySet<SourcePreset> = new Set([
 ]);
 
 const FLAGS_WITH_VALUE = new Set([
-  "--db", "--campaign", "--config", "--source", "--observation", "--args"
+  "--db", "--campaign", "--config", "--source", "--observation", "--args", "--embedding-dim"
 ]);
 
 export function parseArgv(argv: string[]): ParsedInvocation {
@@ -20,6 +20,7 @@ export function parseArgv(argv: string[]): ParsedInvocation {
   let observationOverride: ParsedInvocation["observationOverride"];
   let argsInline: unknown | undefined;
   let help = false;
+  let embeddingDim: number | undefined;
 
   let i = 0;
 
@@ -66,6 +67,14 @@ export function parseArgv(argv: string[]): ParsedInvocation {
         break;
       case "--observation": observationOverride = parseJsonFlag("--observation", next) as Partial<Observation> | undefined; break;
       case "--args": argsInline = parseJsonFlag("--args", next); break;
+      case "--embedding-dim": {
+        const parsed = Number(next);
+        if (!Number.isInteger(parsed) || parsed <= 0) {
+          throw new CliError("INVALID_ARGS", `--embedding-dim must be a positive integer, got: ${next}`);
+        }
+        embeddingDim = parsed;
+        break;
+      }
     }
     i += 2;
   }
@@ -83,7 +92,8 @@ export function parseArgv(argv: string[]): ParsedInvocation {
     source,
     observationOverride,
     argsInline,
-    help
+    help,
+    embeddingDim
   };
 }
 

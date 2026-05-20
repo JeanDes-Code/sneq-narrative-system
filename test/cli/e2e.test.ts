@@ -78,7 +78,27 @@ describe("CLI e2e — init-campaign", () => {
     const code = await run(invocation, { stdin: emptyStdin(), stdout: out.stream, engine });
     expect(code).toBe(0);
     const payload = JSON.parse(out.lines.join("").trim());
-    expect(payload).toEqual({ campaignId: "c1", created: true });
+    expect(payload).toEqual({ campaignId: "c1", created: true, embeddingDim: 3 });
+    await engine.close();
+  });
+
+  it("--embedding-dim flag overrides the default dim and is echoed in output", async () => {
+    const router = makeFakeRouter(new Array(8).fill(0.1));
+    const engine = new Engine({
+      repository: sqliteRepository({ path: dbPath, embeddingDim: 8 }),
+      router: router.config,
+      _routerDeps: router.deps
+    });
+    const out = captureStdout();
+    const invocation = parseArgv([
+      "init-campaign", "--db", dbPath, "--campaign", "dimtest",
+      "--embedding-dim", "8",
+      "--args", '{"name":"DimTest"}'
+    ]);
+    const code = await run(invocation, { stdin: emptyStdin(), stdout: out.stream, engine });
+    expect(code).toBe(0);
+    const payload = JSON.parse(out.lines.join("").trim());
+    expect(payload).toEqual({ campaignId: "dimtest", created: true, embeddingDim: 8 });
     await engine.close();
   });
 

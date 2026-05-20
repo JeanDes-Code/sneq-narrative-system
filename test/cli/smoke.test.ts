@@ -29,8 +29,9 @@ describe("CLI smoke (built binary)", () => {
     const db = join(tmp, "smoke.db");
     const { stdout } = await exec("node", [
       CLI, "init-campaign", "--db", db, "--campaign", "smoke",
-      "--args", '{"name":"Smoke","embeddingDim":768}'
+      "--embedding-dim", "768",
+      "--args", '{"name":"Smoke"}'
     ]);
-    expect(JSON.parse(stdout.trim())).toEqual({ campaignId: "smoke", created: true });
+    expect(JSON.parse(stdout.trim())).toEqual({ campaignId: "smoke", created: true, embeddingDim: 768 });
   });
 });

@@ -49,8 +49,9 @@ async function main(): Promise<void> {
     return emitErrorAndExit(err);
   }
 
+  const embeddingDim = invocation.embeddingDim ?? 1024;
   const engine = new Engine({
-    repository: sqliteRepository({ path: invocation.db, embeddingDim: 768 }),
+    repository: sqliteRepository({ path: invocation.db, embeddingDim }),
     router: routerConfig
   });
 
