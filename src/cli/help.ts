@@ -28,6 +28,8 @@ Common flags:
   --source <preset>        Observation preset for register-fact:
                            gm-narration (default) | player-utterance | dice-roll | system
   --observation '<json>'   Partial override of the observation field
+  --embedding-dim <N>      Vector dimension (default 1024; match your embedding provider:
+                           Google text-embedding-004=768, Mistral mistral-embed=1024)
   --help                   Show this help, or help for a specific command
 
 Commands:

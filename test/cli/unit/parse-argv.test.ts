@@ -61,4 +61,20 @@ describe("parseArgv", () => {
     expect(() => parseArgv(["lookup-entity", "--db"]))
       .toThrow(/INVALID_ARGS/);
   });
+
+  it("parses --embedding-dim as integer", () => {
+    const r = parseArgv(["init-campaign", "--db", "x.db", "--campaign", "c1", "--embedding-dim", "1024"]);
+    expect(r.embeddingDim).toBe(1024);
+  });
+
+  it("rejects --embedding-dim non-integer", () => {
+    expect(() => parseArgv(["init-campaign", "--embedding-dim", "abc"]))
+      .toThrow(/INVALID_ARGS/);
+    expect(() => parseArgv(["init-campaign", "--embedding-dim", "3.14"]))
+      .toThrow(/INVALID_ARGS/);
+    expect(() => parseArgv(["init-campaign", "--embedding-dim", "-1"]))
+      .toThrow(/INVALID_ARGS/);
+    expect(() => parseArgv(["init-campaign", "--embedding-dim", "0"]))
+      .toThrow(/INVALID_ARGS/);
+  });
 });

@@ -29,4 +29,5 @@ export interface ParsedInvocation {
   observationOverride: Partial<Observation> | undefined;
   argsInline: unknown | undefined;
   help: boolean;
+  embeddingDim: number | undefined;
 }

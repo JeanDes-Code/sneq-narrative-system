@@ -67,9 +67,9 @@ async function dispatch(inv: ParsedInvocation, deps: FullRunDeps): Promise<numbe
         throw new CliError("CAMPAIGN_ALREADY_EXISTS", `campaign '${inv.campaign}' already exists`);
       }
       const name = String(args["name"] ?? inv.campaign);
-      const embeddingDim = Number(args["embeddingDim"] ?? 768);
+      const embeddingDim = inv.embeddingDim ?? Number(args["embeddingDim"] ?? 1024);
       await deps.engine.createCampaign({ id: campaignId, name, embeddingDim });
-      deps.stdout.write(JSON.stringify({ campaignId: inv.campaign, created: true }) + "\n");
+      deps.stdout.write(JSON.stringify({ campaignId: inv.campaign, created: true, embeddingDim }) + "\n");
       return 0;
     }
     case "get-scene": {
