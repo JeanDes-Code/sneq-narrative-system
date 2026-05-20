@@ -1,12 +1,14 @@
 import type { Engine } from "../engine.js";
-import type { ParsedInvocation, RunDeps } from "./types.js";
+import type { ParsedInvocation } from "./types.js";
 import { CliError, formatError } from "./errors.js";
 import { helpText } from "./help.js";
 import { asCampaignId } from "../domain/ids.js";
 import { dispatchToolCall } from "../tools/dispatcher.js";
 import { buildObservation } from "./observation.js";
 
-export interface FullRunDeps extends RunDeps {
+export interface FullRunDeps {
+  stdin: NodeJS.ReadableStream;
+  stdout: NodeJS.WritableStream;
   engine: Engine;
 }
 

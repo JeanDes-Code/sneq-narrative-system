@@ -215,6 +215,11 @@ describe("CLI e2e — 10 tool commands", () => {
     ]);
     expect(set.code).toBe(0);
     expect((set.out as { turnNumber: number }).turnNumber).toBeGreaterThan(0);
+    const sceneCheck = await call([
+      "get-scene", "--db", dbPath, "--campaign", "c1"
+    ]);
+    expect(sceneCheck.code).toBe(0);
+    expect((sceneCheck.out as { locationId: string } | null)?.locationId).toBe(locId);
     const turn = await call([
       "advance-turn", "--db", dbPath, "--campaign", "c1",
       "--args", '{"summary":"ok"}'
