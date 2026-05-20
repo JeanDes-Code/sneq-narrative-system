@@ -96,3 +96,23 @@ describe("CLI e2e — init-campaign", () => {
     await engine.close();
   });
 });
+
+describe("CLI e2e — campaign precheck", () => {
+  let tmp: string;
+  let dbPath: string;
+  beforeEach(() => { tmp = mkdtempSync(join(tmpdir(), "sneq-cli-")); dbPath = join(tmp, "c.db"); });
+  afterEach(() => { rmSync(tmp, { recursive: true, force: true }); });
+
+  it("errors with CAMPAIGN_NOT_FOUND for non-init commands when campaign missing", async () => {
+    const engine = makeEngine(dbPath);
+    const out = captureStdout();
+    const inv = parseArgv([
+      "get-entity", "--db", dbPath, "--campaign", "ghost",
+      "--args", '{"entityId":"x"}'
+    ]);
+    const code = await run(inv, { stdin: emptyStdin(), stdout: out.stream, engine });
+    expect(code).toBe(1);
+    expect(JSON.parse(out.lines.join("").trim()).code).toBe("CAMPAIGN_NOT_FOUND");
+    await engine.close();
+  });
+});

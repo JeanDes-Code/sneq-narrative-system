@@ -32,6 +32,13 @@ async function dispatch(inv: ParsedInvocation, deps: FullRunDeps): Promise<numbe
   const args = (inv.argsInline as Record<string, unknown> | undefined) ?? {};
   const campaignId = asCampaignId(inv.campaign);
 
+  if (inv.command !== "init-campaign") {
+    const existing = await deps.engine.listCampaigns();
+    if (!existing.some(c => c.id === inv.campaign)) {
+      throw new CliError("CAMPAIGN_NOT_FOUND", `campaign '${inv.campaign}' not found`);
+    }
+  }
+
   switch (inv.command) {
     case "init-campaign": {
       const existing = await deps.engine.listCampaigns();
