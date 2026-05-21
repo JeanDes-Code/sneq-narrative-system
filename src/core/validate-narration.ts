@@ -232,7 +232,8 @@ export class Validator {
 
   /** Stage 4 — group + sort + report shape. */
   private assemble(extracted: string[], resolved: ResolvedCandidate[], partial: boolean): ValidationReport {
-    // Sort: kind priority (no-match > ambiguous > below-threshold) then confidence desc within each kind.
+    // Sort: most-urgent kind first (no-match → ambiguous → below-threshold),
+    // then highest confidence first within a kind.
     const order: Record<ResolvedCandidate["kind"], number> = {
       "no-match": 0,
       "ambiguous": 1,
@@ -264,8 +265,13 @@ export class Validator {
     if (candidates.length === 0) {
       return { ok: true, extractedNames: [], issues: [] };
     }
-    const resolved = await this.resolvePass(campaignId, candidates, input.type);
-    const top = await repo.topEntities(campaignId, this.topK);
+    // resolvePass + topEntities are independent (one walks the resolver, the
+    // other hits the repo). Fire in parallel — saves a round-trip in the
+    // common-uncertain case where resolvePass invokes the LLM judge.
+    const [resolved, top] = await Promise.all([
+      this.resolvePass(campaignId, candidates, input.type),
+      repo.topEntities(campaignId, this.topK)
+    ]);
     const llmStage = await this.llmPass(campaignId, input.narration, resolved, top);
     return this.assemble(candidates, llmStage.candidates, llmStage.partial);
   }
@@ -296,9 +302,9 @@ export class Validator {
 export const defaultNarrationGateHook: NarrationGateHook = {
   async validate(input, ctx) {
     const v = new Validator(ctx.resolver, ctx.router);
-    // The hook context carries resolver/router but not the repo. We rely on
-    // the Resolver's deps for entity lookups; for `topEntities` we delegate to
-    // a small helper on Resolver (added in Task 8). Until then, default to empty.
+    // TODO(T8): replace stub with ctx.repo.topEntities once NarrationGateContext
+    // gains a `repo` field. Until then the LLM second-opinion stage runs without
+    // a canon list — verdicts will be "unknown" for every NO-MATCH candidate.
     return v.validate(
       input,
       ctx.campaignId,
