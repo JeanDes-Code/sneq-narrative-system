@@ -65,3 +65,105 @@ describe("Validator.extract", () => {
     }
   });
 });
+
+import type { Resolver, ResolutionResult } from "../../src/resolver/resolver.js";
+import type { CampaignId } from "../../src/domain/ids.js";
+import type { Entity } from "../../src/domain/entity.js";
+
+function mkEntity(id: string, name: string): Entity {
+  return {
+    campaignId: "c1" as CampaignId,
+    id: id as never,
+    type: "PERSONNAGE",
+    name,
+    nomConnu: true,
+    aliases: [],
+    tags: [],
+    createdAt: 0,
+    embedding: new Float32Array(),
+    embeddingRefreshedAt: 0
+  };
+}
+
+function mockResolver(results: Record<string, ResolutionResult>): Resolver {
+  return {
+    async resolveEntity(opts: { campaignId: CampaignId; mention: string }): Promise<ResolutionResult> {
+      const r = results[opts.mention];
+      if (!r) throw new Error(`mockResolver: no result wired for "${opts.mention}"`);
+      return r;
+    },
+    async suggestExisting() { throw new Error("not used in this test"); }
+  } as unknown as Resolver;
+}
+
+describe("Validator.resolvePass", () => {
+  const campaignId = "c1" as CampaignId;
+
+  it("drops candidates that resolve to a match", async () => {
+    const resolver = mockResolver({
+      Anya: { match: mkEntity("e1", "Anya"), confidence: 0.95, candidates: [], layerUsed: "alias" }
+    });
+    const v = new Validator(resolver, {} as never);
+    const result = await v.resolvePass(campaignId, ["Anya"]);
+    expect(result).toEqual([]);
+  });
+
+  it("emits NO-MATCH for candidates with no resolver candidates", async () => {
+    const resolver = mockResolver({
+      Cassius: { match: null, confidence: 0, candidates: [], layerUsed: "none" }
+    });
+    const v = new Validator(resolver, {} as never);
+    const result = await v.resolvePass(campaignId, ["Cassius"]);
+    expect(result).toEqual([
+      { noun: "Cassius", kind: "no-match", suggestions: [] }
+    ]);
+  });
+
+  it("emits BELOW-THRESHOLD with suggestions when vector returned candidates", async () => {
+    const aldun = mkEntity("e2", "Alduin");
+    const resolver = mockResolver({
+      Aldwyn: {
+        match: null,
+        confidence: 0.55,
+        candidates: [aldun],
+        layerUsed: "vector"
+      }
+    });
+    const v = new Validator(resolver, {} as never);
+    const result = await v.resolvePass(campaignId, ["Aldwyn"]);
+    expect(result).toEqual([
+      {
+        noun: "Aldwyn",
+        kind: "below-threshold",
+        suggestions: [{ entityId: "e2", canonicalName: "Alduin", confidence: 0.55 }]
+      }
+    ]);
+  });
+
+  it("emits AMBIGUOUS when judge returned candidates but couldn't pick", async () => {
+    const a = mkEntity("e3", "Alduin");
+    const b = mkEntity("e4", "Aldmer");
+    const resolver = mockResolver({
+      Aldwen: {
+        match: null,
+        confidence: 0.7,
+        candidates: [a, b],
+        layerUsed: "judge"
+      }
+    });
+    const v = new Validator(resolver, {} as never);
+    const result = await v.resolvePass(campaignId, ["Aldwen"]);
+    expect(result[0]?.kind).toBe("ambiguous");
+    expect(result[0]?.suggestions).toHaveLength(2);
+  });
+
+  it("processes candidates independently (one no-match, one resolved)", async () => {
+    const resolver = mockResolver({
+      Anya: { match: mkEntity("e1", "Anya"), confidence: 0.95, candidates: [], layerUsed: "alias" },
+      Cassius: { match: null, confidence: 0, candidates: [], layerUsed: "none" }
+    });
+    const v = new Validator(resolver, {} as never);
+    const result = await v.resolvePass(campaignId, ["Anya", "Cassius"]);
+    expect(result.map(r => r.noun)).toEqual(["Cassius"]);
+  });
+});
