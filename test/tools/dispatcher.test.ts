@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { dispatchToolCall, type ToolCallContext } from "../../src/tools/dispatcher.js";
+import { Engine } from "../../src/engine.js";
 
 function stubCtx(): ToolCallContext {
   return {
@@ -12,9 +13,17 @@ function stubCtx(): ToolCallContext {
     addConstraint: async (_input) => ({ constraintId: "c1" } as never),
     collapseAttribute: async (_id, _key, _opts) => ({ value: { type: "STRING", value: "x" }, reasoning: "", propagation: { entitesImpactees: [] } } as never),
     setScene: async (_input) => ({ sceneId: "s1", turnNumber: 1 } as never),
-    advanceTurn: async (summary) => ({ turnNumber: 42, _summary: summary ?? null } as never)
+    advanceTurn: async (summary) => ({ turnNumber: 42, _summary: summary ?? null } as never),
+    validateNarration: async (_input) => ({ ok: true, extractedNames: [], issues: [] })
   };
 }
+
+describe("sneq__validate_narration tool", () => {
+  it("is included in Engine.tools.anthropic", () => {
+    const names = Engine.tools.anthropic.map((t: { name: string }) => t.name);
+    expect(names).toContain("sneq__validate_narration");
+  });
+});
 
 describe("dispatchToolCall", () => {
   it("dispatches sneq__lookup_entity to resolveEntity", async () => {
@@ -42,5 +51,16 @@ describe("dispatchToolCall", () => {
       canonicalName: "Aldric", type: "PERSONNAGE", description: "a smith"
     }, stubCtx());
     expect((r as { _name: string })._name).toBe("Aldric");
+  });
+
+  it("dispatches sneq__validate_narration to validateNarration", async () => {
+    let seen: unknown;
+    const ctx = {
+      ...stubCtx(),
+      validateNarration: async (input: unknown) => { seen = input; return { ok: true, extractedNames: [], issues: [] }; }
+    };
+    const r = await dispatchToolCall("sneq__validate_narration", { narration: "Anya" }, ctx);
+    expect(seen).toEqual({ narration: "Anya" });
+    expect(r).toEqual({ ok: true, extractedNames: [], issues: [] });
   });
 });

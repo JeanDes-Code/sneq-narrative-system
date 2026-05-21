@@ -17,6 +17,7 @@ export interface ToolCallContext {
   collapseAttribute(entityId: EntityID, attributeKey: string, opts?: { profondeur?: "MINIMAL" | "STANDARD" | "DETAILLE"; registre?: "NEUTRE" | "DRAMATIQUE" | "HUMORISTIQUE" | "SOMBRE" }): Promise<{ value: AttributValue; reasoning: string; propagation: { entitesImpactees: EntityID[] } }>;
   setScene(input: { locationEntityId: EntityID; presentEntityIds: EntityID[]; description: string }): Promise<{ sceneId: SceneId; turnNumber: number }>;
   advanceTurn(summary?: string): Promise<{ turnNumber: number }>;
+  validateNarration(input: { narration: string; type?: EntityType; strict?: boolean }): Promise<import("../hooks/narration-gate.js").ValidationReport>;
 }
 
 export async function dispatchToolCall(name: string, rawArgs: unknown, ctx: ToolCallContext): Promise<unknown> {
@@ -79,6 +80,12 @@ export async function dispatchToolCall(name: string, rawArgs: unknown, ctx: Tool
       });
     case "sneq__advance_turn":
       return ctx.advanceTurn(args["summary"] as string | undefined);
+    case "sneq__validate_narration":
+      return ctx.validateNarration({
+        narration: args["narration"] as string,
+        ...(args["type"] !== undefined ? { type: args["type"] as EntityType } : {}),
+        ...(args["strict"] !== undefined ? { strict: args["strict"] as boolean } : {})
+      });
   }
 }
 
