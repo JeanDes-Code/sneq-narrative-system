@@ -25,6 +25,13 @@ describe("CLI smoke (built binary)", () => {
     expect(stdout).toMatch(/sneq-engine — narrative-state engine CLI/);
   });
 
+  it("--help lists validate-narration, prepare-turn, and campaign-exists", async () => {
+    const { stdout } = await exec("node", [CLI, "--help"]);
+    expect(stdout).toMatch(/validate-narration/);
+    expect(stdout).toMatch(/prepare-turn/);
+    expect(stdout).toMatch(/campaign-exists/);
+  });
+
   it("init-campaign round-trips through the binary", async () => {
     const db = join(tmp, "smoke.db");
     const { stdout } = await exec("node", [
