@@ -14,7 +14,7 @@ export interface ValidatorOptions {
   llmCharBudget?: number;
 }
 
-const FRENCH_CONTRACTIONS = /^(l|d|n|s|m|t|j|c|qu)['']/i;
+const FRENCH_CONTRACTIONS = /^(l|d|n|s|m|t|j|c|qu)['’]/i;
 
 export class Validator {
   private readonly stopwords: ReadonlySet<string>;

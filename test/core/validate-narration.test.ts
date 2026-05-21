@@ -35,6 +35,12 @@ describe("Validator.extract", () => {
     expect(validator.extract("L'épée de l'Évêque brille.")).toContain("Évêque");
   });
 
+  it("strips French contractions written with U+2019 curly apostrophe", () => {
+    // macOS auto-correct + iOS keyboards normalize ' → ’ (U+2019). Regex must match both.
+    expect(validator.extract("Il vient d’Aldwyn.")).toContain("Aldwyn");
+    expect(validator.extract("L’Épée de l’Évêque brille.")).toContain("Évêque");
+  });
+
   it("strips trailing/leading punctuation", () => {
     expect(validator.extract("« Anya », dit-il.")).toContain("Anya");
     expect(validator.extract("Alduin?! vraiment?")).toContain("Alduin");
