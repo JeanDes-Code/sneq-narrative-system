@@ -12,7 +12,10 @@ const COMMAND_DESCRIPTIONS: Record<CommandName, string> = {
   "add-constraint":     "Add a soft or strict constraint to a non-figed attribute",
   "collapse-attribute": "Drive an LLM to fill a specific attribute (heavy tier)",
   "set-scene":          "Declare the current scene and its present entities",
-  "advance-turn":       "Increment the campaign turn counter"
+  "advance-turn":       "Increment the campaign turn counter",
+  "validate-narration": "<TODO T14>",
+  "prepare-turn":       "<TODO T14>",
+  "campaign-exists":    "<TODO T14>"
 };
 
 const GENERAL_HELP = `sneq-engine — narrative-state engine CLI

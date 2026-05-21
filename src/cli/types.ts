@@ -14,7 +14,10 @@ export const KNOWN_COMMANDS = [
   "add-constraint",
   "collapse-attribute",
   "set-scene",
-  "advance-turn"
+  "advance-turn",
+  "validate-narration",
+  "prepare-turn",
+  "campaign-exists"
 ] as const;
 
 export type CommandName = typeof KNOWN_COMMANDS[number];
