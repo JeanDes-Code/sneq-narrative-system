@@ -166,4 +166,23 @@ describe("Validator.resolvePass", () => {
     const result = await v.resolvePass(campaignId, ["Anya", "Cassius"]);
     expect(result.map(r => r.noun)).toEqual(["Cassius"]);
   });
+
+  it("classifies user-prompt + match=null + candidates as ambiguous (user declined)", async () => {
+    // Per spec §8.2: user-prompt with match=null means the user was asked
+    // and declined to pick. Treated as ambiguous, not no-match.
+    const a = mkEntity("e5", "Alduin");
+    const b = mkEntity("e6", "Aldmer");
+    const resolver = mockResolver({
+      Aldwen: {
+        match: null,
+        confidence: 0.5,
+        candidates: [a, b],
+        layerUsed: "user-prompt"
+      }
+    });
+    const v = new Validator(resolver, {} as never);
+    const result = await v.resolvePass(campaignId, ["Aldwen"]);
+    expect(result[0]?.kind).toBe("ambiguous");
+    expect(result[0]?.suggestions).toHaveLength(2);
+  });
 });
