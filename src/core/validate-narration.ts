@@ -6,7 +6,19 @@ import type {
   NarrationGateContext,
   ValidationReport
 } from "../hooks/narration-gate.js";
+import type { CampaignId } from "../domain/ids.js";
+import type { EntityType } from "../domain/entity.js";
 import { STOPWORDS } from "./stopwords.js";
+
+export interface ResolvedCandidate {
+  noun: string;
+  kind: "no-match" | "below-threshold" | "ambiguous";
+  suggestions: {
+    entityId: string;
+    canonicalName: string;
+    confidence: number;
+  }[];
+}
 
 export interface ValidatorOptions {
   stopwords?: ReadonlySet<string>;
@@ -66,6 +78,43 @@ export class Validator {
     }
 
     return [...found];
+  }
+
+  /** Stage 2 — alias/vector/judge pass via existing resolver. */
+  async resolvePass(
+    campaignId: CampaignId,
+    candidates: string[],
+    type?: EntityType
+  ): Promise<ResolvedCandidate[]> {
+    const out: ResolvedCandidate[] = [];
+    for (const noun of candidates) {
+      const r = await this.resolver.resolveEntity({
+        campaignId,
+        mention: noun,
+        ...(type !== undefined ? { type } : {})
+      });
+      if (r.match !== null) {
+        // RESOLVED — drop entirely.
+        continue;
+      }
+      if (r.layerUsed === "none" || r.candidates.length === 0) {
+        out.push({ noun, kind: "no-match", suggestions: [] });
+        continue;
+      }
+      // We have candidates but no match. Distinguish below-threshold vs ambiguous.
+      const kind: "below-threshold" | "ambiguous" =
+        r.layerUsed === "vector" ? "below-threshold" : "ambiguous";
+      out.push({
+        noun,
+        kind,
+        suggestions: r.candidates.slice(0, 3).map(c => ({
+          entityId: String(c.id),
+          canonicalName: c.name,
+          confidence: r.confidence
+        }))
+      });
+    }
+    return out;
   }
 
   /** Strip surrounding punctuation and French elision contractions. */
