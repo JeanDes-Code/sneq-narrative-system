@@ -359,4 +359,22 @@ describe("Validator.validate (full pipeline)", () => {
     const r = await v.validate({ narration: "Cassius." }, campaignId, repo);
     expect(r.partial).toBe(true);
   });
+
+  it("short-circuits when narration has no extractable names", async () => {
+    // Neither resolver nor router should be touched. Use throwing mocks to prove it.
+    const resolver = { resolveEntity: async () => { throw new Error("should not be called"); } } as unknown as Resolver;
+    const router = mockRouter(async () => { throw new Error("should not be called"); });
+    const v = new Validator(resolver, router);
+    let topEntitiesCalled = false;
+    const repo = {
+      topEntities: async () => { topEntitiesCalled = true; return [] as Entity[]; }
+    };
+    const r = await v.validate(
+      { narration: "le forgeron est ici" },
+      campaignId,
+      repo
+    );
+    expect(r).toEqual({ ok: true, extractedNames: [], issues: [] });
+    expect(topEntitiesCalled).toBe(false);
+  });
 });
