@@ -87,6 +87,8 @@ export class Validator {
     type?: EntityType
   ): Promise<ResolvedCandidate[]> {
     const out: ResolvedCandidate[] = [];
+    // Sequential await is intentional: each call may invoke the LLM judge.
+    // Parallelising would multiply token cost with no ordering guarantee.
     for (const noun of candidates) {
       const r = await this.resolver.resolveEntity({
         campaignId,
@@ -94,16 +96,21 @@ export class Validator {
         ...(type !== undefined ? { type } : {})
       });
       if (r.match !== null) {
-        // RESOLVED — drop entirely.
         continue;
       }
       if (r.layerUsed === "none" || r.candidates.length === 0) {
         out.push({ noun, kind: "no-match", suggestions: [] });
         continue;
       }
-      // We have candidates but no match. Distinguish below-threshold vs ambiguous.
+      // layerUsed at this point is "vector" | "judge" | "user-prompt".
+      // - "vector" with candidates below tauLow → "below-threshold" (Aldwyn→Alduin near-miss).
+      // - "judge" with match=null → "ambiguous" (judge saw candidates but couldn't pick).
+      // - "user-prompt" with match=null → "ambiguous" (user declined both candidates).
+      //   Per spec §8.2, user-decline is classified ambiguous, not no-match.
       const kind: "below-threshold" | "ambiguous" =
         r.layerUsed === "vector" ? "below-threshold" : "ambiguous";
+      // `confidence` here is the resolver's aggregate score, not per-candidate.
+      // ResolutionResult.candidates is Entity[] (no per-entity score); same value for all.
       out.push({
         noun,
         kind,
