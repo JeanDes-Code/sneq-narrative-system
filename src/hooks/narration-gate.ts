@@ -2,6 +2,7 @@ import type { CampaignId } from "../domain/ids.js";
 import type { EntityType } from "../domain/entity.js";
 import type { Resolver } from "../resolver/resolver.js";
 import type { Router } from "../router/router.js";
+import type { Repository } from "../repository/interface.js";
 
 export interface NarrationGateInput {
   narration: string;
@@ -13,6 +14,7 @@ export interface NarrationGateContext {
   campaignId: CampaignId;
   resolver: Resolver;
   router: Router;
+  repo: Repository;
 }
 
 export interface NarrationIssue {

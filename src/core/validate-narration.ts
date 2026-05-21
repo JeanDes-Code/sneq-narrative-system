@@ -302,13 +302,8 @@ export class Validator {
 export const defaultNarrationGateHook: NarrationGateHook = {
   async validate(input, ctx) {
     const v = new Validator(ctx.resolver, ctx.router);
-    // TODO(T8): replace stub with ctx.repo.topEntities once NarrationGateContext
-    // gains a `repo` field. Until then the LLM second-opinion stage runs without
-    // a canon list — verdicts will be "unknown" for every NO-MATCH candidate.
-    return v.validate(
-      input,
-      ctx.campaignId,
-      { topEntities: async () => [] }
-    );
+    return v.validate(input, ctx.campaignId, {
+      topEntities: (cid, k) => ctx.repo.topEntities(cid, k)
+    });
   }
 };

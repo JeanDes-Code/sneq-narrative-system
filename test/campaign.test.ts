@@ -114,3 +114,45 @@ describe("CampaignContext · registerFact", () => {
     await engine.close();
   });
 });
+
+describe("CampaignContext.validateNarration", () => {
+  it("delegates to the registered NarrationGateHook with the campaign context", async () => {
+    const { config, deps } = makeEmbedRouter([0.5, 0.5, 0.0]);
+    const engine = new Engine({
+      repository: sqliteRepository({ path: ":memory:", embeddingDim: 3 }),
+      router: config,
+      _routerDeps: deps
+    });
+    const ctx = await engine.createCampaign({ id: asCampaignId("c4"), name: "x", embeddingDim: 3 });
+
+    let seenInput: { narration: string } | undefined;
+    const handle = ctx.registerNarrationGate({
+      async validate(input) {
+        seenInput = input;
+        return { ok: true, extractedNames: [], issues: [] };
+      }
+    });
+
+    const r = await ctx.validateNarration({ narration: "test" });
+    expect(seenInput).toEqual({ narration: "test" });
+    expect(r.ok).toBe(true);
+    handle.dispose();
+    await engine.close();
+  });
+});
+
+describe("CampaignContext.prepareTurn", () => {
+  it("returns scene null and empty presentEntities when no scene is set", async () => {
+    const { config, deps } = makeEmbedRouter([0.5, 0.5, 0.0]);
+    const engine = new Engine({
+      repository: sqliteRepository({ path: ":memory:", embeddingDim: 3 }),
+      router: config,
+      _routerDeps: deps
+    });
+    const ctx = await engine.createCampaign({ id: asCampaignId("c5"), name: "x", embeddingDim: 3 });
+    const r = await ctx.prepareTurn();
+    expect(r.scene).toBeNull();
+    expect(r.presentEntities).toEqual([]);
+    await engine.close();
+  });
+});

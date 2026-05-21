@@ -18,7 +18,7 @@ function fakeHook(label: string): NarrationGateHook {
 }
 
 function fakeCtx(): NarrationGateContext {
-  return { campaignId: "c1" as never, resolver: {} as never, router: {} as never };
+  return { campaignId: "c1" as never, resolver: {} as never, router: {} as never, repo: {} as never };
 }
 
 describe("NarrationGateRegistry", () => {

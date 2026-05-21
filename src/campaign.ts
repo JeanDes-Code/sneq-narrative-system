@@ -3,6 +3,12 @@ import type { Router } from "./router/router.js";
 import type { Resolver, ResolutionResult, SuggestionResult, Embedder } from "./resolver/resolver.js";
 import type { UserPromptRegistry, AskUserFn } from "./hooks/user-prompt.js";
 import type { PreGenerationRegistry, PreGenerationHook } from "./hooks/pre-generation.js";
+import type {
+  NarrationGateHook,
+  NarrationGateInput,
+  NarrationGateRegistry,
+  ValidationReport
+} from "./hooks/narration-gate.js";
 import type { Logger } from "./logger.js";
 import type { CampaignId, EntityID, FactId, ContraintId, SceneId } from "./domain/ids.js";
 import { asEntityID, asContraintId, asFactId, asSceneId } from "./domain/ids.js";
@@ -21,6 +27,7 @@ export interface CampaignContextDeps {
   embedder: Embedder;
   userPrompt: UserPromptRegistry;
   preGen: PreGenerationRegistry;
+  narrationGate: NarrationGateRegistry;
   logger: Logger;
 }
 
@@ -189,5 +196,39 @@ export class CampaignContext implements ToolCallContext {
 
   registerPreGenerationHook(hook: PreGenerationHook): { dispose(): void } {
     return this.deps.preGen.register(hook);
+  }
+
+  async validateNarration(input: NarrationGateInput): Promise<ValidationReport> {
+    return this.deps.narrationGate.validate(input, {
+      campaignId: this.id,
+      resolver: this.deps.resolver,
+      router: this.deps.router,
+      repo: this.deps.repo
+    });
+  }
+
+  registerNarrationGate(hook: NarrationGateHook): { dispose(): void } {
+    return this.deps.narrationGate.register(hook);
+  }
+
+  async prepareTurn(): Promise<{
+    scene: Scene | null;
+    presentEntities: { entity: Entity; facts: AttributFige[] }[];
+  }> {
+    const scene = await this.deps.repo.currentScene(this.id);
+    if (!scene) return { scene: null, presentEntities: [] };
+
+    const present = await Promise.all(
+      scene.presentEntityIds.map(async (eid) => {
+        const entity = await this.deps.repo.getEntity(this.id, eid);
+        if (!entity) return null;
+        const facts = await this.deps.repo.getFigedAttributes(this.id, eid);
+        return { entity, facts };
+      })
+    );
+    return {
+      scene,
+      presentEntities: present.filter((p): p is { entity: Entity; facts: AttributFige[] } => p !== null)
+    };
   }
 }
