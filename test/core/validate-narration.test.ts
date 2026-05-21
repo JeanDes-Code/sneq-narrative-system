@@ -307,3 +307,56 @@ describe("Validator.llmPass", () => {
     expect(r.partial).toBe(false);
   });
 });
+
+describe("Validator.validate (full pipeline)", () => {
+  const campaignId = "c1" as CampaignId;
+
+  it("returns ok=true and no issues when every candidate resolves", async () => {
+    const resolver = mockResolver({
+      Anya: { match: mkEntity("e1", "Anya"), confidence: 0.95, candidates: [], layerUsed: "alias" },
+      Dragonsreach: { match: mkEntity("e2", "Dragonsreach"), confidence: 0.95, candidates: [], layerUsed: "alias" }
+    });
+    const router = mockRouter(async () => "[]");
+    const v = new Validator(resolver, router);
+    const repo = { topEntities: async () => [] as Entity[] };
+    const r = await v.validate(
+      { narration: "Anya parle à Dragonsreach." },
+      campaignId,
+      repo
+    );
+    expect(r.ok).toBe(true);
+    expect(r.issues).toEqual([]);
+    expect(r.extractedNames).toEqual(expect.arrayContaining(["Anya", "Dragonsreach"]));
+  });
+
+  it("returns ok=false with issues when names are unresolved", async () => {
+    const resolver = mockResolver({
+      Cassius: { match: null, confidence: 0, candidates: [], layerUsed: "none" }
+    });
+    const router = mockRouter(async () => JSON.stringify([
+      { noun: "Cassius", verdict: "unknown", reasoning: "not in canon" }
+    ]));
+    const v = new Validator(resolver, router);
+    const repo = { topEntities: async () => [] as Entity[] };
+    const r = await v.validate(
+      { narration: "Cassius est mage." },
+      campaignId,
+      repo
+    );
+    expect(r.ok).toBe(false);
+    expect(r.issues).toEqual([
+      { noun: "Cassius", kind: "no-match", suggestions: [], llmReasoning: "not in canon" }
+    ]);
+  });
+
+  it("populates partial=true when the LLM step fails", async () => {
+    const resolver = mockResolver({
+      Cassius: { match: null, confidence: 0, candidates: [], layerUsed: "none" }
+    });
+    const router = mockRouter(async () => { throw new Error("down"); });
+    const v = new Validator(resolver, router);
+    const repo = { topEntities: async () => [] as Entity[] };
+    const r = await v.validate({ narration: "Cassius." }, campaignId, repo);
+    expect(r.partial).toBe(true);
+  });
+});

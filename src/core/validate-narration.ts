@@ -230,6 +230,46 @@ export class Validator {
     return { candidates: merged, partial: false };
   }
 
+  /** Stage 4 — group + sort + report shape. */
+  private assemble(extracted: string[], resolved: ResolvedCandidate[], partial: boolean): ValidationReport {
+    // Sort: kind priority (no-match > ambiguous > below-threshold) then confidence desc within each kind.
+    const order: Record<ResolvedCandidate["kind"], number> = {
+      "no-match": 0,
+      "ambiguous": 1,
+      "below-threshold": 2
+    };
+    const sorted = [...resolved].sort((a, b) => {
+      const k = order[a.kind] - order[b.kind];
+      if (k !== 0) return k;
+      const aConf = a.suggestions[0]?.confidence ?? 0;
+      const bConf = b.suggestions[0]?.confidence ?? 0;
+      return bConf - aConf;
+    });
+    const report: ValidationReport = {
+      ok: sorted.length === 0,
+      extractedNames: extracted,
+      issues: sorted
+    };
+    if (partial) report.partial = true;
+    return report;
+  }
+
+  /** Full pipeline: extract → resolve → llm → assemble. */
+  async validate(
+    input: NarrationGateInput,
+    campaignId: CampaignId,
+    repo: { topEntities(campaignId: CampaignId, k: number): Promise<Entity[]> }
+  ): Promise<ValidationReport> {
+    const candidates = this.extract(input.narration);
+    if (candidates.length === 0) {
+      return { ok: true, extractedNames: [], issues: [] };
+    }
+    const resolved = await this.resolvePass(campaignId, candidates, input.type);
+    const top = await repo.topEntities(campaignId, this.topK);
+    const llmStage = await this.llmPass(campaignId, input.narration, resolved, top);
+    return this.assemble(candidates, llmStage.candidates, llmStage.partial);
+  }
+
   /** Strip surrounding punctuation and French elision contractions. */
   private normalizeToken(s: string): string {
     // Strip leading/trailing non-letter characters (Unicode-aware).
@@ -247,3 +287,22 @@ export class Validator {
     return first.toUpperCase() === first && first.toLowerCase() !== first;
   }
 }
+
+/**
+ * Default `NarrationGateHook` implementation backed by the Validator. Engine
+ * uses this as the registry fallback so a consumer that never registers a
+ * custom hook still gets the built-in behavior.
+ */
+export const defaultNarrationGateHook: NarrationGateHook = {
+  async validate(input, ctx) {
+    const v = new Validator(ctx.resolver, ctx.router);
+    // The hook context carries resolver/router but not the repo. We rely on
+    // the Resolver's deps for entity lookups; for `topEntities` we delegate to
+    // a small helper on Resolver (added in Task 8). Until then, default to empty.
+    return v.validate(
+      input,
+      ctx.campaignId,
+      { topEntities: async () => [] }
+    );
+  }
+};
