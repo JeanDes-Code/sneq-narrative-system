@@ -40,7 +40,7 @@ git clone https://github.com/JeanDes-Code/sneq-narrative-system.git
 cd sneq-narrative-system
 pnpm install
 pnpm approve-builds       # approve native builds for better-sqlite3 + esbuild
-pnpm test                 # 51 tests should pass
+pnpm test                 # 168 tests should pass
 pnpm build                # produces dist/
 ```
 
@@ -203,7 +203,7 @@ src/                            engine source
   hooks/{user-prompt,pre-generation} Extension points
   engine.ts, campaign.ts        Facade + CampaignContext
   config.ts, logger.ts, errors.ts, index.ts
-test/                           51 unit tests + 1 env-gated integration smoke
+test/                           168 unit tests + 1 env-gated integration smoke
 docs/                           generated API + V2 design spec + plan
 skills/                         agent-discoverable skill
 ```
