@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { Validator } from "../../src/core/validate-narration.js";
+import type { ResolvedCandidate } from "../../src/core/validate-narration.js";
 
 // We only test extract() here; resolver+router are unused at this stage.
 const validator = new Validator({} as never, {} as never);
@@ -184,5 +185,82 @@ describe("Validator.resolvePass", () => {
     const result = await v.resolvePass(campaignId, ["Aldwen"]);
     expect(result[0]?.kind).toBe("ambiguous");
     expect(result[0]?.suggestions).toHaveLength(2);
+  });
+});
+
+import type { Router } from "../../src/router/router.js";
+
+function mockRouter(impl: (prompt: string) => Promise<string>): Router {
+  return {
+    async chat(_tier: string, req: { messages: { role: string; content: string }[] }) {
+      const userMsg = req.messages.find(m => m.role === "user")?.content ?? "";
+      const text = await impl(userMsg);
+      return { text, toolCalls: [], modelUsed: "test", providerUsed: "test" };
+    }
+  } as unknown as Router;
+}
+
+describe("Validator.llmPass", () => {
+  const campaignId = "c1" as CampaignId;
+
+  it("returns input unchanged when there are no NO-MATCH candidates", async () => {
+    const router = mockRouter(async () => { throw new Error("should not be called"); });
+    const v = new Validator({} as never, router);
+    const input: ResolvedCandidate[] = [
+      { noun: "Aldwyn", kind: "below-threshold", suggestions: [] }
+    ];
+    const r = await v.llmPass(campaignId, "Aldwyn était terrifiant.", input, []);
+    expect(r.candidates).toEqual(input);
+    expect(r.partial).toBe(false);
+  });
+
+  it("promotes NO-MATCH to BELOW-THRESHOLD when LLM returns typo+suggestion", async () => {
+    const router = mockRouter(async () => JSON.stringify([
+      { noun: "Aldwn", verdict: "typo", suggestion: "e_alduin", confidence: 0.8, reasoning: "typo of Alduin" }
+    ]));
+    const v = new Validator({} as never, router);
+    const aldun = mkEntity("e_alduin", "Alduin");
+    const input: ResolvedCandidate[] = [{ noun: "Aldwn", kind: "no-match", suggestions: [] }];
+    const r = await v.llmPass(campaignId, "Aldwn arrive", input, [aldun]);
+    expect(r.candidates).toEqual([
+      {
+        noun: "Aldwn",
+        kind: "below-threshold",
+        suggestions: [{ entityId: "e_alduin", canonicalName: "Alduin", confidence: 0.8 }],
+        llmReasoning: "typo of Alduin"
+      }
+    ]);
+    expect(r.partial).toBe(false);
+  });
+
+  it("keeps NO-MATCH when LLM verdict is unknown", async () => {
+    const router = mockRouter(async () => JSON.stringify([
+      { noun: "Cassius", verdict: "unknown", reasoning: "not in canon list" }
+    ]));
+    const v = new Validator({} as never, router);
+    const input: ResolvedCandidate[] = [{ noun: "Cassius", kind: "no-match", suggestions: [] }];
+    const r = await v.llmPass(campaignId, "Cassius arrive", input, []);
+    expect(r.candidates).toEqual([
+      { noun: "Cassius", kind: "no-match", suggestions: [], llmReasoning: "not in canon list" }
+    ]);
+    expect(r.partial).toBe(false);
+  });
+
+  it("returns partial=true and keeps NO-MATCH when LLM throws", async () => {
+    const router = mockRouter(async () => { throw new Error("provider down"); });
+    const v = new Validator({} as never, router);
+    const input: ResolvedCandidate[] = [{ noun: "Cassius", kind: "no-match", suggestions: [] }];
+    const r = await v.llmPass(campaignId, "Cassius arrive", input, []);
+    expect(r.candidates).toEqual(input);
+    expect(r.partial).toBe(true);
+  });
+
+  it("returns partial=true when LLM returns invalid JSON", async () => {
+    const router = mockRouter(async () => "not json at all");
+    const v = new Validator({} as never, router);
+    const input: ResolvedCandidate[] = [{ noun: "Cassius", kind: "no-match", suggestions: [] }];
+    const r = await v.llmPass(campaignId, "Cassius arrive", input, []);
+    expect(r.candidates).toEqual(input);
+    expect(r.partial).toBe(true);
   });
 });
