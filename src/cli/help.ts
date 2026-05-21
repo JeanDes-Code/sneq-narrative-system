@@ -13,9 +13,9 @@ const COMMAND_DESCRIPTIONS: Record<CommandName, string> = {
   "collapse-attribute": "Drive an LLM to fill a specific attribute (heavy tier)",
   "set-scene":          "Declare the current scene and its present entities",
   "advance-turn":       "Increment the campaign turn counter",
-  "validate-narration": "<TODO T14>",
-  "prepare-turn":       "<TODO T14>",
-  "campaign-exists":    "<TODO T14>"
+  "validate-narration": "Scan a candidate narration for unresolved proper nouns (hybrid: regex → resolver → light-tier LLM)",
+  "prepare-turn":       "Atomic bundle: current scene + present entities + their facts in one call",
+  "campaign-exists":    "Probe whether a campaign exists; does NOT throw on missing"
 };
 
 const GENERAL_HELP = `sneq-engine — narrative-state engine CLI
