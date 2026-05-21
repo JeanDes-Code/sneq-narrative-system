@@ -10,7 +10,8 @@ export const ToolNames = [
   "sneq__add_constraint",
   "sneq__collapse_attribute",
   "sneq__set_scene",
-  "sneq__advance_turn"
+  "sneq__advance_turn",
+  "sneq__validate_narration"
 ] as const;
 export type ToolName = typeof ToolNames[number];
 
@@ -85,7 +86,12 @@ export const schemas = {
     presentEntityIds: z.array(z.string()),
     description: z.string()
   }),
-  sneq__advance_turn: z.object({ summary: z.string().optional() })
+  sneq__advance_turn: z.object({ summary: z.string().optional() }),
+  sneq__validate_narration: z.object({
+    narration: z.string(),
+    type: entityType.optional(),
+    strict: z.boolean().optional()
+  })
 } as const;
 
 export const toolDescriptions: Record<ToolName, string> = {
@@ -98,5 +104,6 @@ export const toolDescriptions: Record<ToolName, string> = {
   sneq__add_constraint: "Add a soft or strict constraint to a non-figed attribute.",
   sneq__collapse_attribute: "Drive an LLM call (heavy tier) to fill a specific attribute, validate, inscribe, propagate. Engine-internal LLM use.",
   sneq__set_scene: "Declare the current scene: where the player is and which entities are present.",
-  sneq__advance_turn: "Bump the campaign's monotonic turn counter, optionally with a one-line summary."
+  sneq__advance_turn: "Bump the campaign's monotonic turn counter, optionally with a one-line summary.",
+  sneq__validate_narration: "Validate a candidate narration string against the campaign canon. Returns the list of proper-noun candidates the regex extractor found, plus any that didn't resolve. Use BEFORE flushing narration to the player."
 };
