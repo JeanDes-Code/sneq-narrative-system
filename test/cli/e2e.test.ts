@@ -335,6 +335,118 @@ describe("CLI e2e — 10 tool commands", () => {
   });
 });
 
+describe("CLI e2e — campaign-exists", () => {
+  let tmp: string;
+  let dbPath: string;
+  let engine: Engine;
+  beforeEach(async () => {
+    tmp = mkdtempSync(join(tmpdir(), "sneq-cli-ce-"));
+    dbPath = join(tmp, "c.db");
+    engine = makeEngine(dbPath);
+  });
+  afterEach(async () => {
+    await engine.close();
+    rmSync(tmp, { recursive: true, force: true });
+  });
+
+  async function call(argv: string[]): Promise<{ code: number; out: unknown }> {
+    const out = captureStdout();
+    const code = await run(parseArgv(argv), { stdin: emptyStdin(), stdout: out.stream, engine });
+    const text = out.lines.join("").trim();
+    return { code, out: text ? JSON.parse(text) : null };
+  }
+
+  it("returns {exists:false} for an uninitialized campaign", async () => {
+    const r = await call(["campaign-exists", "--db", dbPath, "--campaign", "ghost"]);
+    expect(r.code).toBe(0);
+    expect(r.out).toEqual({ exists: false });
+  });
+
+  it("returns {exists:true} with name after init-campaign", async () => {
+    await call([
+      "init-campaign", "--db", dbPath, "--campaign", "c1",
+      "--args", '{"name":"Test","embeddingDim":3}'
+    ]);
+    const r = await call(["campaign-exists", "--db", dbPath, "--campaign", "c1"]);
+    expect(r.code).toBe(0);
+    expect((r.out as { exists: boolean; name: string }).exists).toBe(true);
+    expect((r.out as { name: string }).name).toBe("Test");
+  });
+});
+
+describe("CLI e2e — prepare-turn", () => {
+  let tmp: string;
+  let dbPath: string;
+  let engine: Engine;
+  beforeEach(async () => {
+    tmp = mkdtempSync(join(tmpdir(), "sneq-cli-pt-"));
+    dbPath = join(tmp, "c.db");
+    engine = makeEngine(dbPath);
+    await run(
+      parseArgv(["init-campaign", "--db", dbPath, "--campaign", "c1", "--args", '{"name":"Test","embeddingDim":3}']),
+      { stdin: emptyStdin(), stdout: captureStdout().stream, engine }
+    );
+  });
+  afterEach(async () => {
+    await engine.close();
+    rmSync(tmp, { recursive: true, force: true });
+  });
+
+  async function call(argv: string[]): Promise<{ code: number; out: unknown }> {
+    const out = captureStdout();
+    const code = await run(parseArgv(argv), { stdin: emptyStdin(), stdout: out.stream, engine });
+    const text = out.lines.join("").trim();
+    return { code, out: text ? JSON.parse(text) : null };
+  }
+
+  it("returns {scene:null, presentEntities:[]} on a fresh campaign with no scene", async () => {
+    const r = await call(["prepare-turn", "--db", dbPath, "--campaign", "c1"]);
+    expect(r.code).toBe(0);
+    expect(r.out).toEqual({ scene: null, presentEntities: [] });
+  });
+});
+
+describe("CLI e2e — validate-narration", () => {
+  let tmp: string;
+  let dbPath: string;
+  let engine: Engine;
+  beforeEach(async () => {
+    tmp = mkdtempSync(join(tmpdir(), "sneq-cli-vn-"));
+    dbPath = join(tmp, "c.db");
+    engine = makeEngine(dbPath);
+    await run(
+      parseArgv(["init-campaign", "--db", dbPath, "--campaign", "c1", "--args", '{"name":"Test","embeddingDim":3}']),
+      { stdin: emptyStdin(), stdout: captureStdout().stream, engine }
+    );
+  });
+  afterEach(async () => {
+    await engine.close();
+    rmSync(tmp, { recursive: true, force: true });
+  });
+
+  async function call(argv: string[]): Promise<{ code: number; out: unknown }> {
+    const out = captureStdout();
+    const code = await run(parseArgv(argv), { stdin: emptyStdin(), stdout: out.stream, engine });
+    const text = out.lines.join("").trim();
+    return { code, out: text ? JSON.parse(text) : null };
+  }
+
+  it("extracts capitalized proper nouns and reports them as issues on an empty campaign", async () => {
+    const r = await call([
+      "validate-narration", "--db", dbPath, "--campaign", "c1",
+      "--args", '{"narration":"Cassius arrive."}'
+    ]);
+    expect(r.code).toBe(0);
+    const report = r.out as { extractedNames: string[]; ok: boolean; issues: unknown[] };
+    // extractedNames is regex-derived (deterministic) — always populated regardless of LLM keys
+    expect(report.extractedNames).toContain("Cassius");
+    // With no entities in the campaign the issue list should be non-empty (unresolved name)
+    // OR partial:true when the LLM stage skipped due to missing API keys — either is acceptable.
+    const hasIssue = report.issues.length > 0 || (r.out as { partial?: boolean }).partial === true;
+    expect(hasIssue).toBe(true);
+  });
+});
+
 describe("CLI e2e — help", () => {
   let tmp: string;
   let dbPath: string;
