@@ -116,6 +116,70 @@ describe("Resolver cascade", () => {
   });
 });
 
+describe("Resolver.resolveEntity notFoundReason", () => {
+  it("is undefined when match is non-null (alias hit)", async () => {
+    const judge = replayProvider("m", []);
+    const r = new Resolver({
+      repo, router: makeRouter(judge),
+      thresholds: defaultThresholds,
+      userPromptRegistry: new UserPromptRegistry(),
+      embedder: { async embed(_t: string) { return new Float32Array([1, 0, 0]); } }
+    });
+    const res = await r.resolveEntity({ campaignId: cid, mention: "le forgeron" });
+    expect(res.match).not.toBeNull();
+    expect(res.notFoundReason).toBeUndefined();
+  });
+
+  it("is 'no-match' when layerUsed='none' (vector returns 0 hits)", async () => {
+    // Use a repo with no entities so vector search returns nothing
+    const emptyRepo = new SqliteRepository({ path: ":memory:", embeddingDim: 3 });
+    await emptyRepo.createCampaign({ id: cid, name: "empty", createdAt: 0, embeddingDim: 3 });
+    const judge = replayProvider("m", []);
+    const r = new Resolver({
+      repo: emptyRepo, router: makeRouter(judge),
+      thresholds: defaultThresholds,
+      userPromptRegistry: new UserPromptRegistry(),
+      embedder: { async embed(_t: string) { return new Float32Array([1, 0, 0]); } }
+    });
+    const res = await r.resolveEntity({ campaignId: cid, mention: "nobody" });
+    expect(res.match).toBeNull();
+    expect(res.layerUsed).toBe("none");
+    expect(res.notFoundReason).toBe("no-match");
+    await emptyRepo.close();
+  });
+
+  it("is 'below-threshold' when top vector candidate is below tauLow", async () => {
+    const judge = replayProvider("m", []);
+    const r = new Resolver({
+      repo, router: makeRouter(judge),
+      thresholds: defaultThresholds,
+      userPromptRegistry: new UserPromptRegistry(),
+      // Embedding orthogonal to both entities → low cosine similarity
+      embedder: { async embed(_t: string) { return new Float32Array([0, 0, 1]); } }
+    });
+    const res = await r.resolveEntity({ campaignId: cid, mention: "stranger" });
+    expect(res.match).toBeNull();
+    expect(res.layerUsed).toBe("vector");
+    expect(res.notFoundReason).toBe("below-threshold");
+  });
+
+  it("is 'ambiguous' when judge returns matchedIndex: null (couldn't pick)", async () => {
+    const judge = replayProvider("m", [
+      { kind: "chat", response: { text: JSON.stringify({ matchedIndex: null, confidence: 0.2, reasoning: "no match" }) } }
+    ]);
+    const r = new Resolver({
+      repo, router: makeRouter(judge),
+      thresholds: { ...defaultThresholds, tauHigh: 0.99 },
+      userPromptRegistry: new UserPromptRegistry(),
+      embedder: { async embed(_t: string) { return new Float32Array([0.8, 0.6, 0]); } }
+    });
+    const res = await r.resolveEntity({ campaignId: cid, mention: "unknown" });
+    expect(res.match).toBeNull();
+    expect(res.layerUsed).toBe("judge");
+    expect(res.notFoundReason).toBe("ambiguous");
+  });
+});
+
 describe("Resolver · generation-direction suggestion", () => {
   it("recommends new when top score < tauLow", async () => {
     const judge = replayProvider("m", []);

@@ -32,6 +32,7 @@ export interface ResolutionResult {
   candidates: Entity[];
   layerUsed: "alias" | "vector" | "judge" | "user-prompt" | "none";
   reasoning?: string;
+  notFoundReason?: "no-match" | "below-threshold" | "ambiguous";
 }
 
 export interface SuggestionResult {
@@ -47,17 +48,28 @@ export class Resolver {
   }
 
   async resolveEntity(opts: ResolveOptions): Promise<ResolutionResult> {
+    const make = (partial: Omit<ResolutionResult, "notFoundReason">): ResolutionResult => {
+      const reason = deriveNotFoundReason(
+        partial.match,
+        partial.layerUsed,
+        partial.candidates,
+        partial.confidence,
+        this.t.tauLow
+      );
+      return reason === undefined ? partial : { ...partial, notFoundReason: reason };
+    };
+
     const { campaignId, mention, type, sceneDescription = "" } = opts;
 
     // L1: alias
     const aliasHits = await this.deps.repo.findEntitiesByAlias(campaignId, normalizeAlias(mention), type);
     if (aliasHits.length === 1) {
-      return { match: aliasHits[0]!, confidence: 0.95, candidates: aliasHits, layerUsed: "alias" };
+      return make({ match: aliasHits[0]!, confidence: 0.95, candidates: aliasHits, layerUsed: "alias" });
     }
     if (aliasHits.length > 1) {
       const j = await judgeMatch(this.deps.router, { mention, sceneDescription, candidates: aliasHits });
       const matched = j.matchedIndex !== null ? aliasHits[j.matchedIndex] ?? null : null;
-      return { match: matched, confidence: j.confidence, candidates: aliasHits, layerUsed: "judge", reasoning: j.reasoning };
+      return make({ match: matched, confidence: j.confidence, candidates: aliasHits, layerUsed: "judge", reasoning: j.reasoning });
     }
 
     // L2: vector
@@ -67,42 +79,42 @@ export class Resolver {
       : { topK: this.t.topK };
     const hits = await this.deps.repo.searchEntitiesByVector(campaignId, vec, opts2);
     if (hits.length === 0) {
-      return { match: null, confidence: 0, candidates: [], layerUsed: "none" };
+      return make({ match: null, confidence: 0, candidates: [], layerUsed: "none" });
     }
     const top1 = hits[0]!;
     if (top1.score < this.t.tauLow) {
-      return { match: null, confidence: top1.score, candidates: hits.map(h => h.entity), layerUsed: "vector" };
+      return make({ match: null, confidence: top1.score, candidates: hits.map(h => h.entity), layerUsed: "vector" });
     }
     const top2 = hits[1];
     const gap = top2 ? top1.score - top2.score : 1;
     if (top1.score >= this.t.tauHigh && gap >= this.t.gapDelta) {
-      return { match: top1.entity, confidence: top1.score, candidates: hits.map(h => h.entity), layerUsed: "vector" };
+      return make({ match: top1.entity, confidence: top1.score, candidates: hits.map(h => h.entity), layerUsed: "vector" });
     }
 
     // L3: judge
     const j = await judgeMatch(this.deps.router, { mention, sceneDescription, candidates: hits.map(h => h.entity) });
     if (j.matchedIndex !== null) {
-      return {
+      return make({
         match: hits[j.matchedIndex]?.entity ?? null,
         confidence: j.confidence,
         candidates: hits.map(h => h.entity),
         layerUsed: "judge",
         reasoning: j.reasoning
-      };
+      });
     }
 
     // L4: user prompt
     if (this.deps.userPromptRegistry.hasHandler()) {
       const chosen = await this.deps.userPromptRegistry.ask({ mention, candidates: hits.map(h => h.entity) });
-      return {
+      return make({
         match: chosen,
         confidence: chosen ? 0.9 : 0,
         candidates: hits.map(h => h.entity),
         layerUsed: "user-prompt"
-      };
+      });
     }
 
-    return { match: null, confidence: j.confidence, candidates: hits.map(h => h.entity), layerUsed: "judge", reasoning: j.reasoning };
+    return make({ match: null, confidence: j.confidence, candidates: hits.map(h => h.entity), layerUsed: "judge", reasoning: j.reasoning });
   }
 
   async suggestExisting(opts: { campaignId: CampaignId; mention: string; type: EntityType }): Promise<SuggestionResult> {
@@ -112,4 +124,17 @@ export class Resolver {
     const recommendsNew = !top || top.score < this.t.tauLow;
     return { candidates: hits.map(h => h.entity), recommendsNew };
   }
+}
+
+function deriveNotFoundReason(
+  match: Entity | null,
+  layerUsed: ResolutionResult["layerUsed"],
+  candidates: Entity[],
+  confidence: number,
+  tauLow: number
+): ResolutionResult["notFoundReason"] {
+  if (match !== null) return undefined;
+  if (layerUsed === "none" || candidates.length === 0) return "no-match";
+  if (layerUsed === "vector" && confidence < tauLow) return "below-threshold";
+  return "ambiguous";
 }
