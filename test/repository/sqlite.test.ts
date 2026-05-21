@@ -77,6 +77,29 @@ describe("SqliteRepository · campaigns + entities", () => {
   });
 });
 
+describe("Repository.topEntities", () => {
+  it("returns up to K entities ordered by embeddingRefreshedAt desc", async () => {
+    const e1: Entity = { ...someEntity("t1"), embeddingRefreshedAt: 100 };
+    const e2: Entity = { ...someEntity("t2"), embeddingRefreshedAt: 300 };
+    const e3: Entity = { ...someEntity("t3"), embeddingRefreshedAt: 200 };
+    await repo.upsertEntity(e1);
+    await repo.upsertEntity(e2);
+    await repo.upsertEntity(e3);
+
+    const top2 = await repo.topEntities(cid, 2);
+    expect(top2).toHaveLength(2);
+    expect(top2[0]!.id).toBe(asEntityID("t2")); // 300 is most recent
+    expect(top2[1]!.id).toBe(asEntityID("t3")); // 200 next
+  });
+
+  it("returns an empty array for a campaign with no entities", async () => {
+    const emptyCid = asCampaignId("empty-campaign");
+    await repo.createCampaign({ id: emptyCid, name: "Empty", createdAt: 0, embeddingDim: 4 });
+    const result = await repo.topEntities(emptyCid, 10);
+    expect(result).toEqual([]);
+  });
+});
+
 describe("SqliteRepository · transaction serialization", () => {
   it("serializes concurrent transactions", async () => {
     const [a, b] = await Promise.all([

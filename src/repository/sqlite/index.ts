@@ -127,6 +127,13 @@ export class SqliteRepository implements Repository {
     return rows.map(r => rowToEntity(r, null));
   }
 
+  async topEntities(campaignId: CampaignId, k: number): Promise<Entity[]> {
+    const rows = this.db.prepare(
+      `SELECT * FROM entities WHERE campaign_id = ? ORDER BY embedding_refreshed_at DESC LIMIT ?`
+    ).all(campaignId, k) as EntityRow[];
+    return rows.map(r => rowToEntity(r, null));
+  }
+
   async searchEntitiesByVector(campaignId: CampaignId, vec: Float32Array, opts: VectorSearchOpts): Promise<EntityWithScore[]> {
     // searchVec already scopes by campaignId via compound key and returns plain entity IDs
     const hits = searchVec(this.db, campaignId, vec, opts.topK * 3);

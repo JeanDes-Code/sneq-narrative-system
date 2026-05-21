@@ -40,6 +40,8 @@ export interface Repository {
   getEntity(campaignId: CampaignId, entityId: EntityID): Promise<Entity | null>;
   findEntitiesByAlias(campaignId: CampaignId, aliasNormalized: string, type?: import("../domain/entity.js").EntityType): Promise<Entity[]>;
   searchEntitiesByVector(campaignId: CampaignId, vec: Float32Array, opts: VectorSearchOpts): Promise<EntityWithScore[]>;
+  /** Return up to `k` entities for the campaign, ordered by `embeddingRefreshedAt` descending. */
+  topEntities(campaignId: CampaignId, k: number): Promise<Entity[]>;
 
   // Facts (RC)
   appendFact(f: AttributFige & { campaignId: CampaignId }): Promise<{ factId: FactId }>;
