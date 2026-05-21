@@ -92,6 +92,12 @@ async function dispatch(inv: ParsedInvocation, deps: FullRunDeps): Promise<numbe
       deps.stdout.write(JSON.stringify(scene) + "\n");
       return 0;
     }
+    case "prepare-turn": {
+      const campaign = deps.engine.campaign(campaignId);
+      const result = await campaign.prepareTurn();
+      deps.stdout.write(JSON.stringify(result) + "\n");
+      return 0;
+    }
     default: {
       // 10 tool commands: kebab-case → sneq__snake_case
       const toolName = `sneq__${inv.command.replaceAll("-", "_")}`;
