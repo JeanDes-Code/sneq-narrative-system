@@ -155,4 +155,47 @@ describe("CampaignContext.prepareTurn", () => {
     expect(r.presentEntities).toEqual([]);
     await engine.close();
   });
+
+  it("returns scene + entity + facts in one call (the Cassius-bug closure)", async () => {
+    const { config, deps } = makeEmbedRouter([0.5, 0.5, 0.0]);
+    const engine = new Engine({
+      repository: sqliteRepository({ path: ":memory:", embeddingDim: 3 }),
+      router: config,
+      _routerDeps: deps
+    });
+    const ctx = await engine.createCampaign({ id: asCampaignId("c6"), name: "x", embeddingDim: 3 });
+
+    const farengar = await ctx.mentionEntity({
+      canonicalName: "Farengar",
+      type: "PERSONNAGE",
+      description: "Court mage of Dragonsreach"
+    });
+    const obs: Observation = {
+      source: "GM_NARRATION",
+      method: "OBSERVATION_VISUELLE",
+      fiabilite: "CERTAINE",
+      timestamp: 0
+    };
+    await ctx.registerFact({
+      entityId: farengar.entityId,
+      attributeKey: "role",
+      value: { type: "STRING", value: "court mage" },
+      category: "SOCIAL",
+      observation: obs
+    });
+
+    await ctx.setScene({
+      locationEntityId: asEntityID("loc_dragonsreach"),
+      presentEntityIds: [farengar.entityId],
+      description: "Dragonsreach great hall"
+    });
+
+    const turn = await ctx.prepareTurn();
+    expect(turn.scene?.description).toBe("Dragonsreach great hall");
+    expect(turn.presentEntities).toHaveLength(1);
+    expect(turn.presentEntities[0]?.entity.name).toBe("Farengar");
+    expect(turn.presentEntities[0]?.facts).toHaveLength(1);
+    expect(turn.presentEntities[0]?.facts[0]?.key).toBe("role");
+    await engine.close();
+  });
 });
