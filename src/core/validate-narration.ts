@@ -36,6 +36,8 @@ export interface ValidatorOptions {
 }
 
 const FRENCH_CONTRACTIONS = /^(l|d|n|s|m|t|j|c|qu)['’]/i;
+const LLM_DEFAULT_CONFIDENCE = 0.6;
+const FENCE_STRIP = /^```(?:json)?\s*|\s*```$/gi;
 
 export class Validator {
   private readonly stopwords: ReadonlySet<string>;
@@ -183,9 +185,13 @@ export class Validator {
       return { candidates: resolved, partial: true };
     }
 
+    // Light-tier models often wrap JSON in markdown code fences despite
+    // instructions to the contrary. Strip them defensively before parsing.
+    const stripped = raw.trim().replace(FENCE_STRIP, "").trim();
+
     let verdicts: LlmVerdict[];
     try {
-      const parsed: unknown = JSON.parse(raw.trim());
+      const parsed: unknown = JSON.parse(stripped);
       if (!Array.isArray(parsed)) throw new Error("not an array");
       verdicts = parsed as LlmVerdict[];
     } catch {
@@ -199,17 +205,18 @@ export class Validator {
       if (!v) return c;
       if (v.verdict === "typo" && v.suggestion) {
         const ent = topEntities.find(e => String(e.id) === v.suggestion);
-        const suggestion = ent
-          ? {
-              entityId: String(ent.id),
-              canonicalName: ent.name,
-              confidence: typeof v.confidence === "number" ? v.confidence : 0.6
-            }
-          : null;
+        // If the LLM hallucinated a suggestion ID we don't recognise, leave
+        // the candidate as no-match. Promoting to below-threshold with empty
+        // suggestions would be a worse signal than the original verdict.
+        if (!ent) return c;
         return {
           ...c,
           kind: "below-threshold" as const,
-          suggestions: suggestion ? [suggestion] : [],
+          suggestions: [{
+            entityId: String(ent.id),
+            canonicalName: ent.name,
+            confidence: typeof v.confidence === "number" ? v.confidence : LLM_DEFAULT_CONFIDENCE
+          }],
           ...(v.reasoning ? { llmReasoning: v.reasoning } : {})
         };
       }

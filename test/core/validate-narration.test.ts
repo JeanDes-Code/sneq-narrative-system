@@ -263,4 +263,47 @@ describe("Validator.llmPass", () => {
     expect(r.candidates).toEqual(input);
     expect(r.partial).toBe(true);
   });
+
+  it("strips markdown code fences before parsing JSON", async () => {
+    // Light-tier models routinely wrap JSON in ```json ... ``` despite instructions.
+    const router = mockRouter(async () => "```json\n[{\"noun\":\"Cassius\",\"verdict\":\"unknown\",\"reasoning\":\"unknown\"}]\n```");
+    const v = new Validator({} as never, router);
+    const input: ResolvedCandidate[] = [{ noun: "Cassius", kind: "no-match", suggestions: [] }];
+    const r = await v.llmPass(campaignId, "Cassius", input, []);
+    expect(r.partial).toBe(false);
+    expect(r.candidates[0]?.llmReasoning).toBe("unknown");
+  });
+
+  it("keeps NO-MATCH when LLM returns typo with an unknown entityId (hallucinated suggestion)", async () => {
+    const router = mockRouter(async () => JSON.stringify([
+      { noun: "Aldwn", verdict: "typo", suggestion: "e_ghost", confidence: 0.9, reasoning: "guess" }
+    ]));
+    const v = new Validator({} as never, router);
+    const realEntity = mkEntity("e_alduin", "Alduin"); // e_ghost is NOT in topEntities
+    const input: ResolvedCandidate[] = [{ noun: "Aldwn", kind: "no-match", suggestions: [] }];
+    const r = await v.llmPass(campaignId, "Aldwn", input, [realEntity]);
+    expect(r.candidates).toEqual([{ noun: "Aldwn", kind: "no-match", suggestions: [] }]);
+    expect(r.partial).toBe(false);
+  });
+
+  it("handles mixed verdicts (typo + unknown) in one LLM response", async () => {
+    const router = mockRouter(async () => JSON.stringify([
+      { noun: "Aldwn", verdict: "typo", suggestion: "e_alduin", confidence: 0.85 },
+      { noun: "Cassius", verdict: "unknown", reasoning: "not in canon" }
+    ]));
+    const v = new Validator({} as never, router);
+    const aldun = mkEntity("e_alduin", "Alduin");
+    const input: ResolvedCandidate[] = [
+      { noun: "Aldwn", kind: "no-match", suggestions: [] },
+      { noun: "Cassius", kind: "no-match", suggestions: [] }
+    ];
+    const r = await v.llmPass(campaignId, "Aldwn and Cassius", input, [aldun]);
+    expect(r.candidates[0]?.kind).toBe("below-threshold");
+    expect(r.candidates[0]?.suggestions).toEqual([
+      { entityId: "e_alduin", canonicalName: "Alduin", confidence: 0.85 }
+    ]);
+    expect(r.candidates[1]?.kind).toBe("no-match");
+    expect(r.candidates[1]?.llmReasoning).toBe("not in canon");
+    expect(r.partial).toBe(false);
+  });
 });
