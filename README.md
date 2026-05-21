@@ -107,18 +107,25 @@ sneq-engine register-fact --db ./campaign.db --campaign sang-artemis \
 
 # Args via stdin work too
 echo '{"entityId":"ent_abc"}' | sneq-engine get-entity --db ./campaign.db --campaign sang-artemis
+
+# Probe whether a campaign is initialized (no throw on missing)
+sneq-engine campaign-exists --db ./campaign.db --campaign sang-artemis
+
+# Atomic wake-up bundle: scene + present entities + their facts in one call
+sneq-engine prepare-turn --db ./campaign.db --campaign sang-artemis
+
+# Validate a candidate narration before flushing to the player
+sneq-engine validate-narration --db ./campaign.db --campaign sang-artemis \
+  --args '{"narration":"Anya rejoint Jean à Dragonsreach.","strict":true}'
 ```
 
-- 12 commands: the 10 tool dispatcher entries (`lookup-entity`, `get-entity`,
-  `get-relevant-facts`, `suggest-existing`, `mention-entity`, `register-fact`,
-  `add-constraint`, `collapse-attribute`, `set-scene`, `advance-turn`) plus two
-  conveniences (`init-campaign`, `get-scene`).
+- 15 commands: the 10 tool dispatcher entries (`lookup-entity`, `get-entity`, `get-relevant-facts`, `suggest-existing`, `mention-entity`, `register-fact`, `add-constraint`, `collapse-attribute`, `set-scene`, `advance-turn`) plus three conveniences (`init-campaign`, `get-scene`, `campaign-exists`), one defensive validation command (`validate-narration`), and one orchestration command (`prepare-turn`).
 - Exit codes: `0` on success, `1` on user/validation errors, `2` on internal errors.
 - Errors emit `{"error":"…","code":"…","details":…}` on stdout — never on stderr.
 - Provider keys (`ANTHROPIC_API_KEY`, `MISTRAL_API_KEY`, etc.) are read from env.
   Use `--config <path>` to override the router config.
 - Run `sneq-engine --help` or `sneq-engine <command> --help` for usage details.
-- Full spec: [`docs/superpowers/specs/2026-05-20-sneq-cli-design.md`](docs/superpowers/specs/2026-05-20-sneq-cli-design.md).
+- Full spec: [`docs/superpowers/specs/2026-05-20-sneq-cli-design.md`](docs/superpowers/specs/2026-05-20-sneq-cli-design.md) (initial CLI) + [`docs/superpowers/specs/2026-05-21-sneq-defensive-features-design.md`](docs/superpowers/specs/2026-05-21-sneq-defensive-features-design.md) (defensive features).
 
 ## Wiring as agent tools
 
