@@ -4,6 +4,8 @@ import { Router, createDefaultDeps } from "./router/router.js";
 import { Resolver, type Embedder } from "./resolver/resolver.js";
 import { UserPromptRegistry } from "./hooks/user-prompt.js";
 import { PreGenerationRegistry } from "./hooks/pre-generation.js";
+import { NarrationGateRegistry } from "./hooks/narration-gate.js";
+import { defaultNarrationGateHook } from "./core/validate-narration.js";
 import { CampaignContext } from "./campaign.js";
 import { defaultRouterConfig } from "./router/defaults.js";
 import { noopLogger, type Logger } from "./logger.js";
@@ -24,6 +26,7 @@ export class Engine {
   private readonly resolver: Resolver;
   private readonly userPrompt = new UserPromptRegistry();
   private readonly preGen = new PreGenerationRegistry();
+  private readonly narrationGate = new NarrationGateRegistry(defaultNarrationGateHook);
   private readonly logger: Logger;
   private readonly contexts = new Map<string, CampaignContext>();
 
@@ -53,7 +56,8 @@ export class Engine {
     const ctx = new CampaignContext({
       campaignId: id, repo: this.repo, router: this.router, resolver: this.resolver,
       embedder: this.embedder,
-      userPrompt: this.userPrompt, preGen: this.preGen, logger: this.logger
+      userPrompt: this.userPrompt, preGen: this.preGen,
+      narrationGate: this.narrationGate, logger: this.logger
     });
     this.contexts.set(id, ctx);
     return ctx;
