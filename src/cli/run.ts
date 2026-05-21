@@ -98,6 +98,23 @@ async function dispatch(inv: ParsedInvocation, deps: FullRunDeps): Promise<numbe
       deps.stdout.write(JSON.stringify(result) + "\n");
       return 0;
     }
+    case "validate-narration": {
+      const argsObj = (inv.argsInline ?? {}) as Record<string, unknown>;
+      const narration = argsObj["narration"];
+      if (typeof narration !== "string" || narration.length === 0) {
+        throw new CliError("INVALID_ARGS", "validate-narration requires args.narration (string)");
+      }
+      const type = argsObj["type"] as import("../domain/entity.js").EntityType | undefined;
+      const strict = argsObj["strict"] === true;
+      const campaign = deps.engine.campaign(campaignId);
+      const report = await campaign.validateNarration({
+        narration,
+        ...(type !== undefined ? { type } : {}),
+        ...(strict ? { strict: true } : {})
+      });
+      deps.stdout.write(JSON.stringify(report) + "\n");
+      return strict && !report.ok ? 1 : 0;
+    }
     default: {
       // 10 tool commands: kebab-case → sneq__snake_case
       const toolName = `sneq__${inv.command.replaceAll("-", "_")}`;
