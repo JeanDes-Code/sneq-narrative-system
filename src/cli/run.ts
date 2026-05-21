@@ -53,7 +53,7 @@ async function dispatch(inv: ParsedInvocation, deps: FullRunDeps): Promise<numbe
   const args = (inv.argsInline as Record<string, unknown> | undefined) ?? {};
   const campaignId = asCampaignId(inv.campaign);
 
-  if (inv.command !== "init-campaign") {
+  if (inv.command !== "init-campaign" && inv.command !== "campaign-exists") {
     const existing = await deps.engine.listCampaigns();
     if (!existing.some(c => c.id === inv.campaign)) {
       throw new CliError("CAMPAIGN_NOT_FOUND", `campaign '${inv.campaign}' not found`);
@@ -70,6 +70,20 @@ async function dispatch(inv: ParsedInvocation, deps: FullRunDeps): Promise<numbe
       const embeddingDim = inv.embeddingDim ?? Number(args["embeddingDim"] ?? 1024);
       await deps.engine.createCampaign({ id: campaignId, name, embeddingDim });
       deps.stdout.write(JSON.stringify({ campaignId: inv.campaign, created: true, embeddingDim }) + "\n");
+      return 0;
+    }
+    case "campaign-exists": {
+      const existing = await deps.engine.listCampaigns();
+      const hit = existing.find(c => c.id === inv.campaign);
+      if (hit) {
+        deps.stdout.write(JSON.stringify({
+          exists: true,
+          name: hit.name,
+          embeddingDim: hit.embeddingDim
+        }) + "\n");
+      } else {
+        deps.stdout.write(JSON.stringify({ exists: false }) + "\n");
+      }
       return 0;
     }
     case "get-scene": {
