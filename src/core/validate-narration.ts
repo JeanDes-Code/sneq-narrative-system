@@ -7,8 +7,16 @@ import type {
   ValidationReport
 } from "../hooks/narration-gate.js";
 import type { CampaignId } from "../domain/ids.js";
-import type { EntityType } from "../domain/entity.js";
+import type { Entity, EntityType } from "../domain/entity.js";
 import { STOPWORDS } from "./stopwords.js";
+
+interface LlmVerdict {
+  noun: string;
+  verdict: "typo" | "unknown";
+  suggestion?: string;
+  confidence?: number;
+  reasoning?: string;
+}
 
 export interface ResolvedCandidate {
   noun: string;
@@ -18,6 +26,7 @@ export interface ResolvedCandidate {
     canonicalName: string;
     confidence: number;
   }[];
+  llmReasoning?: string;
 }
 
 export interface ValidatorOptions {
@@ -122,6 +131,96 @@ export class Validator {
       });
     }
     return out;
+  }
+
+  /** Stage 3 — light-tier LLM second opinion on NO-MATCH candidates. */
+  async llmPass(
+    _campaignId: CampaignId,
+    narration: string,
+    resolved: ResolvedCandidate[],
+    topEntities: Entity[]
+  ): Promise<{ candidates: ResolvedCandidate[]; partial: boolean }> {
+    const noMatch = resolved.filter(c => c.kind === "no-match");
+    if (noMatch.length === 0) {
+      return { candidates: resolved, partial: false };
+    }
+
+    const excerpt = narration.length > this.llmCharBudget
+      ? narration.slice(0, this.llmCharBudget) + "…"
+      : narration;
+
+    const knownLines = topEntities
+      .slice(0, this.topK)
+      .map(e => `- ${String(e.id)}: ${e.name}`)
+      .join("\n");
+
+    const noMatchList = noMatch.map(c => `- "${c.noun}"`).join("\n");
+
+    const prompt = [
+      "You are validating proper nouns extracted from a roleplay narration against a campaign canon.",
+      "For each candidate noun, decide if it is a typo/variant of a known canonical entity, or wholly unknown.",
+      "",
+      "Narration excerpt:",
+      excerpt,
+      "",
+      "Candidate nouns to classify:",
+      noMatchList,
+      "",
+      "Known canonical entities (id: name):",
+      knownLines || "(none)",
+      "",
+      "Respond with ONLY a JSON array, one object per candidate, in this shape:",
+      `[{"noun":"...","verdict":"typo"|"unknown","suggestion"?:"<entityId>","confidence"?:0..1,"reasoning"?:"..."}]`
+    ].join("\n");
+
+    let raw: string;
+    try {
+      const resp = await this.router.chat("light", {
+        messages: [{ role: "user", content: prompt }]
+      });
+      raw = resp.text;
+    } catch {
+      return { candidates: resolved, partial: true };
+    }
+
+    let verdicts: LlmVerdict[];
+    try {
+      const parsed: unknown = JSON.parse(raw.trim());
+      if (!Array.isArray(parsed)) throw new Error("not an array");
+      verdicts = parsed as LlmVerdict[];
+    } catch {
+      return { candidates: resolved, partial: true };
+    }
+
+    const byNoun = new Map(verdicts.map(v => [v.noun, v]));
+    const merged = resolved.map(c => {
+      if (c.kind !== "no-match") return c;
+      const v = byNoun.get(c.noun);
+      if (!v) return c;
+      if (v.verdict === "typo" && v.suggestion) {
+        const ent = topEntities.find(e => String(e.id) === v.suggestion);
+        const suggestion = ent
+          ? {
+              entityId: String(ent.id),
+              canonicalName: ent.name,
+              confidence: typeof v.confidence === "number" ? v.confidence : 0.6
+            }
+          : null;
+        return {
+          ...c,
+          kind: "below-threshold" as const,
+          suggestions: suggestion ? [suggestion] : [],
+          ...(v.reasoning ? { llmReasoning: v.reasoning } : {})
+        };
+      }
+      // verdict === "unknown" → confirm no-match, optionally attach reasoning.
+      return {
+        ...c,
+        ...(v.reasoning ? { llmReasoning: v.reasoning } : {})
+      };
+    });
+
+    return { candidates: merged, partial: false };
   }
 
   /** Strip surrounding punctuation and French elision contractions. */
