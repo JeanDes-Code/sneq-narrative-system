@@ -62,6 +62,17 @@ export type { AskUserFn, AskUserArgs } from "./hooks/user-prompt.js";
 export { UserPromptRegistry } from "./hooks/user-prompt.js";
 export type { PreGenerationHook, PredictionEvent } from "./hooks/pre-generation.js";
 export { PreGenerationRegistry, noopPreGenerationHook } from "./hooks/pre-generation.js";
+export type {
+  NarrationGateHook, NarrationGateInput, NarrationGateContext,
+  NarrationIssue, ValidationReport
+} from "./hooks/narration-gate.js";
+export { NarrationGateRegistry } from "./hooks/narration-gate.js";
+
+// Narration validator (used by NarrationGateHook default impl + CLI validate-narration)
+export {
+  Validator, defaultNarrationGateHook,
+  type ValidatorOptions, type ResolvedCandidate
+} from "./core/validate-narration.js";
 
 // Logger
 export { type Logger, noopLogger } from "./logger.js";

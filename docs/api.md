@@ -8,6 +8,7 @@
 
 - [CampaignContext](classes/CampaignContext.md)
 - [Engine](classes/Engine.md)
+- [NarrationGateRegistry](classes/NarrationGateRegistry.md)
 - [PreGenerationRegistry](classes/PreGenerationRegistry.md)
 - [ProviderHttpError](classes/ProviderHttpError.md)
 - [Resolver](classes/Resolver.md)
@@ -17,6 +18,7 @@
 - [SneqProviderError](classes/SneqProviderError.md)
 - [SneqValidationError](classes/SneqValidationError.md)
 - [UserPromptRegistry](classes/UserPromptRegistry.md)
+- [Validator](classes/Validator.md)
 
 ## Interfaces
 
@@ -24,11 +26,13 @@
 - [AreteGCN](interfaces/AreteGCN.md)
 - [AskUserArgs](interfaces/AskUserArgs.md)
 - [AttributFige](interfaces/AttributFige.md)
+- [Avertissement](interfaces/Avertissement.md)
 - [CampaignMeta](interfaces/CampaignMeta.md)
 - [ChatRequest](interfaces/ChatRequest.md)
 - [ChatResponse](interfaces/ChatResponse.md)
 - [ContexteGeneratif](interfaces/ContexteGeneratif.md)
 - [Contrainte](interfaces/Contrainte.md)
+- [ContraintePropagee](interfaces/ContraintePropagee.md)
 - [DefaultDepsOptions](interfaces/DefaultDepsOptions.md)
 - [Embedder](interfaces/Embedder.md)
 - [EmbeddingRequest](interfaces/EmbeddingRequest.md)
@@ -39,12 +43,18 @@
 - [FactQuery](interfaces/FactQuery.md)
 - [Logger](interfaces/Logger.md)
 - [MentionInput](interfaces/MentionInput.md)
+- [NarrationGateContext](interfaces/NarrationGateContext.md)
+- [NarrationGateHook](interfaces/NarrationGateHook.md)
+- [NarrationGateInput](interfaces/NarrationGateInput.md)
+- [NarrationIssue](interfaces/NarrationIssue.md)
 - [NewCampaignInput](interfaces/NewCampaignInput.md)
 - [NoeudGCN](interfaces/NoeudGCN.md)
 - [Observation](interfaces/Observation.md)
 - [Potentialite](interfaces/Potentialite.md)
 - [PredictionEvent](interfaces/PredictionEvent.md)
 - [PreGenerationHook](interfaces/PreGenerationHook.md)
+- [PropagationInput](interfaces/PropagationInput.md)
+- [PropagationResult](interfaces/PropagationResult.md)
 - [Provider](interfaces/Provider.md)
 - [ProviderChain](interfaces/ProviderChain.md)
 - [ProviderRef](interfaces/ProviderRef.md)
@@ -52,6 +62,7 @@
 - [ReglePropagation](interfaces/ReglePropagation.md)
 - [Repository](interfaces/Repository.md)
 - [ResolutionResult](interfaces/ResolutionResult.md)
+- [ResolvedCandidate](interfaces/ResolvedCandidate.md)
 - [ResolveOptions](interfaces/ResolveOptions.md)
 - [ResolverThresholds](interfaces/ResolverThresholds.md)
 - [RouterConfig](interfaces/RouterConfig.md)
@@ -61,7 +72,12 @@
 - [Tendance](interfaces/Tendance.md)
 - [ToolCallContext](interfaces/ToolCallContext.md)
 - [Turn](interfaces/Turn.md)
+- [ValidationContext](interfaces/ValidationContext.md)
+- [ValidationFailure](interfaces/ValidationFailure.md)
 - [ValidationFailureDetail](interfaces/ValidationFailureDetail.md)
+- [ValidationReport](interfaces/ValidationReport.md)
+- [ValidationResult](interfaces/ValidationResult.md)
+- [ValidatorOptions](interfaces/ValidatorOptions.md)
 - [VectorSearchOpts](interfaces/VectorSearchOpts.md)
 
 ## Type Aliases
@@ -90,6 +106,7 @@
 
 ## Variables
 
+- [defaultNarrationGateHook](variables/defaultNarrationGateHook.md)
 - [noopLogger](variables/noopLogger.md)
 - [noopPreGenerationHook](variables/noopPreGenerationHook.md)
 - [SNEQ\_ENGINE\_VERSION](variables/SNEQ_ENGINE_VERSION.md)
@@ -113,6 +130,8 @@
 - [genericTools](functions/genericTools.md)
 - [loadConfigFromFile](functions/loadConfigFromFile.md)
 - [openAITools](functions/openAITools.md)
+- [propagate](functions/propagate.md)
+- [validateValue](functions/validateValue.md)
 
 
 ## classes
@@ -341,9 +360,19 @@
 
 ***
 
+### prepareTurn()
+
+> **prepareTurn**(): `Promise`\<\{ `presentEntities`: `object`[]; `scene`: [`Scene`](../interfaces/Scene.md) \| `null`; \}\>
+
+#### Returns
+
+`Promise`\<\{ `presentEntities`: `object`[]; `scene`: [`Scene`](../interfaces/Scene.md) \| `null`; \}\>
+
+***
+
 ### registerFact()
 
-> **registerFact**(`input`): `Promise`\<\{ `contradictions`: [`AttributFige`](../interfaces/AttributFige.md)[]; `factId`: [`FactId`](../type-aliases/FactId.md); \}\>
+> **registerFact**(`input`): `Promise`\<\{ `contradictions`: [`AttributFige`](../interfaces/AttributFige.md)[]; `factId`: [`FactId`](../type-aliases/FactId.md) \| `null`; \}\>
 
 #### Parameters
 
@@ -353,11 +382,35 @@
 
 #### Returns
 
-`Promise`\<\{ `contradictions`: [`AttributFige`](../interfaces/AttributFige.md)[]; `factId`: [`FactId`](../type-aliases/FactId.md); \}\>
+`Promise`\<\{ `contradictions`: [`AttributFige`](../interfaces/AttributFige.md)[]; `factId`: [`FactId`](../type-aliases/FactId.md) \| `null`; \}\>
 
 #### Implementation of
 
 [`ToolCallContext`](../interfaces/ToolCallContext.md).[`registerFact`](../interfaces/ToolCallContext.md#registerfact)
+
+***
+
+### registerNarrationGate()
+
+> **registerNarrationGate**(`hook`): `object`
+
+#### Parameters
+
+##### hook
+
+[`NarrationGateHook`](../interfaces/NarrationGateHook.md)
+
+#### Returns
+
+`object`
+
+##### dispose()
+
+> **dispose**(): `void`
+
+###### Returns
+
+`void`
 
 ***
 
@@ -491,6 +544,26 @@
 
 [`ToolCallContext`](../interfaces/ToolCallContext.md).[`suggestExisting`](../interfaces/ToolCallContext.md#suggestexisting)
 
+***
+
+### validateNarration()
+
+> **validateNarration**(`input`): `Promise`\<[`ValidationReport`](../interfaces/ValidationReport.md)\>
+
+#### Parameters
+
+##### input
+
+[`NarrationGateInput`](../interfaces/NarrationGateInput.md)
+
+#### Returns
+
+`Promise`\<[`ValidationReport`](../interfaces/ValidationReport.md)\>
+
+#### Implementation of
+
+[`ToolCallContext`](../interfaces/ToolCallContext.md).[`validateNarration`](../interfaces/ToolCallContext.md#validatenarration)
+
 [**@sneq/engine API**](../README.md)
 
 ***
@@ -535,7 +608,7 @@
 
 #### jsonSchema
 
-> `readonly` **jsonSchema**: `Record`\<`"sneq__lookup_entity"` \| `"sneq__get_entity"` \| `"sneq__get_relevant_facts"` \| `"sneq__suggest_existing"` \| `"sneq__mention_entity"` \| `"sneq__register_fact"` \| `"sneq__add_constraint"` \| `"sneq__collapse_attribute"` \| `"sneq__set_scene"` \| `"sneq__advance_turn"`, `object`\> = `jsonSchemas`
+> `readonly` **jsonSchema**: `Record`\<`"sneq__lookup_entity"` \| `"sneq__get_entity"` \| `"sneq__get_relevant_facts"` \| `"sneq__suggest_existing"` \| `"sneq__mention_entity"` \| `"sneq__register_fact"` \| `"sneq__add_constraint"` \| `"sneq__collapse_attribute"` \| `"sneq__set_scene"` \| `"sneq__advance_turn"` \| `"sneq__validate_narration"`, `object`\> = `jsonSchemas`
 
 #### openai
 
@@ -584,6 +657,10 @@
 ##### zod.sneq\_\_suggest\_existing
 
 > `readonly` **sneq\_\_suggest\_existing**: `ZodObject`\<\{ `mention`: `ZodString`; `type`: `ZodEnum`\<\[`"PERSONNAGE"`, `"LIEU"`, `"OBJET"`, `"FACTION"`, `"EVENEMENT"`, `"RELATION"`, `"SCENE"`, `"WORLD"`\]\>; \}, `"strip"`, `ZodTypeAny`, \{ `mention`: `string`; `type`: `"PERSONNAGE"` \| `"LIEU"` \| `"OBJET"` \| `"FACTION"` \| `"EVENEMENT"` \| `"RELATION"` \| `"SCENE"` \| `"WORLD"`; \}, \{ `mention`: `string`; `type`: `"PERSONNAGE"` \| `"LIEU"` \| `"OBJET"` \| `"FACTION"` \| `"EVENEMENT"` \| `"RELATION"` \| `"SCENE"` \| `"WORLD"`; \}\>
+
+##### zod.sneq\_\_validate\_narration
+
+> `readonly` **sneq\_\_validate\_narration**: `ZodObject`\<\{ `narration`: `ZodString`; `strict`: `ZodOptional`\<`ZodBoolean`\>; `type`: `ZodOptional`\<`ZodEnum`\<\[`"PERSONNAGE"`, `"LIEU"`, `"OBJET"`, `"FACTION"`, `"EVENEMENT"`, `"RELATION"`, `"SCENE"`, `"WORLD"`\]\>\>; \}, `"strip"`, `ZodTypeAny`, \{ `narration`: `string`; `strict?`: `boolean`; `type?`: `"PERSONNAGE"` \| `"LIEU"` \| `"OBJET"` \| `"FACTION"` \| `"EVENEMENT"` \| `"RELATION"` \| `"SCENE"` \| `"WORLD"`; \}, \{ `narration`: `string`; `strict?`: `boolean`; `type?`: `"PERSONNAGE"` \| `"LIEU"` \| `"OBJET"` \| `"FACTION"` \| `"EVENEMENT"` \| `"RELATION"` \| `"SCENE"` \| `"WORLD"`; \}\>
 
 ## Methods
 
@@ -667,6 +744,74 @@
 
 ***
 
+[@sneq/engine API](../README.md) / NarrationGateRegistry
+
+# Class: NarrationGateRegistry
+
+## Constructors
+
+### Constructor
+
+> **new NarrationGateRegistry**(`fallback`): `NarrationGateRegistry`
+
+#### Parameters
+
+##### fallback
+
+[`NarrationGateHook`](../interfaces/NarrationGateHook.md)
+
+#### Returns
+
+`NarrationGateRegistry`
+
+## Methods
+
+### register()
+
+> **register**(`h`): `object`
+
+#### Parameters
+
+##### h
+
+[`NarrationGateHook`](../interfaces/NarrationGateHook.md)
+
+#### Returns
+
+`object`
+
+##### dispose()
+
+> **dispose**(): `void`
+
+###### Returns
+
+`void`
+
+***
+
+### validate()
+
+> **validate**(`input`, `ctx`): `Promise`\<[`ValidationReport`](../interfaces/ValidationReport.md)\>
+
+#### Parameters
+
+##### input
+
+[`NarrationGateInput`](../interfaces/NarrationGateInput.md)
+
+##### ctx
+
+[`NarrationGateContext`](../interfaces/NarrationGateContext.md)
+
+#### Returns
+
+`Promise`\<[`ValidationReport`](../interfaces/ValidationReport.md)\>
+
+[**@sneq/engine API**](../README.md)
+
+***
+
 [@sneq/engine API](../README.md) / PreGenerationRegistry
 
 # Class: PreGenerationRegistry
@@ -718,6 +863,22 @@
 > **dispose**(): `void`
 
 ###### Returns
+
+`void`
+
+***
+
+### setErrorHandler()
+
+> **setErrorHandler**(`fn`): `void`
+
+#### Parameters
+
+##### fn
+
+(`err`) => `void`
+
+#### Returns
 
 `void`
 
@@ -1939,6 +2100,138 @@ https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 
 `void`
 
+[**@sneq/engine API**](../README.md)
+
+***
+
+[@sneq/engine API](../README.md) / Validator
+
+# Class: Validator
+
+## Constructors
+
+### Constructor
+
+> **new Validator**(`resolver`, `router`, `opts?`): `Validator`
+
+#### Parameters
+
+##### resolver
+
+[`Resolver`](Resolver.md)
+
+##### router
+
+[`Router`](Router.md)
+
+##### opts?
+
+[`ValidatorOptions`](../interfaces/ValidatorOptions.md) = `{}`
+
+#### Returns
+
+`Validator`
+
+## Methods
+
+### extract()
+
+> **extract**(`text`): `string`[]
+
+Stage 1 — regex extraction of capitalized name candidates.
+
+#### Parameters
+
+##### text
+
+`string`
+
+#### Returns
+
+`string`[]
+
+***
+
+### llmPass()
+
+> **llmPass**(`_campaignId`, `narration`, `resolved`, `topEntities`): `Promise`\<\{ `candidates`: [`ResolvedCandidate`](../interfaces/ResolvedCandidate.md)[]; `partial`: `boolean`; \}\>
+
+Stage 3 — light-tier LLM second opinion on NO-MATCH candidates.
+
+#### Parameters
+
+##### \_campaignId
+
+[`CampaignId`](../type-aliases/CampaignId.md)
+
+##### narration
+
+`string`
+
+##### resolved
+
+[`ResolvedCandidate`](../interfaces/ResolvedCandidate.md)[]
+
+##### topEntities
+
+[`Entity`](../interfaces/Entity.md)[]
+
+#### Returns
+
+`Promise`\<\{ `candidates`: [`ResolvedCandidate`](../interfaces/ResolvedCandidate.md)[]; `partial`: `boolean`; \}\>
+
+***
+
+### resolvePass()
+
+> **resolvePass**(`campaignId`, `candidates`, `type?`): `Promise`\<[`ResolvedCandidate`](../interfaces/ResolvedCandidate.md)[]\>
+
+Stage 2 — alias/vector/judge pass via existing resolver.
+
+#### Parameters
+
+##### campaignId
+
+[`CampaignId`](../type-aliases/CampaignId.md)
+
+##### candidates
+
+`string`[]
+
+##### type?
+
+[`EntityType`](../type-aliases/EntityType.md)
+
+#### Returns
+
+`Promise`\<[`ResolvedCandidate`](../interfaces/ResolvedCandidate.md)[]\>
+
+***
+
+### validate()
+
+> **validate**(`input`, `campaignId`, `repo`): `Promise`\<[`ValidationReport`](../interfaces/ValidationReport.md)\>
+
+Full pipeline: extract → resolve → llm → assemble.
+
+#### Parameters
+
+##### input
+
+[`NarrationGateInput`](../interfaces/NarrationGateInput.md)
+
+##### campaignId
+
+[`CampaignId`](../type-aliases/CampaignId.md)
+
+##### repo
+
+###### topEntities
+
+#### Returns
+
+`Promise`\<[`ValidationReport`](../interfaces/ValidationReport.md)\>
+
 
 ## interfaces
 
@@ -2093,6 +2386,32 @@ https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 ### value
 
 > **value**: [`AttributValue`](../type-aliases/AttributValue.md)
+
+[**@sneq/engine API**](../README.md)
+
+***
+
+[@sneq/engine API](../README.md) / Avertissement
+
+# Interface: Avertissement
+
+## Properties
+
+### contrainte
+
+> **contrainte**: [`Contrainte`](Contrainte.md)
+
+***
+
+### message
+
+> **message**: `string`
+
+***
+
+### type
+
+> **type**: `"CONTRAINTE_SOUPLE"`
 
 [**@sneq/engine API**](../README.md)
 
@@ -2292,6 +2611,44 @@ https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 
 ***
 
+[@sneq/engine API](../README.md) / ContraintePropagee
+
+# Interface: ContraintePropagee
+
+## Properties
+
+### attributCible
+
+> **attributCible**: `string`
+
+***
+
+### contrainte
+
+> **contrainte**: [`Contrainte`](Contrainte.md)
+
+***
+
+### entityId
+
+> **entityId**: [`EntityID`](../type-aliases/EntityID.md)
+
+***
+
+### forceAccumulee
+
+> **forceAccumulee**: `number`
+
+***
+
+### hopDistance
+
+> **hopDistance**: `number`
+
+[**@sneq/engine API**](../README.md)
+
+***
+
 [@sneq/engine API](../README.md) / DefaultDepsOptions
 
 # Interface: DefaultDepsOptions
@@ -2387,6 +2744,14 @@ https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 # Interface: EngineConfig
 
 ## Properties
+
+### \_routerDeps?
+
+> `optional` **\_routerDeps?**: [`RouterDeps`](RouterDeps.md)
+
+Optional override for router provider resolution (useful in tests).
+
+***
 
 ### logger?
 
@@ -2666,6 +3031,136 @@ https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 
 ***
 
+[@sneq/engine API](../README.md) / NarrationGateContext
+
+# Interface: NarrationGateContext
+
+## Properties
+
+### campaignId
+
+> **campaignId**: [`CampaignId`](../type-aliases/CampaignId.md)
+
+***
+
+### repo
+
+> **repo**: [`Repository`](Repository.md)
+
+***
+
+### resolver
+
+> **resolver**: [`Resolver`](../classes/Resolver.md)
+
+***
+
+### router
+
+> **router**: [`Router`](../classes/Router.md)
+
+[**@sneq/engine API**](../README.md)
+
+***
+
+[@sneq/engine API](../README.md) / NarrationGateHook
+
+# Interface: NarrationGateHook
+
+## Methods
+
+### validate()
+
+> **validate**(`input`, `ctx`): `Promise`\<[`ValidationReport`](ValidationReport.md)\>
+
+#### Parameters
+
+##### input
+
+[`NarrationGateInput`](NarrationGateInput.md)
+
+##### ctx
+
+[`NarrationGateContext`](NarrationGateContext.md)
+
+#### Returns
+
+`Promise`\<[`ValidationReport`](ValidationReport.md)\>
+
+[**@sneq/engine API**](../README.md)
+
+***
+
+[@sneq/engine API](../README.md) / NarrationGateInput
+
+# Interface: NarrationGateInput
+
+## Properties
+
+### narration
+
+> **narration**: `string`
+
+***
+
+### strict?
+
+> `optional` **strict?**: `boolean`
+
+***
+
+### type?
+
+> `optional` **type?**: [`EntityType`](../type-aliases/EntityType.md)
+
+[**@sneq/engine API**](../README.md)
+
+***
+
+[@sneq/engine API](../README.md) / NarrationIssue
+
+# Interface: NarrationIssue
+
+## Properties
+
+### kind
+
+> **kind**: `"no-match"` \| `"below-threshold"` \| `"ambiguous"`
+
+***
+
+### llmReasoning?
+
+> `optional` **llmReasoning?**: `string`
+
+***
+
+### noun
+
+> **noun**: `string`
+
+***
+
+### suggestions
+
+> **suggestions**: `object`[]
+
+#### canonicalName
+
+> **canonicalName**: `string`
+
+#### confidence
+
+> **confidence**: `number`
+
+#### entityId
+
+> **entityId**: `string`
+
+[**@sneq/engine API**](../README.md)
+
+***
+
 [@sneq/engine API](../README.md) / NewCampaignInput
 
 # Interface: NewCampaignInput
@@ -2871,6 +3366,76 @@ https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 ### triggerKind
 
 > **triggerKind**: `"ENTRY_TO_SCENE"` \| `"DIALOGUE_OPENED"` \| `"TURN_ADVANCED"`
+
+[**@sneq/engine API**](../README.md)
+
+***
+
+[@sneq/engine API](../README.md) / PropagationInput
+
+# Interface: PropagationInput
+
+## Properties
+
+### campaignId
+
+> **campaignId**: [`CampaignId`](../type-aliases/CampaignId.md)
+
+***
+
+### edges
+
+> **edges**: readonly [`AreteGCN`](AreteGCN.md)[]
+
+***
+
+### fact
+
+> **fact**: [`AttributFige`](AttributFige.md)
+
+***
+
+### maxDepth
+
+> **maxDepth**: `number`
+
+***
+
+### minForce
+
+> **minForce**: `number`
+
+***
+
+### rules
+
+> **rules**: readonly [`ReglePropagation`](ReglePropagation.md)[]
+
+[**@sneq/engine API**](../README.md)
+
+***
+
+[@sneq/engine API](../README.md) / PropagationResult
+
+# Interface: PropagationResult
+
+## Properties
+
+### contraintesPropagees
+
+> **contraintesPropagees**: [`ContraintePropagee`](ContraintePropagee.md)[]
+
+***
+
+### entitesImpactees
+
+> **entitesImpactees**: [`EntityID`](../type-aliases/EntityID.md)[]
+
+***
+
+### faitSource
+
+> **faitSource**: [`AttributFige`](AttributFige.md)
 
 [**@sneq/engine API**](../README.md)
 
@@ -3402,6 +3967,28 @@ https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 
 ***
 
+### topEntities()
+
+> **topEntities**(`campaignId`, `k`): `Promise`\<[`Entity`](Entity.md)[]\>
+
+Return up to `k` entities for the campaign, ordered by `embeddingRefreshedAt` descending.
+
+#### Parameters
+
+##### campaignId
+
+[`CampaignId`](../type-aliases/CampaignId.md)
+
+##### k
+
+`number`
+
+#### Returns
+
+`Promise`\<[`Entity`](Entity.md)[]\>
+
+***
+
 ### transaction()
 
 > **transaction**\<`T`\>(`fn`): `Promise`\<`T`\>
@@ -3548,6 +4135,12 @@ https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 
 ***
 
+### notFoundReason?
+
+> `optional` **notFoundReason?**: `"no-match"` \| `"below-threshold"` \| `"ambiguous"`
+
+***
+
 ### reasoning?
 
 > `optional` **reasoning?**: `string`
@@ -3583,6 +4176,50 @@ https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 ### type?
 
 > `optional` **type?**: [`EntityType`](../type-aliases/EntityType.md)
+
+[**@sneq/engine API**](../README.md)
+
+***
+
+[@sneq/engine API](../README.md) / ResolvedCandidate
+
+# Interface: ResolvedCandidate
+
+## Properties
+
+### kind
+
+> **kind**: `"no-match"` \| `"below-threshold"` \| `"ambiguous"`
+
+***
+
+### llmReasoning?
+
+> `optional` **llmReasoning?**: `string`
+
+***
+
+### noun
+
+> **noun**: `string`
+
+***
+
+### suggestions
+
+> **suggestions**: `object`[]
+
+#### canonicalName
+
+> **canonicalName**: `string`
+
+#### confidence
+
+> **confidence**: `number`
+
+#### entityId
+
+> **entityId**: `string`
 
 [**@sneq/engine API**](../README.md)
 
@@ -3934,7 +4571,7 @@ https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 
 ### registerFact()
 
-> **registerFact**(`input`): `Promise`\<\{ `contradictions`: [`AttributFige`](AttributFige.md)[]; `factId`: [`FactId`](../type-aliases/FactId.md); \}\>
+> **registerFact**(`input`): `Promise`\<\{ `contradictions`: [`AttributFige`](AttributFige.md)[]; `factId`: [`FactId`](../type-aliases/FactId.md) \| `null`; \}\>
 
 #### Parameters
 
@@ -3962,7 +4599,7 @@ https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 
 #### Returns
 
-`Promise`\<\{ `contradictions`: [`AttributFige`](AttributFige.md)[]; `factId`: [`FactId`](../type-aliases/FactId.md); \}\>
+`Promise`\<\{ `contradictions`: [`AttributFige`](AttributFige.md)[]; `factId`: [`FactId`](../type-aliases/FactId.md) \| `null`; \}\>
 
 ***
 
@@ -4036,6 +4673,32 @@ https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 
 `Promise`\<[`SuggestionResult`](SuggestionResult.md)\>
 
+***
+
+### validateNarration()
+
+> **validateNarration**(`input`): `Promise`\<[`ValidationReport`](ValidationReport.md)\>
+
+#### Parameters
+
+##### input
+
+###### narration
+
+`string`
+
+###### strict?
+
+`boolean`
+
+###### type?
+
+[`EntityType`](../type-aliases/EntityType.md)
+
+#### Returns
+
+`Promise`\<[`ValidationReport`](ValidationReport.md)\>
+
 [**@sneq/engine API**](../README.md)
 
 ***
@@ -4078,6 +4741,58 @@ https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 
 ***
 
+[@sneq/engine API](../README.md) / ValidationContext
+
+# Interface: ValidationContext
+
+## Properties
+
+### existingFiged
+
+> **existingFiged**: readonly [`AttributFige`](AttributFige.md)[]
+
+***
+
+### softContraintes
+
+> **softContraintes**: readonly [`Contrainte`](Contrainte.md)[]
+
+***
+
+### strictContraintes
+
+> **strictContraintes**: readonly [`Contrainte`](Contrainte.md)[]
+
+[**@sneq/engine API**](../README.md)
+
+***
+
+[@sneq/engine API](../README.md) / ValidationFailure
+
+# Interface: ValidationFailure
+
+## Properties
+
+### contrainte?
+
+> `optional` **contrainte?**: [`Contrainte`](Contrainte.md)
+
+***
+
+### message
+
+> **message**: `string`
+
+***
+
+### type
+
+> **type**: `ErrorType`
+
+[**@sneq/engine API**](../README.md)
+
+***
+
 [@sneq/engine API](../README.md) / ValidationFailureDetail
 
 # Interface: ValidationFailureDetail
@@ -4093,6 +4808,90 @@ https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 ### type
 
 > **type**: `"FORMAT"` \| `"CONTRAINTE_STRICTE"` \| `"CONTRADICTION_RC"`
+
+[**@sneq/engine API**](../README.md)
+
+***
+
+[@sneq/engine API](../README.md) / ValidationReport
+
+# Interface: ValidationReport
+
+## Properties
+
+### extractedNames
+
+> **extractedNames**: `string`[]
+
+***
+
+### issues
+
+> **issues**: [`NarrationIssue`](NarrationIssue.md)[]
+
+***
+
+### ok
+
+> **ok**: `boolean`
+
+***
+
+### partial?
+
+> `optional` **partial?**: `boolean`
+
+[**@sneq/engine API**](../README.md)
+
+***
+
+[@sneq/engine API](../README.md) / ValidationResult
+
+# Interface: ValidationResult
+
+## Properties
+
+### avertissements
+
+> **avertissements**: [`Avertissement`](Avertissement.md)[]
+
+***
+
+### erreurs
+
+> **erreurs**: [`ValidationFailure`](ValidationFailure.md)[]
+
+***
+
+### valide
+
+> **valide**: `boolean`
+
+[**@sneq/engine API**](../README.md)
+
+***
+
+[@sneq/engine API](../README.md) / ValidatorOptions
+
+# Interface: ValidatorOptions
+
+## Properties
+
+### llmCharBudget?
+
+> `optional` **llmCharBudget?**: `number`
+
+***
+
+### stopwords?
+
+> `optional` **stopwords?**: `ReadonlySet`\<`string`\>
+
+***
+
+### topK?
+
+> `optional` **topK?**: `number`
 
 [**@sneq/engine API**](../README.md)
 
@@ -4622,6 +5421,50 @@ https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 
 `object`[]
 
+[**@sneq/engine API**](../README.md)
+
+***
+
+[@sneq/engine API](../README.md) / propagate
+
+# Function: propagate()
+
+> **propagate**(`input`): [`PropagationResult`](../interfaces/PropagationResult.md)
+
+## Parameters
+
+### input
+
+[`PropagationInput`](../interfaces/PropagationInput.md)
+
+## Returns
+
+[`PropagationResult`](../interfaces/PropagationResult.md)
+
+[**@sneq/engine API**](../README.md)
+
+***
+
+[@sneq/engine API](../README.md) / validateValue
+
+# Function: validateValue()
+
+> **validateValue**(`value`, `ctx`): [`ValidationResult`](../interfaces/ValidationResult.md)
+
+## Parameters
+
+### value
+
+[`AttributValue`](../type-aliases/AttributValue.md)
+
+### ctx
+
+[`ValidationContext`](../interfaces/ValidationContext.md)
+
+## Returns
+
+[`ValidationResult`](../interfaces/ValidationResult.md)
+
 
 ## variables
 
@@ -4643,7 +5486,21 @@ https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 
 # Variable: ToolNames
 
-> `const` **ToolNames**: readonly \[`"sneq__lookup_entity"`, `"sneq__get_entity"`, `"sneq__get_relevant_facts"`, `"sneq__suggest_existing"`, `"sneq__mention_entity"`, `"sneq__register_fact"`, `"sneq__add_constraint"`, `"sneq__collapse_attribute"`, `"sneq__set_scene"`, `"sneq__advance_turn"`\]
+> `const` **ToolNames**: readonly \[`"sneq__lookup_entity"`, `"sneq__get_entity"`, `"sneq__get_relevant_facts"`, `"sneq__suggest_existing"`, `"sneq__mention_entity"`, `"sneq__register_fact"`, `"sneq__add_constraint"`, `"sneq__collapse_attribute"`, `"sneq__set_scene"`, `"sneq__advance_turn"`, `"sneq__validate_narration"`\]
+
+[**@sneq/engine API**](../README.md)
+
+***
+
+[@sneq/engine API](../README.md) / defaultNarrationGateHook
+
+# Variable: defaultNarrationGateHook
+
+> `const` **defaultNarrationGateHook**: [`NarrationGateHook`](../interfaces/NarrationGateHook.md)
+
+Default `NarrationGateHook` implementation backed by the Validator. Engine
+uses this as the registry fallback so a consumer that never registers a
+custom hook still gets the built-in behavior.
 
 [**@sneq/engine API**](../README.md)
 
@@ -4736,3 +5593,7 @@ https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 ### sneq\_\_suggest\_existing
 
 > `readonly` **sneq\_\_suggest\_existing**: `ZodObject`\<\{ `mention`: `ZodString`; `type`: `ZodEnum`\<\[`"PERSONNAGE"`, `"LIEU"`, `"OBJET"`, `"FACTION"`, `"EVENEMENT"`, `"RELATION"`, `"SCENE"`, `"WORLD"`\]\>; \}, `"strip"`, `ZodTypeAny`, \{ `mention`: `string`; `type`: `"PERSONNAGE"` \| `"LIEU"` \| `"OBJET"` \| `"FACTION"` \| `"EVENEMENT"` \| `"RELATION"` \| `"SCENE"` \| `"WORLD"`; \}, \{ `mention`: `string`; `type`: `"PERSONNAGE"` \| `"LIEU"` \| `"OBJET"` \| `"FACTION"` \| `"EVENEMENT"` \| `"RELATION"` \| `"SCENE"` \| `"WORLD"`; \}\>
+
+### sneq\_\_validate\_narration
+
+> `readonly` **sneq\_\_validate\_narration**: `ZodObject`\<\{ `narration`: `ZodString`; `strict`: `ZodOptional`\<`ZodBoolean`\>; `type`: `ZodOptional`\<`ZodEnum`\<\[`"PERSONNAGE"`, `"LIEU"`, `"OBJET"`, `"FACTION"`, `"EVENEMENT"`, `"RELATION"`, `"SCENE"`, `"WORLD"`\]\>\>; \}, `"strip"`, `ZodTypeAny`, \{ `narration`: `string`; `strict?`: `boolean`; `type?`: `"PERSONNAGE"` \| `"LIEU"` \| `"OBJET"` \| `"FACTION"` \| `"EVENEMENT"` \| `"RELATION"` \| `"SCENE"` \| `"WORLD"`; \}, \{ `narration`: `string`; `strict?`: `boolean`; `type?`: `"PERSONNAGE"` \| `"LIEU"` \| `"OBJET"` \| `"FACTION"` \| `"EVENEMENT"` \| `"RELATION"` \| `"SCENE"` \| `"WORLD"`; \}\>
