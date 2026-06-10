@@ -15,7 +15,10 @@ const COMMAND_DESCRIPTIONS: Record<CommandName, string> = {
   "advance-turn":       "Increment the campaign turn counter",
   "validate-narration": "Scan a candidate narration for unresolved proper nouns (hybrid: regex → resolver → light-tier LLM)",
   "prepare-turn":       "Atomic bundle: current scene + present entities + their facts in one call",
-  "campaign-exists":    "Probe whether a campaign exists; does NOT throw on missing"
+  "campaign-exists":    "Probe whether a campaign exists; does NOT throw on missing",
+  "report-feedback":    "Agent files out-of-band system feedback (fire-and-forget; never shown to the player)",
+  "feedback":           "Operator digest: tool-call coverage, never-called tools, feedback entries (--status, --since)",
+  "triage-feedback":    "Operator: set a feedback entry's status (triaged|promoted|dismissed) with optional promotedTo URL"
 };
 
 const GENERAL_HELP = `sneq-engine — narrative-state engine CLI
@@ -35,6 +38,8 @@ Common flags:
                            Default derives from the router config's embeddings primary
                            (768 with the default config). Existing DBs remember their dim;
                            the flag is only needed at init.
+  --status <s>             feedback: filter entries by status (open|triaged|promoted|dismissed; default open)
+  --since <ms>             feedback: only entries with createdAt >= ms (epoch milliseconds)
   --help                   Show this help, or help for a specific command
 
 Commands:

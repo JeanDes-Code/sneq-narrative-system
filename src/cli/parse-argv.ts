@@ -7,7 +7,8 @@ const SOURCE_PRESETS: ReadonlySet<SourcePreset> = new Set([
 ]);
 
 const FLAGS_WITH_VALUE = new Set([
-  "--db", "--campaign", "--config", "--source", "--observation", "--args", "--embedding-dim"
+  "--db", "--campaign", "--config", "--source", "--observation", "--args", "--embedding-dim",
+  "--status", "--since"
 ]);
 
 export function parseArgv(argv: string[]): ParsedInvocation {
@@ -21,6 +22,8 @@ export function parseArgv(argv: string[]): ParsedInvocation {
   let argsInline: unknown | undefined;
   let help = false;
   let embeddingDim: number | undefined;
+  let status: string | undefined;
+  let since: number | undefined;
 
   let i = 0;
 
@@ -75,6 +78,15 @@ export function parseArgv(argv: string[]): ParsedInvocation {
         embeddingDim = parsed;
         break;
       }
+      case "--status": status = next; break;
+      case "--since": {
+        const parsed = Number(next);
+        if (!Number.isInteger(parsed) || parsed < 0) {
+          throw new CliError("INVALID_ARGS", `--since must be a non-negative integer (epoch ms), got: ${next}`);
+        }
+        since = parsed;
+        break;
+      }
     }
     i += 2;
   }
@@ -93,7 +105,9 @@ export function parseArgv(argv: string[]): ParsedInvocation {
     observationOverride,
     argsInline,
     help,
-    embeddingDim
+    embeddingDim,
+    ...(status !== undefined ? { status } : {}),
+    ...(since !== undefined ? { since } : {})
   };
 }
 

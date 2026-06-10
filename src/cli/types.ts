@@ -17,7 +17,10 @@ export const KNOWN_COMMANDS = [
   "advance-turn",
   "validate-narration",
   "prepare-turn",
-  "campaign-exists"
+  "campaign-exists",
+  "report-feedback",
+  "feedback",
+  "triage-feedback"
 ] as const;
 
 export type CommandName = typeof KNOWN_COMMANDS[number];
@@ -33,4 +36,8 @@ export interface ParsedInvocation {
   argsInline: unknown | undefined;
   help: boolean;
   embeddingDim: number | undefined;
+  /** Convenience filter for the `feedback` command (any case; validated in run.ts). */
+  status?: string;
+  /** Convenience filter for the `feedback` command: epoch ms. */
+  since?: number;
 }

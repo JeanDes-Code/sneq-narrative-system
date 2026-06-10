@@ -5,6 +5,7 @@ import { helpText } from "./help.js";
 import { asCampaignId } from "../domain/ids.js";
 import { dispatchToolCall } from "../tools/dispatcher.js";
 import { buildObservation } from "./observation.js";
+import type { FeedbackStatus } from "../domain/feedback.js";
 
 export interface FullRunDeps {
   stdin: NodeJS.ReadableStream;
@@ -127,8 +128,51 @@ async function dispatch(inv: ParsedInvocation, deps: FullRunDeps): Promise<numbe
     case "collapse-attribute":
       throw new CliError("NOT_IMPLEMENTED",
         "collapse-attribute is not wired in V2 — compose your own LLM call (heavy tier) + validateValue + register-fact. The tool is no longer advertised to LLM agents either.");
+    case "feedback": {
+      const statusRaw = inv.status ?? (typeof args["status"] === "string" ? (args["status"] as string) : undefined);
+      let status: FeedbackStatus | undefined;
+      if (statusRaw !== undefined) {
+        const up = statusRaw.toUpperCase();
+        // Valid values mirror FeedbackStatus — keep both sites (feedback / triage-feedback) in sync with domain/feedback.ts.
+        if (!["OPEN", "TRIAGED", "PROMOTED", "DISMISSED"].includes(up)) {
+          throw new CliError("INVALID_ARGS", `--status must be one of open|triaged|promoted|dismissed, got: ${statusRaw}`);
+        }
+        status = up as FeedbackStatus;
+      }
+      const since = inv.since ?? (typeof args["since"] === "number" ? (args["since"] as number) : undefined);
+      const campaign = deps.engine.campaign(campaignId);
+      const digest = await campaign.feedbackDigest({
+        ...(status !== undefined ? { status } : {}),
+        ...(since !== undefined ? { since } : {})
+      });
+      deps.stdout.write(JSON.stringify(digest) + "\n");
+      return 0;
+    }
+    case "triage-feedback": {
+      const id = args["id"];
+      const statusRaw = args["status"];
+      const promotedTo = args["promotedTo"];
+      if (typeof id !== "string" || id.length === 0) {
+        throw new CliError("INVALID_ARGS", "triage-feedback requires args.id (string)");
+      }
+      const up = typeof statusRaw === "string" ? statusRaw.toUpperCase() : "";
+      if (!["OPEN", "TRIAGED", "PROMOTED", "DISMISSED"].includes(up)) {
+        throw new CliError("INVALID_ARGS",
+          `triage-feedback requires args.status (open|triaged|promoted|dismissed)${typeof statusRaw === "string" ? `, got: ${statusRaw}` : ""}`);
+      }
+      if (promotedTo !== undefined && typeof promotedTo !== "string") {
+        throw new CliError("INVALID_ARGS", "args.promotedTo must be a string URL");
+      }
+      const campaign = deps.engine.campaign(campaignId);
+      const result = await campaign.triageFeedback({
+        id, status: up as FeedbackStatus,
+        ...(promotedTo !== undefined ? { promotedTo } : {})
+      });
+      deps.stdout.write(JSON.stringify(result) + "\n");
+      return 0;
+    }
     default: {
-      // 9 remaining tool commands: kebab-case → sneq__snake_case
+      // 10 remaining tool commands: kebab-case → sneq__snake_case
       const toolName = `sneq__${inv.command.replaceAll("-", "_")}`;
       const finalArgs = await assembleToolArgs(inv, deps, args);
       const campaign = deps.engine.campaign(campaignId);
