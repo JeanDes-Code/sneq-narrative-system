@@ -13,7 +13,7 @@ import type { CampaignId, EntityID, FactId } from "../../domain/ids.js";
 import { asCampaignId, asFactId } from "../../domain/ids.js";
 import { runMigrations } from "./migrations.js";
 import { loadVec, ensureVecTable, upsertVec, searchVec, deleteVecForCampaign } from "./vec.js";
-import { normalizeAlias } from "../../resolver/normalize.js";
+import { normalizeAlias, normalizeText } from "../../resolver/normalize.js";
 import {
   entityToRow, rowToEntity, type EntityRow,
   figedToRow, rowToFiged, type FigedRow,
@@ -107,9 +107,9 @@ export class SqliteRepository implements Repository {
       this.db.prepare(`DELETE FROM aliases_norm WHERE campaign_id = ? AND entity_id = ?`).run(e.campaignId, e.id);
       const ins = this.db.prepare(`INSERT OR IGNORE INTO aliases_norm (campaign_id, entity_id, normalized) VALUES (?, ?, ?)`);
       const insertAlias = (text: string) => {
-        ins.run(e.campaignId, e.id, normalize(text));
+        ins.run(e.campaignId, e.id, normalizeText(text));
         const stripped = normalizeAlias(text);
-        if (stripped !== normalize(text)) ins.run(e.campaignId, e.id, stripped);
+        if (stripped !== normalizeText(text)) ins.run(e.campaignId, e.id, stripped);
       };
       insertAlias(e.name);
       for (const a of e.aliases) insertAlias(a.text);
@@ -140,7 +140,7 @@ export class SqliteRepository implements Repository {
   }
 
   async findEntitiesByAlias(campaignId: CampaignId, aliasNormalized: string, type?: EntityType): Promise<Entity[]> {
-    const norm = normalize(aliasNormalized);
+    const norm = normalizeText(aliasNormalized);
     const sql = type
       ? `SELECT e.* FROM entities e
          JOIN aliases_norm a ON a.campaign_id = e.campaign_id AND a.entity_id = e.id
@@ -344,11 +344,3 @@ export class SqliteRepository implements Repository {
   }
 }
 
-function normalize(s: string): string {
-  return s
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim();
-}
