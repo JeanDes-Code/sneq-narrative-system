@@ -64,3 +64,25 @@ describe("dispatchToolCall", () => {
     expect(r).toEqual({ ok: true, extractedNames: [], issues: [] });
   });
 });
+
+import { anthropicTools, openAITools, geminiTools, genericTools, ADVERTISED_TOOL_NAMES } from "../../src/tools/adapters.js";
+
+describe("advertised tools", () => {
+  it("collapse_attribute is not advertised in any adapter shape", () => {
+    expect(ADVERTISED_TOOL_NAMES).toHaveLength(10);
+    expect(ADVERTISED_TOOL_NAMES).not.toContain("sneq__collapse_attribute");
+    expect(anthropicTools().map(t => t.name)).not.toContain("sneq__collapse_attribute");
+    expect(openAITools().map(t => t.function.name)).not.toContain("sneq__collapse_attribute");
+    expect(geminiTools()[0]!.functionDeclarations.map(t => t.name)).not.toContain("sneq__collapse_attribute");
+    expect(genericTools().map(t => t.name)).not.toContain("sneq__collapse_attribute");
+  });
+
+  it("mention_entity accepts force and dispatches it", async () => {
+    const calls: unknown[] = [];
+    const ctx = {
+      mentionEntity: async (input: unknown) => { calls.push(input); return { entityId: "e", isNew: true }; }
+    } as unknown as import("../../src/tools/dispatcher.js").ToolCallContext;
+    await dispatchToolCall("sneq__mention_entity", { canonicalName: "X", type: "PERSONNAGE", description: "d", force: true }, ctx);
+    expect((calls[0] as { force?: boolean }).force).toBe(true);
+  });
+});
