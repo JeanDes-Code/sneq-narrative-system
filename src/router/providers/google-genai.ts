@@ -11,7 +11,7 @@ export class GoogleGenAIProvider implements Provider {
     this.client = new GoogleGenerativeAI(key);
   }
 
-  async chat(req: ChatRequest, _signal: AbortSignal): Promise<ChatResponse> {
+  async chat(req: ChatRequest, signal: AbortSignal): Promise<ChatResponse> {
     try {
       const temperature = req.temperature ?? this.ref.temperature;
       const maxOutputTokens = req.maxTokens ?? this.ref.maxTokens;
@@ -20,16 +20,37 @@ export class GoogleGenAIProvider implements Provider {
         ...(req.system !== undefined ? { systemInstruction: req.system } : {}),
         generationConfig: {
           ...(temperature !== undefined ? { temperature } : {}),
-          ...(maxOutputTokens !== undefined ? { maxOutputTokens } : {})
+          ...(maxOutputTokens !== undefined ? { maxOutputTokens } : {}),
+          ...(req.responseFormat === "json" ? { responseMimeType: "application/json" } : {})
         }
       });
       const contents = req.messages.map(m => ({
         role: m.role === "assistant" ? "model" : "user",
         parts: [{ text: m.content }]
       }));
-      const result = await model.generateContent({ contents });
-      const text = result.response.text();
-      return { text, toolCalls: [], modelUsed: this.ref.model, providerUsed: "google-genai" };
+      const result = await model.generateContent({
+        contents,
+        ...(req.tools && req.tools.length > 0
+          ? {
+              tools: [{
+                functionDeclarations: req.tools.map(t => ({
+                  name: t.name,
+                  description: t.description,
+                  parameters: t.inputSchema as never
+                }))
+              }]
+            }
+          : {})
+      }, { signal });
+      const response = result.response;
+      const fc = response.functionCalls() ?? [];
+      const text = fc.length > 0 ? safeText(response) : response.text();
+      return {
+        text,
+        toolCalls: fc.map(f => ({ name: f.name, arguments: f.args })),
+        modelUsed: this.ref.model,
+        providerUsed: "google-genai"
+      };
     } catch (e) {
       throw mapGoogleError(e);
     }
@@ -53,6 +74,10 @@ export class GoogleGenAIProvider implements Provider {
       throw mapGoogleError(e);
     }
   }
+}
+
+function safeText(response: { text(): string }): string {
+  try { return response.text(); } catch { return ""; }
 }
 
 function mapGoogleError(e: unknown): ProviderHttpError {
