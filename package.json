@@ -37,7 +37,8 @@
     "dist",
     "skills",
     "docs/api.md",
-    "README.md"
+    "README.md",
+    "UPGRADING.md"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",

@@ -210,6 +210,7 @@ consumer│   Engine (facade)               │
 
 | File | Audience |
 |---|---|
+| [`UPGRADING.md`](./UPGRADING.md) | Existing consumers (CLI agents like Hermes, in-process apps) — version migration guide, agent-executable |
 | [`docs/api.md`](./docs/api.md) | TypeScript developers — full API reference (TypeDoc-generated) |
 | [`skills/sneq-narrative-engine.md`](./skills/sneq-narrative-engine.md) | Claude Code / Hermes / agent runtimes — when to invoke which tool |
 | [`docs/superpowers/specs/`](./docs/superpowers/specs/) | V2 design spec (markdown + HTML brief) |
