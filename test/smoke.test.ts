@@ -3,6 +3,6 @@ import { SNEQ_ENGINE_VERSION } from "../src/index.js";
 
 describe("smoke", () => {
   it("exports version constant", () => {
-    expect(SNEQ_ENGINE_VERSION).toBe("0.0.0");
+    expect(SNEQ_ENGINE_VERSION).toBe("0.1.0");
   });
 });
