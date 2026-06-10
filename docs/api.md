@@ -14,6 +14,7 @@
 - [Resolver](classes/Resolver.md)
 - [Router](classes/Router.md)
 - [RouterExhaustedError](classes/RouterExhaustedError.md)
+- [SneqCampaignNotFoundError](classes/SneqCampaignNotFoundError.md)
 - [SneqContradictionError](classes/SneqContradictionError.md)
 - [SneqProviderError](classes/SneqProviderError.md)
 - [SneqValidationError](classes/SneqValidationError.md)
@@ -67,6 +68,7 @@
 - [ResolverThresholds](interfaces/ResolverThresholds.md)
 - [RouterConfig](interfaces/RouterConfig.md)
 - [RouterDeps](interfaces/RouterDeps.md)
+- [RouterTiers](interfaces/RouterTiers.md)
 - [Scene](interfaces/Scene.md)
 - [SuggestionResult](interfaces/SuggestionResult.md)
 - [Tendance](interfaces/Tendance.md)
@@ -87,13 +89,14 @@
 - [AttributValue](type-aliases/AttributValue.md)
 - [CampaignId](type-aliases/CampaignId.md)
 - [CategorieAttribut](type-aliases/CategorieAttribut.md)
+- [ConstraintId](type-aliases/ConstraintId.md)
 - [ContrainteSource](type-aliases/ContrainteSource.md)
-- [ContraintId](type-aliases/ContraintId.md)
 - [EntityID](type-aliases/EntityID.md)
 - [EntityType](type-aliases/EntityType.md)
 - [EtatAttribut](type-aliases/EtatAttribut.md)
 - [FactId](type-aliases/FactId.md)
 - [Fiabilite](type-aliases/Fiabilite.md)
+- [MentionResult](type-aliases/MentionResult.md)
 - [ObservationMethod](type-aliases/ObservationMethod.md)
 - [ObservationSource](type-aliases/ObservationSource.md)
 - [ProviderErrorCode](type-aliases/ProviderErrorCode.md)
@@ -106,6 +109,7 @@
 
 ## Variables
 
+- [ADVERTISED\_TOOL\_NAMES](variables/ADVERTISED_TOOL_NAMES.md)
 - [defaultNarrationGateHook](variables/defaultNarrationGateHook.md)
 - [noopLogger](variables/noopLogger.md)
 - [noopPreGenerationHook](variables/noopPreGenerationHook.md)
@@ -119,7 +123,7 @@
 
 - [anthropicTools](functions/anthropicTools.md)
 - [asCampaignId](functions/asCampaignId.md)
-- [asContraintId](functions/asContraintId.md)
+- [asConstraintId](functions/asConstraintId.md)
 - [asEntityID](functions/asEntityID.md)
 - [asFactId](functions/asFactId.md)
 - [asSceneId](functions/asSceneId.md)
@@ -174,7 +178,7 @@
 
 ### addConstraint()
 
-> **addConstraint**(`input`): `Promise`\<\{ `constraintId`: [`ContraintId`](../type-aliases/ContraintId.md); \}\>
+> **addConstraint**(`input`): `Promise`\<\{ `constraintId`: [`ConstraintId`](../type-aliases/ConstraintId.md); \}\>
 
 #### Parameters
 
@@ -198,7 +202,7 @@
 
 #### Returns
 
-`Promise`\<\{ `constraintId`: [`ContraintId`](../type-aliases/ContraintId.md); \}\>
+`Promise`\<\{ `constraintId`: [`ConstraintId`](../type-aliases/ConstraintId.md); \}\>
 
 #### Implementation of
 
@@ -342,7 +346,7 @@
 
 ### mentionEntity()
 
-> **mentionEntity**(`input`): `Promise`\<\{ `entityId`: [`EntityID`](../type-aliases/EntityID.md); `isNew`: `boolean`; `resolvedTo?`: [`EntityID`](../type-aliases/EntityID.md); \}\>
+> **mentionEntity**(`input`): `Promise`\<[`MentionResult`](../type-aliases/MentionResult.md)\>
 
 #### Parameters
 
@@ -352,7 +356,7 @@
 
 #### Returns
 
-`Promise`\<\{ `entityId`: [`EntityID`](../type-aliases/EntityID.md); `isNew`: `boolean`; `resolvedTo?`: [`EntityID`](../type-aliases/EntityID.md); \}\>
+`Promise`\<[`MentionResult`](../type-aliases/MentionResult.md)\>
 
 #### Implementation of
 
@@ -471,10 +475,6 @@
 ##### opts
 
 ###### mention
-
-`string`
-
-###### sceneId?
 
 `string`
 
@@ -620,47 +620,47 @@
 
 ##### zod.sneq\_\_add\_constraint
 
-> `readonly` **sneq\_\_add\_constraint**: `ZodObject`\<\{ `attributeKey`: `ZodString`; `entityId`: `ZodString`; `justification`: `ZodString`; `rule`: `ZodUnknown`; \}, `"strip"`, `ZodTypeAny`, \{ `attributeKey`: `string`; `entityId`: `string`; `justification`: `string`; `rule?`: `unknown`; \}, \{ `attributeKey`: `string`; `entityId`: `string`; `justification`: `string`; `rule?`: `unknown`; \}\>
+> `readonly` **sneq\_\_add\_constraint**: `ZodObject`\<\{ `attributeKey`: `ZodString`; `entityId`: `ZodString`; `justification`: `ZodString`; `rule`: `ZodUnknown`; \}, `$strip`\>
 
 ##### zod.sneq\_\_advance\_turn
 
-> `readonly` **sneq\_\_advance\_turn**: `ZodObject`\<\{ `summary`: `ZodOptional`\<`ZodString`\>; \}, `"strip"`, `ZodTypeAny`, \{ `summary?`: `string`; \}, \{ `summary?`: `string`; \}\>
+> `readonly` **sneq\_\_advance\_turn**: `ZodObject`\<\{ `summary`: `ZodOptional`\<`ZodString`\>; \}, `$strip`\>
 
 ##### zod.sneq\_\_collapse\_attribute
 
-> `readonly` **sneq\_\_collapse\_attribute**: `ZodObject`\<\{ `attributeKey`: `ZodString`; `entityId`: `ZodString`; `profondeur`: `ZodOptional`\<`ZodEnum`\<\[`"MINIMAL"`, `"STANDARD"`, `"DETAILLE"`\]\>\>; `registre`: `ZodOptional`\<`ZodEnum`\<\[`"NEUTRE"`, `"DRAMATIQUE"`, `"HUMORISTIQUE"`, `"SOMBRE"`\]\>\>; \}, `"strip"`, `ZodTypeAny`, \{ `attributeKey`: `string`; `entityId`: `string`; `profondeur?`: `"MINIMAL"` \| `"STANDARD"` \| `"DETAILLE"`; `registre?`: `"NEUTRE"` \| `"DRAMATIQUE"` \| `"HUMORISTIQUE"` \| `"SOMBRE"`; \}, \{ `attributeKey`: `string`; `entityId`: `string`; `profondeur?`: `"MINIMAL"` \| `"STANDARD"` \| `"DETAILLE"`; `registre?`: `"NEUTRE"` \| `"DRAMATIQUE"` \| `"HUMORISTIQUE"` \| `"SOMBRE"`; \}\>
+> `readonly` **sneq\_\_collapse\_attribute**: `ZodObject`\<\{ `attributeKey`: `ZodString`; `entityId`: `ZodString`; `profondeur`: `ZodOptional`\<`ZodEnum`\<\{ `DETAILLE`: `"DETAILLE"`; `MINIMAL`: `"MINIMAL"`; `STANDARD`: `"STANDARD"`; \}\>\>; `registre`: `ZodOptional`\<`ZodEnum`\<\{ `DRAMATIQUE`: `"DRAMATIQUE"`; `HUMORISTIQUE`: `"HUMORISTIQUE"`; `NEUTRE`: `"NEUTRE"`; `SOMBRE`: `"SOMBRE"`; \}\>\>; \}, `$strip`\>
 
 ##### zod.sneq\_\_get\_entity
 
-> `readonly` **sneq\_\_get\_entity**: `ZodObject`\<\{ `entityId`: `ZodString`; \}, `"strip"`, `ZodTypeAny`, \{ `entityId`: `string`; \}, \{ `entityId`: `string`; \}\>
+> `readonly` **sneq\_\_get\_entity**: `ZodObject`\<\{ `entityId`: `ZodString`; \}, `$strip`\>
 
 ##### zod.sneq\_\_get\_relevant\_facts
 
-> `readonly` **sneq\_\_get\_relevant\_facts**: `ZodObject`\<\{ `attributeKeys`: `ZodOptional`\<`ZodArray`\<`ZodString`, `"many"`\>\>; `depth`: `ZodOptional`\<`ZodNumber`\>; `entityId`: `ZodString`; \}, `"strip"`, `ZodTypeAny`, \{ `attributeKeys?`: `string`[]; `depth?`: `number`; `entityId`: `string`; \}, \{ `attributeKeys?`: `string`[]; `depth?`: `number`; `entityId`: `string`; \}\>
+> `readonly` **sneq\_\_get\_relevant\_facts**: `ZodObject`\<\{ `attributeKeys`: `ZodOptional`\<`ZodArray`\<`ZodString`\>\>; `depth`: `ZodOptional`\<`ZodNumber`\>; `entityId`: `ZodString`; \}, `$strip`\>
 
 ##### zod.sneq\_\_lookup\_entity
 
-> `readonly` **sneq\_\_lookup\_entity**: `ZodObject`\<\{ `mention`: `ZodString`; `sceneId`: `ZodOptional`\<`ZodString`\>; `type`: `ZodOptional`\<`ZodEnum`\<\[`"PERSONNAGE"`, `"LIEU"`, `"OBJET"`, `"FACTION"`, `"EVENEMENT"`, `"RELATION"`, `"SCENE"`, `"WORLD"`\]\>\>; \}, `"strip"`, `ZodTypeAny`, \{ `mention`: `string`; `sceneId?`: `string`; `type?`: `"PERSONNAGE"` \| `"LIEU"` \| `"OBJET"` \| `"FACTION"` \| `"EVENEMENT"` \| `"RELATION"` \| `"SCENE"` \| `"WORLD"`; \}, \{ `mention`: `string`; `sceneId?`: `string`; `type?`: `"PERSONNAGE"` \| `"LIEU"` \| `"OBJET"` \| `"FACTION"` \| `"EVENEMENT"` \| `"RELATION"` \| `"SCENE"` \| `"WORLD"`; \}\>
+> `readonly` **sneq\_\_lookup\_entity**: `ZodObject`\<\{ `mention`: `ZodString`; `type`: `ZodOptional`\<`ZodEnum`\<\{ `EVENEMENT`: `"EVENEMENT"`; `FACTION`: `"FACTION"`; `LIEU`: `"LIEU"`; `OBJET`: `"OBJET"`; `PERSONNAGE`: `"PERSONNAGE"`; `RELATION`: `"RELATION"`; `SCENE`: `"SCENE"`; `WORLD`: `"WORLD"`; \}\>\>; \}, `$strip`\>
 
 ##### zod.sneq\_\_mention\_entity
 
-> `readonly` **sneq\_\_mention\_entity**: `ZodObject`\<\{ `aliases`: `ZodOptional`\<`ZodArray`\<`ZodString`, `"many"`\>\>; `canonicalName`: `ZodString`; `description`: `ZodString`; `sceneId`: `ZodOptional`\<`ZodString`\>; `type`: `ZodEnum`\<\[`"PERSONNAGE"`, `"LIEU"`, `"OBJET"`, `"FACTION"`, `"EVENEMENT"`, `"RELATION"`, `"SCENE"`, `"WORLD"`\]\>; \}, `"strip"`, `ZodTypeAny`, \{ `aliases?`: `string`[]; `canonicalName`: `string`; `description`: `string`; `sceneId?`: `string`; `type`: `"PERSONNAGE"` \| `"LIEU"` \| `"OBJET"` \| `"FACTION"` \| `"EVENEMENT"` \| `"RELATION"` \| `"SCENE"` \| `"WORLD"`; \}, \{ `aliases?`: `string`[]; `canonicalName`: `string`; `description`: `string`; `sceneId?`: `string`; `type`: `"PERSONNAGE"` \| `"LIEU"` \| `"OBJET"` \| `"FACTION"` \| `"EVENEMENT"` \| `"RELATION"` \| `"SCENE"` \| `"WORLD"`; \}\>
+> `readonly` **sneq\_\_mention\_entity**: `ZodObject`\<\{ `aliases`: `ZodOptional`\<`ZodArray`\<`ZodString`\>\>; `canonicalName`: `ZodString`; `description`: `ZodString`; `force`: `ZodOptional`\<`ZodBoolean`\>; `type`: `ZodEnum`\<\{ `EVENEMENT`: `"EVENEMENT"`; `FACTION`: `"FACTION"`; `LIEU`: `"LIEU"`; `OBJET`: `"OBJET"`; `PERSONNAGE`: `"PERSONNAGE"`; `RELATION`: `"RELATION"`; `SCENE`: `"SCENE"`; `WORLD`: `"WORLD"`; \}\>; \}, `$strip`\>
 
 ##### zod.sneq\_\_register\_fact
 
-> `readonly` **sneq\_\_register\_fact**: `ZodObject`\<\{ `attributeKey`: `ZodString`; `category`: `ZodEnum`\<\[`"IDENTITE"`, `"PSYCHOLOGIE"`, `"HISTORIQUE"`, `"SOCIAL"`, `"COMPETENCE"`, `"SECRET"`, `"ETAT"`, `"POSSESSION"`\]\>; `entityId`: `ZodString`; `observation`: `ZodObject`\<\{ `emittedBy`: `ZodOptional`\<`ZodString`\>; `excerpt`: `ZodOptional`\<`ZodString`\>; `fiabilite`: `ZodEnum`\<\[`"CERTAINE"`, `"TEMOIGNAGE"`, `"RUMEUR_CONFIRMEE"`\]\>; `method`: `ZodEnum`\<\[`"DIALOGUE_DIRECT"`, `"DOCUMENT"`, `"OBSERVATION_VISUELLE"`, `"DEDUCTION_CONFIRMEE"`, `"AVEU"`, `"DEMONSTRATION"`\]\>; `sceneId`: `ZodOptional`\<`ZodString`\>; `source`: `ZodEnum`\<\[`"GM_NARRATION"`, `"PLAYER_UTTERANCE"`, `"DICE_ROLL"`, `"SYSTEM"`\]\>; `timestamp`: `ZodNumber`; \}, `"strip"`, `ZodTypeAny`, \{ `emittedBy?`: `string`; `excerpt?`: `string`; `fiabilite`: `"CERTAINE"` \| `"TEMOIGNAGE"` \| `"RUMEUR_CONFIRMEE"`; `method`: `"DOCUMENT"` \| `"DIALOGUE_DIRECT"` \| `"OBSERVATION_VISUELLE"` \| `"DEDUCTION_CONFIRMEE"` \| `"AVEU"` \| `"DEMONSTRATION"`; `sceneId?`: `string`; `source`: `"GM_NARRATION"` \| `"PLAYER_UTTERANCE"` \| `"DICE_ROLL"` \| `"SYSTEM"`; `timestamp`: `number`; \}, \{ `emittedBy?`: `string`; `excerpt?`: `string`; `fiabilite`: `"CERTAINE"` \| `"TEMOIGNAGE"` \| `"RUMEUR_CONFIRMEE"`; `method`: `"DOCUMENT"` \| `"DIALOGUE_DIRECT"` \| `"OBSERVATION_VISUELLE"` \| `"DEDUCTION_CONFIRMEE"` \| `"AVEU"` \| `"DEMONSTRATION"`; `sceneId?`: `string`; `source`: `"GM_NARRATION"` \| `"PLAYER_UTTERANCE"` \| `"DICE_ROLL"` \| `"SYSTEM"`; `timestamp`: `number`; \}\>; `value`: `ZodType`\<`unknown`, `ZodTypeDef`, `unknown`\>; \}, `"strip"`, `ZodTypeAny`, \{ `attributeKey`: `string`; `category`: `"IDENTITE"` \| `"PSYCHOLOGIE"` \| `"HISTORIQUE"` \| `"SOCIAL"` \| `"COMPETENCE"` \| `"SECRET"` \| `"ETAT"` \| `"POSSESSION"`; `entityId`: `string`; `observation`: \{ `emittedBy?`: `string`; `excerpt?`: `string`; `fiabilite`: `"CERTAINE"` \| `"TEMOIGNAGE"` \| `"RUMEUR_CONFIRMEE"`; `method`: `"DOCUMENT"` \| `"DIALOGUE_DIRECT"` \| `"OBSERVATION_VISUELLE"` \| `"DEDUCTION_CONFIRMEE"` \| `"AVEU"` \| `"DEMONSTRATION"`; `sceneId?`: `string`; `source`: `"GM_NARRATION"` \| `"PLAYER_UTTERANCE"` \| `"DICE_ROLL"` \| `"SYSTEM"`; `timestamp`: `number`; \}; `value?`: `unknown`; \}, \{ `attributeKey`: `string`; `category`: `"IDENTITE"` \| `"PSYCHOLOGIE"` \| `"HISTORIQUE"` \| `"SOCIAL"` \| `"COMPETENCE"` \| `"SECRET"` \| `"ETAT"` \| `"POSSESSION"`; `entityId`: `string`; `observation`: \{ `emittedBy?`: `string`; `excerpt?`: `string`; `fiabilite`: `"CERTAINE"` \| `"TEMOIGNAGE"` \| `"RUMEUR_CONFIRMEE"`; `method`: `"DOCUMENT"` \| `"DIALOGUE_DIRECT"` \| `"OBSERVATION_VISUELLE"` \| `"DEDUCTION_CONFIRMEE"` \| `"AVEU"` \| `"DEMONSTRATION"`; `sceneId?`: `string`; `source`: `"GM_NARRATION"` \| `"PLAYER_UTTERANCE"` \| `"DICE_ROLL"` \| `"SYSTEM"`; `timestamp`: `number`; \}; `value?`: `unknown`; \}\>
+> `readonly` **sneq\_\_register\_fact**: `ZodObject`\<\{ `attributeKey`: `ZodString`; `category`: `ZodEnum`\<\{ `COMPETENCE`: `"COMPETENCE"`; `ETAT`: `"ETAT"`; `HISTORIQUE`: `"HISTORIQUE"`; `IDENTITE`: `"IDENTITE"`; `POSSESSION`: `"POSSESSION"`; `PSYCHOLOGIE`: `"PSYCHOLOGIE"`; `SECRET`: `"SECRET"`; `SOCIAL`: `"SOCIAL"`; \}\>; `entityId`: `ZodString`; `observation`: `ZodObject`\<\{ `emittedBy`: `ZodOptional`\<`ZodString`\>; `excerpt`: `ZodOptional`\<`ZodString`\>; `fiabilite`: `ZodEnum`\<\{ `CERTAINE`: `"CERTAINE"`; `RUMEUR_CONFIRMEE`: `"RUMEUR_CONFIRMEE"`; `TEMOIGNAGE`: `"TEMOIGNAGE"`; \}\>; `method`: `ZodEnum`\<\{ `AVEU`: `"AVEU"`; `DEDUCTION_CONFIRMEE`: `"DEDUCTION_CONFIRMEE"`; `DEMONSTRATION`: `"DEMONSTRATION"`; `DIALOGUE_DIRECT`: `"DIALOGUE_DIRECT"`; `DOCUMENT`: `"DOCUMENT"`; `OBSERVATION_VISUELLE`: `"OBSERVATION_VISUELLE"`; \}\>; `sceneId`: `ZodOptional`\<`ZodString`\>; `source`: `ZodEnum`\<\{ `DICE_ROLL`: `"DICE_ROLL"`; `GM_NARRATION`: `"GM_NARRATION"`; `PLAYER_UTTERANCE`: `"PLAYER_UTTERANCE"`; `SYSTEM`: `"SYSTEM"`; \}\>; `timestamp`: `ZodNumber`; \}, `$strip`\>; `value`: `ZodType`\<`unknown`, `unknown`, `$ZodTypeInternals`\<`unknown`, `unknown`\>\>; \}, `$strip`\>
 
 ##### zod.sneq\_\_set\_scene
 
-> `readonly` **sneq\_\_set\_scene**: `ZodObject`\<\{ `description`: `ZodString`; `locationEntityId`: `ZodString`; `presentEntityIds`: `ZodArray`\<`ZodString`, `"many"`\>; \}, `"strip"`, `ZodTypeAny`, \{ `description`: `string`; `locationEntityId`: `string`; `presentEntityIds`: `string`[]; \}, \{ `description`: `string`; `locationEntityId`: `string`; `presentEntityIds`: `string`[]; \}\>
+> `readonly` **sneq\_\_set\_scene**: `ZodObject`\<\{ `description`: `ZodString`; `locationEntityId`: `ZodString`; `presentEntityIds`: `ZodArray`\<`ZodString`\>; \}, `$strip`\>
 
 ##### zod.sneq\_\_suggest\_existing
 
-> `readonly` **sneq\_\_suggest\_existing**: `ZodObject`\<\{ `mention`: `ZodString`; `type`: `ZodEnum`\<\[`"PERSONNAGE"`, `"LIEU"`, `"OBJET"`, `"FACTION"`, `"EVENEMENT"`, `"RELATION"`, `"SCENE"`, `"WORLD"`\]\>; \}, `"strip"`, `ZodTypeAny`, \{ `mention`: `string`; `type`: `"PERSONNAGE"` \| `"LIEU"` \| `"OBJET"` \| `"FACTION"` \| `"EVENEMENT"` \| `"RELATION"` \| `"SCENE"` \| `"WORLD"`; \}, \{ `mention`: `string`; `type`: `"PERSONNAGE"` \| `"LIEU"` \| `"OBJET"` \| `"FACTION"` \| `"EVENEMENT"` \| `"RELATION"` \| `"SCENE"` \| `"WORLD"`; \}\>
+> `readonly` **sneq\_\_suggest\_existing**: `ZodObject`\<\{ `mention`: `ZodString`; `type`: `ZodEnum`\<\{ `EVENEMENT`: `"EVENEMENT"`; `FACTION`: `"FACTION"`; `LIEU`: `"LIEU"`; `OBJET`: `"OBJET"`; `PERSONNAGE`: `"PERSONNAGE"`; `RELATION`: `"RELATION"`; `SCENE`: `"SCENE"`; `WORLD`: `"WORLD"`; \}\>; \}, `$strip`\>
 
 ##### zod.sneq\_\_validate\_narration
 
-> `readonly` **sneq\_\_validate\_narration**: `ZodObject`\<\{ `narration`: `ZodString`; `strict`: `ZodOptional`\<`ZodBoolean`\>; `type`: `ZodOptional`\<`ZodEnum`\<\[`"PERSONNAGE"`, `"LIEU"`, `"OBJET"`, `"FACTION"`, `"EVENEMENT"`, `"RELATION"`, `"SCENE"`, `"WORLD"`\]\>\>; \}, `"strip"`, `ZodTypeAny`, \{ `narration`: `string`; `strict?`: `boolean`; `type?`: `"PERSONNAGE"` \| `"LIEU"` \| `"OBJET"` \| `"FACTION"` \| `"EVENEMENT"` \| `"RELATION"` \| `"SCENE"` \| `"WORLD"`; \}, \{ `narration`: `string`; `strict?`: `boolean`; `type?`: `"PERSONNAGE"` \| `"LIEU"` \| `"OBJET"` \| `"FACTION"` \| `"EVENEMENT"` \| `"RELATION"` \| `"SCENE"` \| `"WORLD"`; \}\>
+> `readonly` **sneq\_\_validate\_narration**: `ZodObject`\<\{ `narration`: `ZodString`; `strict`: `ZodOptional`\<`ZodBoolean`\>; `type`: `ZodOptional`\<`ZodEnum`\<\{ `EVENEMENT`: `"EVENEMENT"`; `FACTION`: `"FACTION"`; `LIEU`: `"LIEU"`; `OBJET`: `"OBJET"`; `PERSONNAGE`: `"PERSONNAGE"`; `RELATION`: `"RELATION"`; `SCENE`: `"SCENE"`; `WORLD`: `"WORLD"`; \}\>\>; \}, `$strip`\>
 
 ## Methods
 
@@ -1220,6 +1220,28 @@ https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 
 `Promise`\<[`EmbeddingResponse`](../interfaces/EmbeddingResponse.md)\>
 
+***
+
+### embeddingDim()
+
+> **embeddingDim**(): `number` \| `undefined`
+
+Declared dim of the embeddings primary, if annotated.
+
+#### Returns
+
+`number` \| `undefined`
+
+***
+
+### hasEmbeddings()
+
+> **hasEmbeddings**(): `boolean`
+
+#### Returns
+
+`boolean`
+
 [**@sneq/engine API**](../README.md)
 
 ***
@@ -1319,6 +1341,200 @@ https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 ### tier
 
 > **tier**: [`Tier`](../type-aliases/Tier.md)
+
+***
+
+### stackTraceLimit
+
+> `static` **stackTraceLimit**: `number`
+
+The `Error.stackTraceLimit` property specifies the number of stack frames
+collected by a stack trace (whether generated by `new Error().stack` or
+`Error.captureStackTrace(obj)`).
+
+The default value is `10` but may be set to any valid JavaScript number. Changes
+will affect any stack trace captured _after_ the value has been changed.
+
+If set to a non-number value, or set to a negative number, stack traces will
+not capture any frames.
+
+#### Inherited from
+
+`Error.stackTraceLimit`
+
+## Methods
+
+### captureStackTrace()
+
+> `static` **captureStackTrace**(`targetObject`, `constructorOpt?`): `void`
+
+Creates a `.stack` property on `targetObject`, which when accessed returns
+a string representing the location in the code at which
+`Error.captureStackTrace()` was called.
+
+```js
+const myObject = {};
+Error.captureStackTrace(myObject);
+myObject.stack;  // Similar to `new Error().stack`
+```
+
+The first line of the trace will be prefixed with
+`${myObject.name}: ${myObject.message}`.
+
+The optional `constructorOpt` argument accepts a function. If given, all frames
+above `constructorOpt`, including `constructorOpt`, will be omitted from the
+generated stack trace.
+
+The `constructorOpt` argument is useful for hiding implementation
+details of error generation from the user. For instance:
+
+```js
+function a() {
+  b();
+}
+
+function b() {
+  c();
+}
+
+function c() {
+  // Create an error without stack trace to avoid calculating the stack trace twice.
+  const { stackTraceLimit } = Error;
+  Error.stackTraceLimit = 0;
+  const error = new Error();
+  Error.stackTraceLimit = stackTraceLimit;
+
+  // Capture the stack trace above function b
+  Error.captureStackTrace(error, b); // Neither function c, nor b is included in the stack trace
+  throw error;
+}
+
+a();
+```
+
+#### Parameters
+
+##### targetObject
+
+`object`
+
+##### constructorOpt?
+
+`Function`
+
+#### Returns
+
+`void`
+
+#### Inherited from
+
+`Error.captureStackTrace`
+
+***
+
+### prepareStackTrace()
+
+> `static` **prepareStackTrace**(`err`, `stackTraces`): `any`
+
+#### Parameters
+
+##### err
+
+`Error`
+
+##### stackTraces
+
+`CallSite`[]
+
+#### Returns
+
+`any`
+
+#### See
+
+https://v8.dev/docs/stack-trace-api#customizing-stack-traces
+
+#### Inherited from
+
+`Error.prepareStackTrace`
+
+[**@sneq/engine API**](../README.md)
+
+***
+
+[@sneq/engine API](../README.md) / SneqCampaignNotFoundError
+
+# Class: SneqCampaignNotFoundError
+
+## Extends
+
+- `Error`
+
+## Constructors
+
+### Constructor
+
+> **new SneqCampaignNotFoundError**(`campaignId`): `SneqCampaignNotFoundError`
+
+#### Parameters
+
+##### campaignId
+
+`string`
+
+#### Returns
+
+`SneqCampaignNotFoundError`
+
+#### Overrides
+
+`Error.constructor`
+
+## Properties
+
+### campaignId
+
+> `readonly` **campaignId**: `string`
+
+***
+
+### cause?
+
+> `optional` **cause?**: `unknown`
+
+#### Inherited from
+
+`Error.cause`
+
+***
+
+### message
+
+> **message**: `string`
+
+#### Inherited from
+
+`Error.message`
+
+***
+
+### name
+
+> **name**: `string`
+
+#### Inherited from
+
+`Error.name`
+
+***
+
+### stack?
+
+> `optional` **stack?**: `string`
+
+#### Inherited from
+
+`Error.stack`
 
 ***
 
@@ -2587,7 +2803,7 @@ Full pipeline: extract → resolve → llm → assemble.
 
 ### id
 
-> **id**: [`ContraintId`](../type-aliases/ContraintId.md)
+> **id**: [`ConstraintId`](../type-aliases/ConstraintId.md)
 
 ***
 
@@ -2800,6 +3016,14 @@ Optional override for router provider resolution (useful in tests).
 ### createdAt
 
 > **createdAt**: `number`
+
+***
+
+### description?
+
+> `optional` **description?**: `string`
+
+Human-readable description, persisted at mention time. Feeds the judge prompt and prepare-turn.
 
 ***
 
@@ -3017,9 +3241,11 @@ Optional override for router provider resolution (useful in tests).
 
 ***
 
-### sceneId?
+### force?
 
-> `optional` **sceneId?**: `string`
+> `optional` **force?**: `boolean`
+
+Create even when resolution is ambiguous (after the caller adjudicated).
 
 ***
 
@@ -3530,6 +3756,15 @@ Optional override for router provider resolution (useful in tests).
 ### baseUrl?
 
 > `optional` **baseUrl?**: `string`
+
+***
+
+### embeddingDim?
+
+> `optional` **embeddingDim?**: `number`
+
+Output dimension of the embedding model. Embeddings refs only; lets the Router
+ reject mixed-dim chains and lets the CLI derive a default campaign dim.
 
 ***
 
@@ -4125,7 +4360,7 @@ Return up to `k` entities for the campaign, ordered by `embeddingRefreshedAt` de
 
 ### layerUsed
 
-> **layerUsed**: `"alias"` \| `"vector"` \| `"judge"` \| `"user-prompt"` \| `"none"`
+> **layerUsed**: `"none"` \| `"alias"` \| `"vector"` \| `"judge"` \| `"user-prompt"`
 
 ***
 
@@ -4297,7 +4532,7 @@ Return up to `k` entities for the campaign, ordered by `embeddingRefreshedAt` de
 
 ### tiers
 
-> **tiers**: `Record`\<[`Tier`](../type-aliases/Tier.md), [`ProviderChain`](ProviderChain.md)\>
+> **tiers**: [`RouterTiers`](RouterTiers.md)
 
 [**@sneq/engine API**](../README.md)
 
@@ -4311,7 +4546,7 @@ Return up to `k` entities for the campaign, ordered by `embeddingRefreshedAt` de
 
 ### resolveProvider()
 
-> **resolveProvider**(`ref`): [`Provider`](Provider.md)
+> **resolveProvider**(`ref`): [`Provider`](Provider.md) \| `Promise`\<[`Provider`](Provider.md)\>
 
 #### Parameters
 
@@ -4321,7 +4556,35 @@ Return up to `k` entities for the campaign, ordered by `embeddingRefreshedAt` de
 
 #### Returns
 
-[`Provider`](Provider.md)
+[`Provider`](Provider.md) \| `Promise`\<[`Provider`](Provider.md)\>
+
+[**@sneq/engine API**](../README.md)
+
+***
+
+[@sneq/engine API](../README.md) / RouterTiers
+
+# Interface: RouterTiers
+
+## Properties
+
+### embeddings?
+
+> `optional` **embeddings?**: [`ProviderChain`](ProviderChain.md)
+
+Optional: omit entirely to run keyless / alias-only (no vector resolution).
+
+***
+
+### heavy
+
+> **heavy**: [`ProviderChain`](ProviderChain.md)
+
+***
+
+### light
+
+> **light**: [`ProviderChain`](ProviderChain.md)
 
 [**@sneq/engine API**](../README.md)
 
@@ -4419,7 +4682,7 @@ Return up to `k` entities for the campaign, ordered by `embeddingRefreshedAt` de
 
 ### addConstraint()
 
-> **addConstraint**(`input`): `Promise`\<\{ `constraintId`: [`ContraintId`](../type-aliases/ContraintId.md); \}\>
+> **addConstraint**(`input`): `Promise`\<\{ `constraintId`: [`ConstraintId`](../type-aliases/ConstraintId.md); \}\>
 
 #### Parameters
 
@@ -4443,7 +4706,7 @@ Return up to `k` entities for the campaign, ordered by `embeddingRefreshedAt` de
 
 #### Returns
 
-`Promise`\<\{ `constraintId`: [`ContraintId`](../type-aliases/ContraintId.md); \}\>
+`Promise`\<\{ `constraintId`: [`ConstraintId`](../type-aliases/ConstraintId.md); \}\>
 
 ***
 
@@ -4537,7 +4800,7 @@ Return up to `k` entities for the campaign, ordered by `embeddingRefreshedAt` de
 
 ### mentionEntity()
 
-> **mentionEntity**(`input`): `Promise`\<\{ `entityId`: [`EntityID`](../type-aliases/EntityID.md); `isNew`: `boolean`; `resolvedTo?`: [`EntityID`](../type-aliases/EntityID.md); \}\>
+> **mentionEntity**(`input`): `Promise`\<[`MentionResult`](../type-aliases/MentionResult.md)\>
 
 #### Parameters
 
@@ -4555,9 +4818,9 @@ Return up to `k` entities for the campaign, ordered by `embeddingRefreshedAt` de
 
 `string`
 
-###### sceneId?
+###### force?
 
-`string`
+`boolean`
 
 ###### type
 
@@ -4565,7 +4828,7 @@ Return up to `k` entities for the campaign, ordered by `embeddingRefreshedAt` de
 
 #### Returns
 
-`Promise`\<\{ `entityId`: [`EntityID`](../type-aliases/EntityID.md); `isNew`: `boolean`; `resolvedTo?`: [`EntityID`](../type-aliases/EntityID.md); \}\>
+`Promise`\<[`MentionResult`](../type-aliases/MentionResult.md)\>
 
 ***
 
@@ -4612,10 +4875,6 @@ Return up to `k` entities for the campaign, ordered by `embeddingRefreshedAt` de
 ##### opts
 
 ###### mention
-
-`string`
-
-###### sceneId?
 
 `string`
 
@@ -4992,17 +5251,17 @@ Return up to `k` entities for the campaign, ordered by `embeddingRefreshedAt` de
 
 ***
 
-[@sneq/engine API](../README.md) / ContraintId
+[@sneq/engine API](../README.md) / ConstraintId
 
-# Type Alias: ContraintId
+# Type Alias: ConstraintId
 
-> **ContraintId** = `string` & `object`
+> **ConstraintId** = `string` & `object`
 
 ## Type Declaration
 
 ### \[brand\]
 
-> `readonly` **\[brand\]**: `"ContraintId"`
+> `readonly` **\[brand\]**: `"ConstraintId"`
 
 [**@sneq/engine API**](../README.md)
 
@@ -5075,6 +5334,16 @@ Return up to `k` entities for the campaign, ordered by `embeddingRefreshedAt` de
 # Type Alias: Fiabilite
 
 > **Fiabilite** = `"CERTAINE"` \| `"TEMOIGNAGE"` \| `"RUMEUR_CONFIRMEE"`
+
+[**@sneq/engine API**](../README.md)
+
+***
+
+[@sneq/engine API](../README.md) / MentionResult
+
+# Type Alias: MentionResult
+
+> **MentionResult** = \{ `entityId`: [`EntityID`](EntityID.md); `isNew`: `boolean`; `needsAdjudication?`: `false`; `resolvedTo?`: [`EntityID`](EntityID.md); \} \| \{ `candidates`: `object`[]; `entityId`: `null`; `isNew`: `false`; `needsAdjudication`: `true`; \}
 
 [**@sneq/engine API**](../README.md)
 
@@ -5213,11 +5482,11 @@ Return up to `k` entities for the campaign, ordered by `embeddingRefreshedAt` de
 
 ***
 
-[@sneq/engine API](../README.md) / asContraintId
+[@sneq/engine API](../README.md) / asConstraintId
 
-# Function: asContraintId()
+# Function: asConstraintId()
 
-> **asContraintId**(`s`): [`ContraintId`](../type-aliases/ContraintId.md)
+> **asConstraintId**(`s`): [`ConstraintId`](../type-aliases/ConstraintId.md)
 
 ## Parameters
 
@@ -5227,7 +5496,7 @@ Return up to `k` entities for the campaign, ordered by `embeddingRefreshedAt` de
 
 ## Returns
 
-[`ContraintId`](../type-aliases/ContraintId.md)
+[`ConstraintId`](../type-aliases/ConstraintId.md)
 
 [**@sneq/engine API**](../README.md)
 
@@ -5472,11 +5741,24 @@ Return up to `k` entities for the campaign, ordered by `embeddingRefreshedAt` de
 
 ***
 
+[@sneq/engine API](../README.md) / ADVERTISED\_TOOL\_NAMES
+
+# Variable: ADVERTISED\_TOOL\_NAMES
+
+> `const` **ADVERTISED\_TOOL\_NAMES**: readonly [`ToolName`](../type-aliases/ToolName.md)[]
+
+Tools advertised to LLMs. collapse_attribute is excluded until it is actually
+ wired (V2 throws) — advertising a tool that always fails trains the model on traps.
+
+[**@sneq/engine API**](../README.md)
+
+***
+
 [@sneq/engine API](../README.md) / SNEQ\_ENGINE\_VERSION
 
 # Variable: SNEQ\_ENGINE\_VERSION
 
-> `const` **SNEQ\_ENGINE\_VERSION**: `"0.0.0"` = `"0.0.0"`
+> `const` **SNEQ\_ENGINE\_VERSION**: `"0.1.0"` = `"0.1.0"`
 
 [**@sneq/engine API**](../README.md)
 
@@ -5556,44 +5838,44 @@ custom hook still gets the built-in behavior.
 
 ### sneq\_\_add\_constraint
 
-> `readonly` **sneq\_\_add\_constraint**: `ZodObject`\<\{ `attributeKey`: `ZodString`; `entityId`: `ZodString`; `justification`: `ZodString`; `rule`: `ZodUnknown`; \}, `"strip"`, `ZodTypeAny`, \{ `attributeKey`: `string`; `entityId`: `string`; `justification`: `string`; `rule?`: `unknown`; \}, \{ `attributeKey`: `string`; `entityId`: `string`; `justification`: `string`; `rule?`: `unknown`; \}\>
+> `readonly` **sneq\_\_add\_constraint**: `ZodObject`\<\{ `attributeKey`: `ZodString`; `entityId`: `ZodString`; `justification`: `ZodString`; `rule`: `ZodUnknown`; \}, `$strip`\>
 
 ### sneq\_\_advance\_turn
 
-> `readonly` **sneq\_\_advance\_turn**: `ZodObject`\<\{ `summary`: `ZodOptional`\<`ZodString`\>; \}, `"strip"`, `ZodTypeAny`, \{ `summary?`: `string`; \}, \{ `summary?`: `string`; \}\>
+> `readonly` **sneq\_\_advance\_turn**: `ZodObject`\<\{ `summary`: `ZodOptional`\<`ZodString`\>; \}, `$strip`\>
 
 ### sneq\_\_collapse\_attribute
 
-> `readonly` **sneq\_\_collapse\_attribute**: `ZodObject`\<\{ `attributeKey`: `ZodString`; `entityId`: `ZodString`; `profondeur`: `ZodOptional`\<`ZodEnum`\<\[`"MINIMAL"`, `"STANDARD"`, `"DETAILLE"`\]\>\>; `registre`: `ZodOptional`\<`ZodEnum`\<\[`"NEUTRE"`, `"DRAMATIQUE"`, `"HUMORISTIQUE"`, `"SOMBRE"`\]\>\>; \}, `"strip"`, `ZodTypeAny`, \{ `attributeKey`: `string`; `entityId`: `string`; `profondeur?`: `"MINIMAL"` \| `"STANDARD"` \| `"DETAILLE"`; `registre?`: `"NEUTRE"` \| `"DRAMATIQUE"` \| `"HUMORISTIQUE"` \| `"SOMBRE"`; \}, \{ `attributeKey`: `string`; `entityId`: `string`; `profondeur?`: `"MINIMAL"` \| `"STANDARD"` \| `"DETAILLE"`; `registre?`: `"NEUTRE"` \| `"DRAMATIQUE"` \| `"HUMORISTIQUE"` \| `"SOMBRE"`; \}\>
+> `readonly` **sneq\_\_collapse\_attribute**: `ZodObject`\<\{ `attributeKey`: `ZodString`; `entityId`: `ZodString`; `profondeur`: `ZodOptional`\<`ZodEnum`\<\{ `DETAILLE`: `"DETAILLE"`; `MINIMAL`: `"MINIMAL"`; `STANDARD`: `"STANDARD"`; \}\>\>; `registre`: `ZodOptional`\<`ZodEnum`\<\{ `DRAMATIQUE`: `"DRAMATIQUE"`; `HUMORISTIQUE`: `"HUMORISTIQUE"`; `NEUTRE`: `"NEUTRE"`; `SOMBRE`: `"SOMBRE"`; \}\>\>; \}, `$strip`\>
 
 ### sneq\_\_get\_entity
 
-> `readonly` **sneq\_\_get\_entity**: `ZodObject`\<\{ `entityId`: `ZodString`; \}, `"strip"`, `ZodTypeAny`, \{ `entityId`: `string`; \}, \{ `entityId`: `string`; \}\>
+> `readonly` **sneq\_\_get\_entity**: `ZodObject`\<\{ `entityId`: `ZodString`; \}, `$strip`\>
 
 ### sneq\_\_get\_relevant\_facts
 
-> `readonly` **sneq\_\_get\_relevant\_facts**: `ZodObject`\<\{ `attributeKeys`: `ZodOptional`\<`ZodArray`\<`ZodString`, `"many"`\>\>; `depth`: `ZodOptional`\<`ZodNumber`\>; `entityId`: `ZodString`; \}, `"strip"`, `ZodTypeAny`, \{ `attributeKeys?`: `string`[]; `depth?`: `number`; `entityId`: `string`; \}, \{ `attributeKeys?`: `string`[]; `depth?`: `number`; `entityId`: `string`; \}\>
+> `readonly` **sneq\_\_get\_relevant\_facts**: `ZodObject`\<\{ `attributeKeys`: `ZodOptional`\<`ZodArray`\<`ZodString`\>\>; `depth`: `ZodOptional`\<`ZodNumber`\>; `entityId`: `ZodString`; \}, `$strip`\>
 
 ### sneq\_\_lookup\_entity
 
-> `readonly` **sneq\_\_lookup\_entity**: `ZodObject`\<\{ `mention`: `ZodString`; `sceneId`: `ZodOptional`\<`ZodString`\>; `type`: `ZodOptional`\<`ZodEnum`\<\[`"PERSONNAGE"`, `"LIEU"`, `"OBJET"`, `"FACTION"`, `"EVENEMENT"`, `"RELATION"`, `"SCENE"`, `"WORLD"`\]\>\>; \}, `"strip"`, `ZodTypeAny`, \{ `mention`: `string`; `sceneId?`: `string`; `type?`: `"PERSONNAGE"` \| `"LIEU"` \| `"OBJET"` \| `"FACTION"` \| `"EVENEMENT"` \| `"RELATION"` \| `"SCENE"` \| `"WORLD"`; \}, \{ `mention`: `string`; `sceneId?`: `string`; `type?`: `"PERSONNAGE"` \| `"LIEU"` \| `"OBJET"` \| `"FACTION"` \| `"EVENEMENT"` \| `"RELATION"` \| `"SCENE"` \| `"WORLD"`; \}\>
+> `readonly` **sneq\_\_lookup\_entity**: `ZodObject`\<\{ `mention`: `ZodString`; `type`: `ZodOptional`\<`ZodEnum`\<\{ `EVENEMENT`: `"EVENEMENT"`; `FACTION`: `"FACTION"`; `LIEU`: `"LIEU"`; `OBJET`: `"OBJET"`; `PERSONNAGE`: `"PERSONNAGE"`; `RELATION`: `"RELATION"`; `SCENE`: `"SCENE"`; `WORLD`: `"WORLD"`; \}\>\>; \}, `$strip`\>
 
 ### sneq\_\_mention\_entity
 
-> `readonly` **sneq\_\_mention\_entity**: `ZodObject`\<\{ `aliases`: `ZodOptional`\<`ZodArray`\<`ZodString`, `"many"`\>\>; `canonicalName`: `ZodString`; `description`: `ZodString`; `sceneId`: `ZodOptional`\<`ZodString`\>; `type`: `ZodEnum`\<\[`"PERSONNAGE"`, `"LIEU"`, `"OBJET"`, `"FACTION"`, `"EVENEMENT"`, `"RELATION"`, `"SCENE"`, `"WORLD"`\]\>; \}, `"strip"`, `ZodTypeAny`, \{ `aliases?`: `string`[]; `canonicalName`: `string`; `description`: `string`; `sceneId?`: `string`; `type`: `"PERSONNAGE"` \| `"LIEU"` \| `"OBJET"` \| `"FACTION"` \| `"EVENEMENT"` \| `"RELATION"` \| `"SCENE"` \| `"WORLD"`; \}, \{ `aliases?`: `string`[]; `canonicalName`: `string`; `description`: `string`; `sceneId?`: `string`; `type`: `"PERSONNAGE"` \| `"LIEU"` \| `"OBJET"` \| `"FACTION"` \| `"EVENEMENT"` \| `"RELATION"` \| `"SCENE"` \| `"WORLD"`; \}\>
+> `readonly` **sneq\_\_mention\_entity**: `ZodObject`\<\{ `aliases`: `ZodOptional`\<`ZodArray`\<`ZodString`\>\>; `canonicalName`: `ZodString`; `description`: `ZodString`; `force`: `ZodOptional`\<`ZodBoolean`\>; `type`: `ZodEnum`\<\{ `EVENEMENT`: `"EVENEMENT"`; `FACTION`: `"FACTION"`; `LIEU`: `"LIEU"`; `OBJET`: `"OBJET"`; `PERSONNAGE`: `"PERSONNAGE"`; `RELATION`: `"RELATION"`; `SCENE`: `"SCENE"`; `WORLD`: `"WORLD"`; \}\>; \}, `$strip`\>
 
 ### sneq\_\_register\_fact
 
-> `readonly` **sneq\_\_register\_fact**: `ZodObject`\<\{ `attributeKey`: `ZodString`; `category`: `ZodEnum`\<\[`"IDENTITE"`, `"PSYCHOLOGIE"`, `"HISTORIQUE"`, `"SOCIAL"`, `"COMPETENCE"`, `"SECRET"`, `"ETAT"`, `"POSSESSION"`\]\>; `entityId`: `ZodString`; `observation`: `ZodObject`\<\{ `emittedBy`: `ZodOptional`\<`ZodString`\>; `excerpt`: `ZodOptional`\<`ZodString`\>; `fiabilite`: `ZodEnum`\<\[`"CERTAINE"`, `"TEMOIGNAGE"`, `"RUMEUR_CONFIRMEE"`\]\>; `method`: `ZodEnum`\<\[`"DIALOGUE_DIRECT"`, `"DOCUMENT"`, `"OBSERVATION_VISUELLE"`, `"DEDUCTION_CONFIRMEE"`, `"AVEU"`, `"DEMONSTRATION"`\]\>; `sceneId`: `ZodOptional`\<`ZodString`\>; `source`: `ZodEnum`\<\[`"GM_NARRATION"`, `"PLAYER_UTTERANCE"`, `"DICE_ROLL"`, `"SYSTEM"`\]\>; `timestamp`: `ZodNumber`; \}, `"strip"`, `ZodTypeAny`, \{ `emittedBy?`: `string`; `excerpt?`: `string`; `fiabilite`: `"CERTAINE"` \| `"TEMOIGNAGE"` \| `"RUMEUR_CONFIRMEE"`; `method`: `"DOCUMENT"` \| `"DIALOGUE_DIRECT"` \| `"OBSERVATION_VISUELLE"` \| `"DEDUCTION_CONFIRMEE"` \| `"AVEU"` \| `"DEMONSTRATION"`; `sceneId?`: `string`; `source`: `"GM_NARRATION"` \| `"PLAYER_UTTERANCE"` \| `"DICE_ROLL"` \| `"SYSTEM"`; `timestamp`: `number`; \}, \{ `emittedBy?`: `string`; `excerpt?`: `string`; `fiabilite`: `"CERTAINE"` \| `"TEMOIGNAGE"` \| `"RUMEUR_CONFIRMEE"`; `method`: `"DOCUMENT"` \| `"DIALOGUE_DIRECT"` \| `"OBSERVATION_VISUELLE"` \| `"DEDUCTION_CONFIRMEE"` \| `"AVEU"` \| `"DEMONSTRATION"`; `sceneId?`: `string`; `source`: `"GM_NARRATION"` \| `"PLAYER_UTTERANCE"` \| `"DICE_ROLL"` \| `"SYSTEM"`; `timestamp`: `number`; \}\>; `value`: `ZodType`\<`unknown`, `ZodTypeDef`, `unknown`\>; \}, `"strip"`, `ZodTypeAny`, \{ `attributeKey`: `string`; `category`: `"IDENTITE"` \| `"PSYCHOLOGIE"` \| `"HISTORIQUE"` \| `"SOCIAL"` \| `"COMPETENCE"` \| `"SECRET"` \| `"ETAT"` \| `"POSSESSION"`; `entityId`: `string`; `observation`: \{ `emittedBy?`: `string`; `excerpt?`: `string`; `fiabilite`: `"CERTAINE"` \| `"TEMOIGNAGE"` \| `"RUMEUR_CONFIRMEE"`; `method`: `"DOCUMENT"` \| `"DIALOGUE_DIRECT"` \| `"OBSERVATION_VISUELLE"` \| `"DEDUCTION_CONFIRMEE"` \| `"AVEU"` \| `"DEMONSTRATION"`; `sceneId?`: `string`; `source`: `"GM_NARRATION"` \| `"PLAYER_UTTERANCE"` \| `"DICE_ROLL"` \| `"SYSTEM"`; `timestamp`: `number`; \}; `value?`: `unknown`; \}, \{ `attributeKey`: `string`; `category`: `"IDENTITE"` \| `"PSYCHOLOGIE"` \| `"HISTORIQUE"` \| `"SOCIAL"` \| `"COMPETENCE"` \| `"SECRET"` \| `"ETAT"` \| `"POSSESSION"`; `entityId`: `string`; `observation`: \{ `emittedBy?`: `string`; `excerpt?`: `string`; `fiabilite`: `"CERTAINE"` \| `"TEMOIGNAGE"` \| `"RUMEUR_CONFIRMEE"`; `method`: `"DOCUMENT"` \| `"DIALOGUE_DIRECT"` \| `"OBSERVATION_VISUELLE"` \| `"DEDUCTION_CONFIRMEE"` \| `"AVEU"` \| `"DEMONSTRATION"`; `sceneId?`: `string`; `source`: `"GM_NARRATION"` \| `"PLAYER_UTTERANCE"` \| `"DICE_ROLL"` \| `"SYSTEM"`; `timestamp`: `number`; \}; `value?`: `unknown`; \}\>
+> `readonly` **sneq\_\_register\_fact**: `ZodObject`\<\{ `attributeKey`: `ZodString`; `category`: `ZodEnum`\<\{ `COMPETENCE`: `"COMPETENCE"`; `ETAT`: `"ETAT"`; `HISTORIQUE`: `"HISTORIQUE"`; `IDENTITE`: `"IDENTITE"`; `POSSESSION`: `"POSSESSION"`; `PSYCHOLOGIE`: `"PSYCHOLOGIE"`; `SECRET`: `"SECRET"`; `SOCIAL`: `"SOCIAL"`; \}\>; `entityId`: `ZodString`; `observation`: `ZodObject`\<\{ `emittedBy`: `ZodOptional`\<`ZodString`\>; `excerpt`: `ZodOptional`\<`ZodString`\>; `fiabilite`: `ZodEnum`\<\{ `CERTAINE`: `"CERTAINE"`; `RUMEUR_CONFIRMEE`: `"RUMEUR_CONFIRMEE"`; `TEMOIGNAGE`: `"TEMOIGNAGE"`; \}\>; `method`: `ZodEnum`\<\{ `AVEU`: `"AVEU"`; `DEDUCTION_CONFIRMEE`: `"DEDUCTION_CONFIRMEE"`; `DEMONSTRATION`: `"DEMONSTRATION"`; `DIALOGUE_DIRECT`: `"DIALOGUE_DIRECT"`; `DOCUMENT`: `"DOCUMENT"`; `OBSERVATION_VISUELLE`: `"OBSERVATION_VISUELLE"`; \}\>; `sceneId`: `ZodOptional`\<`ZodString`\>; `source`: `ZodEnum`\<\{ `DICE_ROLL`: `"DICE_ROLL"`; `GM_NARRATION`: `"GM_NARRATION"`; `PLAYER_UTTERANCE`: `"PLAYER_UTTERANCE"`; `SYSTEM`: `"SYSTEM"`; \}\>; `timestamp`: `ZodNumber`; \}, `$strip`\>; `value`: `ZodType`\<`unknown`, `unknown`, `$ZodTypeInternals`\<`unknown`, `unknown`\>\>; \}, `$strip`\>
 
 ### sneq\_\_set\_scene
 
-> `readonly` **sneq\_\_set\_scene**: `ZodObject`\<\{ `description`: `ZodString`; `locationEntityId`: `ZodString`; `presentEntityIds`: `ZodArray`\<`ZodString`, `"many"`\>; \}, `"strip"`, `ZodTypeAny`, \{ `description`: `string`; `locationEntityId`: `string`; `presentEntityIds`: `string`[]; \}, \{ `description`: `string`; `locationEntityId`: `string`; `presentEntityIds`: `string`[]; \}\>
+> `readonly` **sneq\_\_set\_scene**: `ZodObject`\<\{ `description`: `ZodString`; `locationEntityId`: `ZodString`; `presentEntityIds`: `ZodArray`\<`ZodString`\>; \}, `$strip`\>
 
 ### sneq\_\_suggest\_existing
 
-> `readonly` **sneq\_\_suggest\_existing**: `ZodObject`\<\{ `mention`: `ZodString`; `type`: `ZodEnum`\<\[`"PERSONNAGE"`, `"LIEU"`, `"OBJET"`, `"FACTION"`, `"EVENEMENT"`, `"RELATION"`, `"SCENE"`, `"WORLD"`\]\>; \}, `"strip"`, `ZodTypeAny`, \{ `mention`: `string`; `type`: `"PERSONNAGE"` \| `"LIEU"` \| `"OBJET"` \| `"FACTION"` \| `"EVENEMENT"` \| `"RELATION"` \| `"SCENE"` \| `"WORLD"`; \}, \{ `mention`: `string`; `type`: `"PERSONNAGE"` \| `"LIEU"` \| `"OBJET"` \| `"FACTION"` \| `"EVENEMENT"` \| `"RELATION"` \| `"SCENE"` \| `"WORLD"`; \}\>
+> `readonly` **sneq\_\_suggest\_existing**: `ZodObject`\<\{ `mention`: `ZodString`; `type`: `ZodEnum`\<\{ `EVENEMENT`: `"EVENEMENT"`; `FACTION`: `"FACTION"`; `LIEU`: `"LIEU"`; `OBJET`: `"OBJET"`; `PERSONNAGE`: `"PERSONNAGE"`; `RELATION`: `"RELATION"`; `SCENE`: `"SCENE"`; `WORLD`: `"WORLD"`; \}\>; \}, `$strip`\>
 
 ### sneq\_\_validate\_narration
 
-> `readonly` **sneq\_\_validate\_narration**: `ZodObject`\<\{ `narration`: `ZodString`; `strict`: `ZodOptional`\<`ZodBoolean`\>; `type`: `ZodOptional`\<`ZodEnum`\<\[`"PERSONNAGE"`, `"LIEU"`, `"OBJET"`, `"FACTION"`, `"EVENEMENT"`, `"RELATION"`, `"SCENE"`, `"WORLD"`\]\>\>; \}, `"strip"`, `ZodTypeAny`, \{ `narration`: `string`; `strict?`: `boolean`; `type?`: `"PERSONNAGE"` \| `"LIEU"` \| `"OBJET"` \| `"FACTION"` \| `"EVENEMENT"` \| `"RELATION"` \| `"SCENE"` \| `"WORLD"`; \}, \{ `narration`: `string`; `strict?`: `boolean`; `type?`: `"PERSONNAGE"` \| `"LIEU"` \| `"OBJET"` \| `"FACTION"` \| `"EVENEMENT"` \| `"RELATION"` \| `"SCENE"` \| `"WORLD"`; \}\>
+> `readonly` **sneq\_\_validate\_narration**: `ZodObject`\<\{ `narration`: `ZodString`; `strict`: `ZodOptional`\<`ZodBoolean`\>; `type`: `ZodOptional`\<`ZodEnum`\<\{ `EVENEMENT`: `"EVENEMENT"`; `FACTION`: `"FACTION"`; `LIEU`: `"LIEU"`; `OBJET`: `"OBJET"`; `PERSONNAGE`: `"PERSONNAGE"`; `RELATION`: `"RELATION"`; `SCENE`: `"SCENE"`; `WORLD`: `"WORLD"`; \}\>\>; \}, `$strip`\>

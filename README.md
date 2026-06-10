@@ -21,10 +21,11 @@ It implements the SNEQ model — **Système Narratif à État Quantique** — a 
 
 - **Bookkeeping library** in TypeScript (Node 20+, ESM). No GM logic; you stay in control of prose.
 - **Multi-campaign** — one Engine instance, many campaigns, scoped by `campaignId`.
-- **Layered entity resolution** — `alias → vector → LLM judge → user-prompt` cascade for "is this the same NPC as 3 sessions ago?".
-- **Provider router** with three task tiers (`heavy` / `light` / `embeddings`), each with primary + fallback chain, quota-aware. Built-in adapters for DeepSeek, Mistral, Together, OpenRouter, Anthropic, Google GenAI, and a `custom` escape hatch.
-- **SQLite + sqlite-vec persistence** (file-based, zero ops). Repository interface is pluggable — Convex / Postgres adapters can be added later.
-- **Tool-call protocol** — Zod-validated tool schemas + ready-to-drop-in adapter shapes for Anthropic, OpenAI-compatible, and Gemini SDKs.
+- **Layered entity resolution** — `alias → vector → LLM judge → user-prompt` cascade for "is this the same NPC as 3 sessions ago?". Runs **keyless** in a degraded alias-only mode (omit the embeddings tier, `embeddingDim: 0`) — useful for demos, prototypes, and providers without an embeddings endpoint (DeepSeek).
+- **Anti-fork guard** — `mention_entity` refuses to silently create a near-duplicate when resolution is ambiguous: it returns `needsAdjudication: true` + candidates so the caller decides (re-use an id, or re-call with `force: true`).
+- **Provider router** with three task tiers (`heavy` / `light` / optional `embeddings`), each with primary + fallback chain and real retry/backoff. Built-in adapters for DeepSeek, Mistral, Together, OpenRouter (fetch-based, zero deps), plus Anthropic and Google GenAI (lazy-loaded — their SDKs are genuinely optional peers), and a `custom` escape hatch.
+- **Three repository adapters** behind one contract: SQLite + sqlite-vec (file-based, zero ops), in-memory (`@sneq/engine/memory`, zero deps, brute-force cosine), and JSON-file (`@sneq/engine/json`, atomic write-through, human-readable saves). The shared contract test suite is the seam's specification.
+- **Tool-call protocol** — Zod-validated tool schemas + ready-to-drop-in adapter shapes for Anthropic, OpenAI-compatible, and Gemini SDKs (10 advertised tools).
 - **Agent-discoverable skill** — drop [`skills/sneq-narrative-engine.md`](./skills/sneq-narrative-engine.md) into a Claude Code / Hermes-Agent skills dir and the agent learns when to call which engine tool.
 
 ## Stack policy
@@ -40,21 +41,54 @@ git clone https://github.com/JeanDes-Code/sneq-narrative-system.git
 cd sneq-narrative-system
 pnpm install
 pnpm approve-builds       # approve native builds for better-sqlite3 + esbuild
-pnpm test                 # 168 tests should pass
+pnpm test                 # 235 tests should pass
 pnpm build                # produces dist/
 ```
 
 Once published the install will be:
 
 ```bash
-pnpm add @sneq/engine
-# Plus the peer deps you actually use:
-pnpm add better-sqlite3 sqlite-vec       # for the reference SQLite repository
-pnpm add @anthropic-ai/sdk               # if using the Anthropic provider
-pnpm add @google/generative-ai           # if using Google GenAI
+pnpm add @sneq/engine     # only hard dependency: zod
 ```
 
-## Quick start
+Optional peers, **only for what you actually use** (the core import never touches them):
+
+| You use | Install |
+|---|---|
+| `@sneq/engine/memory` or `@sneq/engine/json` | nothing |
+| `@sneq/engine/sqlite` without vectors (`embeddingDim: 0`) | `better-sqlite3` |
+| `@sneq/engine/sqlite` with vector resolution | `better-sqlite3 sqlite-vec` |
+| DeepSeek / Mistral / Together / OpenRouter / any OpenAI-compatible | nothing (fetch-based) |
+| the Anthropic provider | `@anthropic-ai/sdk` |
+| the Google GenAI provider | `@google/generative-ai` |
+
+## Quick start — zero config, zero keys
+
+No API keys, no native modules: the in-memory adapter plus alias-only resolution.
+This is the smallest thing that works — perfect for a demo mode or a prototype.
+
+```ts
+import { Engine, asCampaignId } from "@sneq/engine";
+import { memoryRepository } from "@sneq/engine/memory";
+
+const engine = new Engine({
+  repository: memoryRepository(),         // or jsonFileRepository({ path: "./save.json" })
+  router: { tiers: {
+    heavy: { primary: { provider: "openai-compatible", baseUrl: "https://api.deepseek.com/v1", apiKeyEnv: "DEEPSEEK_API_KEY", model: "deepseek-chat" }, fallbacks: [] },
+    light: { primary: { provider: "openai-compatible", baseUrl: "https://api.deepseek.com/v1", apiKeyEnv: "DEEPSEEK_API_KEY", model: "deepseek-chat" }, fallbacks: [] }
+    // no embeddings tier → alias-only resolution, no embeddings key needed
+  } }
+});
+
+const campaign = await engine.createCampaign({
+  id: asCampaignId("demo"), name: "Demo", embeddingDim: 0   // 0 = no vectors
+});
+```
+
+With a chat key present the LLM judge still disambiguates multi-alias hits; with no
+keys at all the engine stays fully functional on exact-alias resolution.
+
+## Quick start — full cascade (SQLite + vectors)
 
 ```ts
 import { Engine, defaultRouterConfig, asCampaignId } from "@sneq/engine";
@@ -119,11 +153,14 @@ sneq-engine validate-narration --db ./campaign.db --campaign forge-de-valmure \
   --args '{"narration":"Mira rejoint Aldric à Valmure.","strict":true}'
 ```
 
-- 15 commands: the 10 tool dispatcher entries (`lookup-entity`, `get-entity`, `get-relevant-facts`, `suggest-existing`, `mention-entity`, `register-fact`, `add-constraint`, `collapse-attribute`, `set-scene`, `advance-turn`) plus three conveniences (`init-campaign`, `get-scene`, `campaign-exists`), one defensive validation command (`validate-narration`), and one orchestration command (`prepare-turn`).
+- 15 commands: the 10 tool dispatcher entries (`lookup-entity`, `get-entity`, `get-relevant-facts`, `suggest-existing`, `mention-entity`, `register-fact`, `add-constraint`, `collapse-attribute`, `set-scene`, `advance-turn`) plus three conveniences (`init-campaign`, `get-scene`, `campaign-exists`), one defensive validation command (`validate-narration`), and one orchestration command (`prepare-turn`). `collapse-attribute` exits 1 with `NOT_IMPLEMENTED` (not wired in V2).
 - Exit codes: `0` on success, `1` on user/validation errors, `2` on internal errors.
 - Errors emit `{"error":"…","code":"…","details":…}` on stdout — never on stderr.
 - Provider keys (`ANTHROPIC_API_KEY`, `MISTRAL_API_KEY`, etc.) are read from env.
   Use `--config <path>` to override the router config.
+- `--embedding-dim` is only needed at `init-campaign` (existing DBs remember their dim).
+  The default derives from the config's embeddings primary (768 with the default config);
+  pass `0` for alias-only campaigns with no embeddings provider at all.
 - Run `sneq-engine --help` or `sneq-engine <command> --help` for usage details.
 - Full spec: [`docs/superpowers/specs/2026-05-20-sneq-cli-design.md`](docs/superpowers/specs/2026-05-20-sneq-cli-design.md) (initial CLI) + [`docs/superpowers/specs/2026-05-21-sneq-defensive-features-design.md`](docs/superpowers/specs/2026-05-21-sneq-defensive-features-design.md) (defensive features).
 
@@ -132,7 +169,8 @@ sneq-engine validate-narration --db ./campaign.db --campaign forge-de-valmure \
 ```ts
 import { Engine } from "@sneq/engine";
 
-// Get the tool schemas in the shape your model wants:
+// Get the tool schemas in the shape your model wants (10 advertised tools —
+// collapse_attribute is excluded until it is actually wired):
 const anthropicTools = Engine.tools.anthropic;
 const openaiTools    = Engine.tools.openai;
 const geminiTools    = Engine.tools.gemini;
@@ -182,9 +220,10 @@ consumer│   Engine (facade)               │
 
 V2 is intentionally minimal. The following are out-of-scope for this version and tracked for follow-ups:
 
-- **`collapseAttribute` throws** — full attribute-collapse-with-validation-and-regeneration is deferred. For now, consumers compose `Router.chat` + `validateValue` + `registerFact` themselves (both are exported).
+- **`collapseAttribute` throws** — full attribute-collapse-with-validation-and-regeneration is deferred, and the tool is **no longer advertised to LLMs** (`ADVERTISED_TOOL_NAMES`). Consumers compose `Router.chat` + `validateValue` + `registerFact` themselves (both are exported).
 - **Pre-generation cache** — the v1 spec's elaborate predictor/cache for real-time RPGs. `PreGenerationHook` interface exists with a no-op default; the full implementation is a future version.
-- **Convex / Postgres repository adapters** — only SQLite is shipped. The `Repository` interface is the documented contract.
+- **Convex / Postgres repository adapters** — SQLite, in-memory, and JSON-file ship; the `Repository` contract test suite (`test/repository/contract.ts`) is the specification for new adapters.
+- **One DB per campaign is the blessed layout** — the sqlite-vec prefilter degrades on shared multi-campaign databases with many entities; the CLI examples already follow this.
 - **Multi-PC / party support** — V2 assumes single-PC sessions.
 - **HTTP / MCP gateway** — engine is in-process. Wrap trivially later if needed.
 - **Consumer bindings** — TTRPG single-player app and Hermes-Agent MCP / skill integrations get their own follow-up specs.
@@ -196,15 +235,15 @@ SNEQ/                           v1 design docs (French)
 src/                            engine source
   domain/                       branded IDs, Entity, AttributValue, GCN, etc.
   core/                         state machine, propagation, validation (pure)
-  repository/{interface,sqlite/} Repository contract + SQLite reference impl
-  router/{interface,router,providers/,defaults} Router + 4 providers
-  resolver/{resolver,judge,thresholds,normalize} Layered cascade
+  repository/{interface,sqlite/,memory/,json/} Repository contract + 3 adapters
+  router/{interface,router,providers/,defaults} Router + 4 providers (SDK ones lazy-loaded)
+  resolver/{resolver,judge,thresholds,normalize} Layered cascade (degrades keyless)
   tools/{schemas,json-schema,adapters,dispatcher} Tool-call protocol
   hooks/{user-prompt,pre-generation} Extension points
   engine.ts, campaign.ts        Facade + CampaignContext
   config.ts, logger.ts, errors.ts, index.ts
-test/                           168 unit tests + 1 env-gated integration smoke
-docs/                           generated API + V2 design spec + plan
+test/                           235 unit tests (incl. the repository contract suite) + 1 env-gated integration smoke
+docs/                           generated API + design specs + plans
 skills/                         agent-discoverable skill
 ```
 
