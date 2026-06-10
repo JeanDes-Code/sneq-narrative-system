@@ -5,7 +5,7 @@ description: When the agent acts as Game Master for a TTRPG / narrative campaign
 
 # SNEQ Narrative Engine — Agent Skill
 
-This skill teaches you to use the `@sneq/engine` library to maintain canonical world state for a TTRPG campaign across sessions. The engine is a **bookkeeping library**, not a GM — you (the agent) drive the narration. The engine tracks entities, facts, constraints, and scenes; resolves entity mentions to existing records; and prevents you from accidentally forking canonical reality.
+This skill teaches you to use the `sneq-engine` library to maintain canonical world state for a TTRPG campaign across sessions. The engine is a **bookkeeping library**, not a GM — you (the agent) drive the narration. The engine tracks entities, facts, constraints, and scenes; resolves entity mentions to existing records; and prevents you from accidentally forking canonical reality.
 
 ## When to use this skill
 
@@ -33,7 +33,7 @@ Every GM turn follows this rhythm:
 
 ## Tool reference
 
-The full Zod / JSON Schema definitions are in `docs/api.md` of the `@sneq/engine` package — **always consult that file for authoritative parameter shapes**. What follows is the *when* and *why*.
+The full Zod / JSON Schema definitions are in `docs/api.md` of the `sneq-engine` package — **always consult that file for authoritative parameter shapes**. What follows is the *when* and *why*.
 
 ### Read tools (call before narrating)
 
@@ -79,4 +79,4 @@ The engine is wired up by the host application (TTRPG app, Hermes runtime), not 
 
 ## Pointer
 
-For the exact method signatures, parameter types, and return shapes: read `docs/api.md` from the `@sneq/engine` package. That file is the source of truth. This skill teaches you *when* to call them; the API doc teaches you *how*.
+For the exact method signatures, parameter types, and return shapes: read `docs/api.md` from the `sneq-engine` package. That file is the source of truth. This skill teaches you *when* to call them; the API doc teaches you *how*.

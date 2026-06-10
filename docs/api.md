@@ -1,8 +1,8 @@
-**@sneq/engine API**
+**sneq-engine API**
 
 ***
 
-# @sneq/engine API
+# sneq-engine API
 
 ## Classes
 
@@ -140,11 +140,11 @@
 
 ## classes
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / CampaignContext
+[sneq-engine API](../README.md) / CampaignContext
 
 # Class: CampaignContext
 
@@ -564,11 +564,11 @@
 
 [`ToolCallContext`](../interfaces/ToolCallContext.md).[`validateNarration`](../interfaces/ToolCallContext.md#validatenarration)
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / Engine
+[sneq-engine API](../README.md) / Engine
 
 # Class: Engine
 
@@ -740,11 +740,11 @@
 
 [`RouterConfig`](../interfaces/RouterConfig.md)
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / NarrationGateRegistry
+[sneq-engine API](../README.md) / NarrationGateRegistry
 
 # Class: NarrationGateRegistry
 
@@ -808,11 +808,11 @@
 
 `Promise`\<[`ValidationReport`](../interfaces/ValidationReport.md)\>
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / PreGenerationRegistry
+[sneq-engine API](../README.md) / PreGenerationRegistry
 
 # Class: PreGenerationRegistry
 
@@ -882,11 +882,11 @@
 
 `void`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / ProviderHttpError
+[sneq-engine API](../README.md) / ProviderHttpError
 
 # Class: ProviderHttpError
 
@@ -1090,11 +1090,11 @@ https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 
 `Error.prepareStackTrace`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / Resolver
+[sneq-engine API](../README.md) / Resolver
 
 # Class: Resolver
 
@@ -1156,11 +1156,11 @@ https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 
 `Promise`\<[`SuggestionResult`](../interfaces/SuggestionResult.md)\>
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / Router
+[sneq-engine API](../README.md) / Router
 
 # Class: Router
 
@@ -1242,11 +1242,11 @@ Declared dim of the embeddings primary, if annotated.
 
 `boolean`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / RouterExhaustedError
+[sneq-engine API](../README.md) / RouterExhaustedError
 
 # Class: RouterExhaustedError
 
@@ -1458,11 +1458,11 @@ https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 
 `Error.prepareStackTrace`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / SneqCampaignNotFoundError
+[sneq-engine API](../README.md) / SneqCampaignNotFoundError
 
 # Class: SneqCampaignNotFoundError
 
@@ -1652,11 +1652,11 @@ https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 
 `Error.prepareStackTrace`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / SneqContradictionError
+[sneq-engine API](../README.md) / SneqContradictionError
 
 # Class: SneqContradictionError
 
@@ -1846,11 +1846,11 @@ https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 
 `Error.prepareStackTrace`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / SneqProviderError
+[sneq-engine API](../README.md) / SneqProviderError
 
 # Class: SneqProviderError
 
@@ -2054,11 +2054,11 @@ https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 
 `Error.prepareStackTrace`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / SneqValidationError
+[sneq-engine API](../README.md) / SneqValidationError
 
 # Class: SneqValidationError
 
@@ -2248,11 +2248,11 @@ https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 
 `Error.prepareStackTrace`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / UserPromptRegistry
+[sneq-engine API](../README.md) / UserPromptRegistry
 
 # Class: UserPromptRegistry
 
@@ -2316,11 +2316,11 @@ https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 
 `void`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / Validator
+[sneq-engine API](../README.md) / Validator
 
 # Class: Validator
 
@@ -2451,11 +2451,11 @@ Full pipeline: extract → resolve → llm → assemble.
 
 ## interfaces
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / Alias
+[sneq-engine API](../README.md) / Alias
 
 # Interface: Alias
 
@@ -2477,11 +2477,11 @@ Full pipeline: extract → resolve → llm → assemble.
 
 > **text**: `string`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / AreteGCN
+[sneq-engine API](../README.md) / AreteGCN
 
 # Interface: AreteGCN
 
@@ -2533,11 +2533,11 @@ Full pipeline: extract → resolve → llm → assemble.
 
 > **typeRelation**: [`TypeRelation`](../type-aliases/TypeRelation.md)
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / AskUserArgs
+[sneq-engine API](../README.md) / AskUserArgs
 
 # Interface: AskUserArgs
 
@@ -2553,11 +2553,11 @@ Full pipeline: extract → resolve → llm → assemble.
 
 > **mention**: `string`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / AttributFige
+[sneq-engine API](../README.md) / AttributFige
 
 # Interface: AttributFige
 
@@ -2603,11 +2603,11 @@ Full pipeline: extract → resolve → llm → assemble.
 
 > **value**: [`AttributValue`](../type-aliases/AttributValue.md)
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / Avertissement
+[sneq-engine API](../README.md) / Avertissement
 
 # Interface: Avertissement
 
@@ -2629,11 +2629,11 @@ Full pipeline: extract → resolve → llm → assemble.
 
 > **type**: `"CONTRAINTE_SOUPLE"`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / CampaignMeta
+[sneq-engine API](../README.md) / CampaignMeta
 
 # Interface: CampaignMeta
 
@@ -2661,11 +2661,11 @@ Full pipeline: extract → resolve → llm → assemble.
 
 > **name**: `string`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / ChatRequest
+[sneq-engine API](../README.md) / ChatRequest
 
 # Interface: ChatRequest
 
@@ -2725,11 +2725,11 @@ Full pipeline: extract → resolve → llm → assemble.
 
 > **name**: `string`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / ChatResponse
+[sneq-engine API](../README.md) / ChatResponse
 
 # Interface: ChatResponse
 
@@ -2765,11 +2765,11 @@ Full pipeline: extract → resolve → llm → assemble.
 
 > **name**: `string`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / ContexteGeneratif
+[sneq-engine API](../README.md) / ContexteGeneratif
 
 # Interface: ContexteGeneratif
 
@@ -2785,11 +2785,11 @@ Full pipeline: extract → resolve → llm → assemble.
 
 > **tendances**: [`Tendance`](Tendance.md)[]
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / Contrainte
+[sneq-engine API](../README.md) / Contrainte
 
 # Interface: Contrainte
 
@@ -2823,11 +2823,11 @@ Full pipeline: extract → resolve → llm → assemble.
 
 > **source**: [`ContrainteSource`](../type-aliases/ContrainteSource.md)
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / ContraintePropagee
+[sneq-engine API](../README.md) / ContraintePropagee
 
 # Interface: ContraintePropagee
 
@@ -2861,11 +2861,11 @@ Full pipeline: extract → resolve → llm → assemble.
 
 > **hopDistance**: `number`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / DefaultDepsOptions
+[sneq-engine API](../README.md) / DefaultDepsOptions
 
 # Interface: DefaultDepsOptions
 
@@ -2881,11 +2881,11 @@ Full pipeline: extract → resolve → llm → assemble.
 
 > `optional` **customEmbed?**: `CustomEmbedFn`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / Embedder
+[sneq-engine API](../README.md) / Embedder
 
 # Interface: Embedder
 
@@ -2905,11 +2905,11 @@ Full pipeline: extract → resolve → llm → assemble.
 
 `Promise`\<`Float32Array`\<`ArrayBufferLike`\>\>
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / EmbeddingRequest
+[sneq-engine API](../README.md) / EmbeddingRequest
 
 # Interface: EmbeddingRequest
 
@@ -2919,11 +2919,11 @@ Full pipeline: extract → resolve → llm → assemble.
 
 > **texts**: `string`[]
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / EmbeddingResponse
+[sneq-engine API](../README.md) / EmbeddingResponse
 
 # Interface: EmbeddingResponse
 
@@ -2951,11 +2951,11 @@ Full pipeline: extract → resolve → llm → assemble.
 
 > **vectors**: `Float32Array`\<`ArrayBufferLike`\>[]
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / EngineConfig
+[sneq-engine API](../README.md) / EngineConfig
 
 # Interface: EngineConfig
 
@@ -2991,11 +2991,11 @@ Optional override for router provider resolution (useful in tests).
 
 > **router**: [`RouterConfig`](RouterConfig.md)
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / Entity
+[sneq-engine API](../README.md) / Entity
 
 # Interface: Entity
 
@@ -3067,11 +3067,11 @@ Human-readable description, persisted at mention time. Feeds the judge prompt an
 
 > **type**: [`EntityType`](../type-aliases/EntityType.md)
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / EntityWithScore
+[sneq-engine API](../README.md) / EntityWithScore
 
 # Interface: EntityWithScore
 
@@ -3087,11 +3087,11 @@ Human-readable description, persisted at mention time. Feeds the judge prompt an
 
 > **score**: `number`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / FactQuery
+[sneq-engine API](../README.md) / FactQuery
 
 # Interface: FactQuery
 
@@ -3125,11 +3125,11 @@ Human-readable description, persisted at mention time. Feeds the judge prompt an
 
 > `optional` **minTurn?**: `number`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / Logger
+[sneq-engine API](../README.md) / Logger
 
 # Interface: Logger
 
@@ -3213,11 +3213,11 @@ Human-readable description, persisted at mention time. Feeds the judge prompt an
 
 `void`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / MentionInput
+[sneq-engine API](../README.md) / MentionInput
 
 # Interface: MentionInput
 
@@ -3253,11 +3253,11 @@ Create even when resolution is ambiguous (after the caller adjudicated).
 
 > **type**: [`EntityType`](../type-aliases/EntityType.md)
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / NarrationGateContext
+[sneq-engine API](../README.md) / NarrationGateContext
 
 # Interface: NarrationGateContext
 
@@ -3285,11 +3285,11 @@ Create even when resolution is ambiguous (after the caller adjudicated).
 
 > **router**: [`Router`](../classes/Router.md)
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / NarrationGateHook
+[sneq-engine API](../README.md) / NarrationGateHook
 
 # Interface: NarrationGateHook
 
@@ -3313,11 +3313,11 @@ Create even when resolution is ambiguous (after the caller adjudicated).
 
 `Promise`\<[`ValidationReport`](ValidationReport.md)\>
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / NarrationGateInput
+[sneq-engine API](../README.md) / NarrationGateInput
 
 # Interface: NarrationGateInput
 
@@ -3339,11 +3339,11 @@ Create even when resolution is ambiguous (after the caller adjudicated).
 
 > `optional` **type?**: [`EntityType`](../type-aliases/EntityType.md)
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / NarrationIssue
+[sneq-engine API](../README.md) / NarrationIssue
 
 # Interface: NarrationIssue
 
@@ -3383,11 +3383,11 @@ Create even when resolution is ambiguous (after the caller adjudicated).
 
 > **entityId**: `string`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / NewCampaignInput
+[sneq-engine API](../README.md) / NewCampaignInput
 
 # Interface: NewCampaignInput
 
@@ -3409,11 +3409,11 @@ Create even when resolution is ambiguous (after the caller adjudicated).
 
 > **name**: `string`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / NoeudGCN
+[sneq-engine API](../README.md) / NoeudGCN
 
 # Interface: NoeudGCN
 
@@ -3447,11 +3447,11 @@ Create even when resolution is ambiguous (after the caller adjudicated).
 
 > **type**: [`EntityType`](../type-aliases/EntityType.md)
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / Observation
+[sneq-engine API](../README.md) / Observation
 
 # Interface: Observation
 
@@ -3497,11 +3497,11 @@ Create even when resolution is ambiguous (after the caller adjudicated).
 
 > **timestamp**: `number`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / Potentialite
+[sneq-engine API](../README.md) / Potentialite
 
 # Interface: Potentialite
 
@@ -3535,11 +3535,11 @@ Create even when resolution is ambiguous (after the caller adjudicated).
 
 > **etat**: `"INDEFINI"` \| `"CONTRAINT"`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / PreGenerationHook
+[sneq-engine API](../README.md) / PreGenerationHook
 
 # Interface: PreGenerationHook
 
@@ -3559,11 +3559,11 @@ Create even when resolution is ambiguous (after the caller adjudicated).
 
 `void` \| `Promise`\<`void`\>
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / PredictionEvent
+[sneq-engine API](../README.md) / PredictionEvent
 
 # Interface: PredictionEvent
 
@@ -3593,11 +3593,11 @@ Create even when resolution is ambiguous (after the caller adjudicated).
 
 > **triggerKind**: `"ENTRY_TO_SCENE"` \| `"DIALOGUE_OPENED"` \| `"TURN_ADVANCED"`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / PropagationInput
+[sneq-engine API](../README.md) / PropagationInput
 
 # Interface: PropagationInput
 
@@ -3637,11 +3637,11 @@ Create even when resolution is ambiguous (after the caller adjudicated).
 
 > **rules**: readonly [`ReglePropagation`](ReglePropagation.md)[]
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / PropagationResult
+[sneq-engine API](../README.md) / PropagationResult
 
 # Interface: PropagationResult
 
@@ -3663,11 +3663,11 @@ Create even when resolution is ambiguous (after the caller adjudicated).
 
 > **faitSource**: [`AttributFige`](AttributFige.md)
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / Provider
+[sneq-engine API](../README.md) / Provider
 
 # Interface: Provider
 
@@ -3717,11 +3717,11 @@ Create even when resolution is ambiguous (after the caller adjudicated).
 
 `Promise`\<[`EmbeddingResponse`](EmbeddingResponse.md)\>
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / ProviderChain
+[sneq-engine API](../README.md) / ProviderChain
 
 # Interface: ProviderChain
 
@@ -3737,11 +3737,11 @@ Create even when resolution is ambiguous (after the caller adjudicated).
 
 > **primary**: [`ProviderRef`](ProviderRef.md)
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / ProviderRef
+[sneq-engine API](../README.md) / ProviderRef
 
 # Interface: ProviderRef
 
@@ -3808,11 +3808,11 @@ Output dimension of the embedding model. Embeddings refs only; lets the Router
 
 > `optional` **temperature?**: `number`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / RegisterFactInput
+[sneq-engine API](../README.md) / RegisterFactInput
 
 # Interface: RegisterFactInput
 
@@ -3846,11 +3846,11 @@ Output dimension of the embedding model. Embeddings refs only; lets the Router
 
 > **value**: [`AttributValue`](../type-aliases/AttributValue.md)
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / ReglePropagation
+[sneq-engine API](../README.md) / ReglePropagation
 
 # Interface: ReglePropagation
 
@@ -3896,11 +3896,11 @@ Output dimension of the embedding model. Embeddings refs only; lets the Router
 
 > **priorite**: `number`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / Repository
+[sneq-engine API](../README.md) / Repository
 
 # Interface: Repository
 
@@ -4336,11 +4336,11 @@ Return up to `k` entities for the campaign, ordered by `embeddingRefreshedAt` de
 
 `Promise`\<`void`\>
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / ResolutionResult
+[sneq-engine API](../README.md) / ResolutionResult
 
 # Interface: ResolutionResult
 
@@ -4380,11 +4380,11 @@ Return up to `k` entities for the campaign, ordered by `embeddingRefreshedAt` de
 
 > `optional` **reasoning?**: `string`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / ResolveOptions
+[sneq-engine API](../README.md) / ResolveOptions
 
 # Interface: ResolveOptions
 
@@ -4412,11 +4412,11 @@ Return up to `k` entities for the campaign, ordered by `embeddingRefreshedAt` de
 
 > `optional` **type?**: [`EntityType`](../type-aliases/EntityType.md)
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / ResolvedCandidate
+[sneq-engine API](../README.md) / ResolvedCandidate
 
 # Interface: ResolvedCandidate
 
@@ -4456,11 +4456,11 @@ Return up to `k` entities for the campaign, ordered by `embeddingRefreshedAt` de
 
 > **entityId**: `string`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / ResolverThresholds
+[sneq-engine API](../README.md) / ResolverThresholds
 
 # Interface: ResolverThresholds
 
@@ -4494,11 +4494,11 @@ Return up to `k` entities for the campaign, ordered by `embeddingRefreshedAt` de
 
 > **topK**: `number`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / RouterConfig
+[sneq-engine API](../README.md) / RouterConfig
 
 # Interface: RouterConfig
 
@@ -4534,11 +4534,11 @@ Return up to `k` entities for the campaign, ordered by `embeddingRefreshedAt` de
 
 > **tiers**: [`RouterTiers`](RouterTiers.md)
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / RouterDeps
+[sneq-engine API](../README.md) / RouterDeps
 
 # Interface: RouterDeps
 
@@ -4558,11 +4558,11 @@ Return up to `k` entities for the campaign, ordered by `embeddingRefreshedAt` de
 
 [`Provider`](Provider.md) \| `Promise`\<[`Provider`](Provider.md)\>
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / RouterTiers
+[sneq-engine API](../README.md) / RouterTiers
 
 # Interface: RouterTiers
 
@@ -4586,11 +4586,11 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 > **light**: [`ProviderChain`](ProviderChain.md)
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / Scene
+[sneq-engine API](../README.md) / Scene
 
 # Interface: Scene
 
@@ -4630,11 +4630,11 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 > **presentEntityIds**: [`EntityID`](../type-aliases/EntityID.md)[]
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / SuggestionResult
+[sneq-engine API](../README.md) / SuggestionResult
 
 # Interface: SuggestionResult
 
@@ -4650,11 +4650,11 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 > **recommendsNew**: `boolean`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / Tendance
+[sneq-engine API](../README.md) / Tendance
 
 # Interface: Tendance
 
@@ -4670,11 +4670,11 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 > **poids**: `number`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / ToolCallContext
+[sneq-engine API](../README.md) / ToolCallContext
 
 # Interface: ToolCallContext
 
@@ -4958,11 +4958,11 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 `Promise`\<[`ValidationReport`](ValidationReport.md)\>
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / Turn
+[sneq-engine API](../README.md) / Turn
 
 # Interface: Turn
 
@@ -4996,11 +4996,11 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 > **turnNumber**: `number`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / ValidationContext
+[sneq-engine API](../README.md) / ValidationContext
 
 # Interface: ValidationContext
 
@@ -5022,11 +5022,11 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 > **strictContraintes**: readonly [`Contrainte`](Contrainte.md)[]
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / ValidationFailure
+[sneq-engine API](../README.md) / ValidationFailure
 
 # Interface: ValidationFailure
 
@@ -5048,11 +5048,11 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 > **type**: `ErrorType`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / ValidationFailureDetail
+[sneq-engine API](../README.md) / ValidationFailureDetail
 
 # Interface: ValidationFailureDetail
 
@@ -5068,11 +5068,11 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 > **type**: `"FORMAT"` \| `"CONTRAINTE_STRICTE"` \| `"CONTRADICTION_RC"`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / ValidationReport
+[sneq-engine API](../README.md) / ValidationReport
 
 # Interface: ValidationReport
 
@@ -5100,11 +5100,11 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 > `optional` **partial?**: `boolean`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / ValidationResult
+[sneq-engine API](../README.md) / ValidationResult
 
 # Interface: ValidationResult
 
@@ -5126,11 +5126,11 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 > **valide**: `boolean`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / ValidatorOptions
+[sneq-engine API](../README.md) / ValidatorOptions
 
 # Interface: ValidatorOptions
 
@@ -5152,11 +5152,11 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 > `optional` **topK?**: `number`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / VectorSearchOpts
+[sneq-engine API](../README.md) / VectorSearchOpts
 
 # Interface: VectorSearchOpts
 
@@ -5181,21 +5181,21 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 ## type-aliases
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / AliasSource
+[sneq-engine API](../README.md) / AliasSource
 
 # Type Alias: AliasSource
 
 > **AliasSource** = \{ `kind`: `"PLAYER"`; \} \| \{ `kind`: `"GM_NARRATION"`; \} \| \{ `documentId`: [`EntityID`](EntityID.md); `kind`: `"DOCUMENT"`; \} \| \{ `kind`: `"INFERENCE"`; \}
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / AskUserFn
+[sneq-engine API](../README.md) / AskUserFn
 
 # Type Alias: AskUserFn
 
@@ -5211,21 +5211,21 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 `Promise`\<[`Entity`](../interfaces/Entity.md) \| `null`\>
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / AttributValue
+[sneq-engine API](../README.md) / AttributValue
 
 # Type Alias: AttributValue
 
 > **AttributValue** = \{ `type`: `"STRING"`; `value`: `string`; \} \| \{ `type`: `"NUMBER"`; `value`: `number`; \} \| \{ `type`: `"BOOLEAN"`; `value`: `boolean`; \} \| \{ `id`: [`EntityID`](EntityID.md); `type`: `"ENTITY_REF"`; \} \| \{ `ids`: [`EntityID`](EntityID.md)[]; `type`: `"ENTITY_SET"`; \} \| \{ `enumType`: `string`; `type`: `"ENUM"`; `value`: `string`; \} \| \{ `fields`: `Record`\<`string`, `AttributValue`\>; `type`: `"COMPOSITE"`; \}
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / CampaignId
+[sneq-engine API](../README.md) / CampaignId
 
 # Type Alias: CampaignId
 
@@ -5237,21 +5237,21 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 > `readonly` **\[brand\]**: `"CampaignId"`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / CategorieAttribut
+[sneq-engine API](../README.md) / CategorieAttribut
 
 # Type Alias: CategorieAttribut
 
 > **CategorieAttribut** = `"IDENTITE"` \| `"PSYCHOLOGIE"` \| `"HISTORIQUE"` \| `"SOCIAL"` \| `"COMPETENCE"` \| `"SECRET"` \| `"ETAT"` \| `"POSSESSION"`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / ConstraintId
+[sneq-engine API](../README.md) / ConstraintId
 
 # Type Alias: ConstraintId
 
@@ -5263,21 +5263,21 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 > `readonly` **\[brand\]**: `"ConstraintId"`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / ContrainteSource
+[sneq-engine API](../README.md) / ContrainteSource
 
 # Type Alias: ContrainteSource
 
 > **ContrainteSource** = \{ `factId`: [`FactId`](FactId.md); `kind`: `"FAIT_CANONIQUE"`; \} \| \{ `edgeKey`: `string`; `kind`: `"RELATION"`; \} \| \{ `kind`: `"REGLE_MONDE"`; `ruleId`: `string`; \} \| \{ `confidence`: `number`; `kind`: `"INFERENCE_IA"`; \}
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / EntityID
+[sneq-engine API](../README.md) / EntityID
 
 # Type Alias: EntityID
 
@@ -5289,31 +5289,31 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 > `readonly` **\[brand\]**: `"EntityID"`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / EntityType
+[sneq-engine API](../README.md) / EntityType
 
 # Type Alias: EntityType
 
 > **EntityType** = `"PERSONNAGE"` \| `"LIEU"` \| `"OBJET"` \| `"FACTION"` \| `"EVENEMENT"` \| `"RELATION"` \| `"SCENE"` \| `"WORLD"`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / EtatAttribut
+[sneq-engine API](../README.md) / EtatAttribut
 
 # Type Alias: EtatAttribut
 
 > **EtatAttribut** = `"INDEFINI"` \| `"CONTRAINT"` \| `"FIGE"`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / FactId
+[sneq-engine API](../README.md) / FactId
 
 # Type Alias: FactId
 
@@ -5325,81 +5325,81 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 > `readonly` **\[brand\]**: `"FactId"`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / Fiabilite
+[sneq-engine API](../README.md) / Fiabilite
 
 # Type Alias: Fiabilite
 
 > **Fiabilite** = `"CERTAINE"` \| `"TEMOIGNAGE"` \| `"RUMEUR_CONFIRMEE"`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / MentionResult
+[sneq-engine API](../README.md) / MentionResult
 
 # Type Alias: MentionResult
 
 > **MentionResult** = \{ `entityId`: [`EntityID`](EntityID.md); `isNew`: `boolean`; `needsAdjudication?`: `false`; `resolvedTo?`: [`EntityID`](EntityID.md); \} \| \{ `candidates`: `object`[]; `entityId`: `null`; `isNew`: `false`; `needsAdjudication`: `true`; \}
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / ObservationMethod
+[sneq-engine API](../README.md) / ObservationMethod
 
 # Type Alias: ObservationMethod
 
 > **ObservationMethod** = `"DIALOGUE_DIRECT"` \| `"DOCUMENT"` \| `"OBSERVATION_VISUELLE"` \| `"DEDUCTION_CONFIRMEE"` \| `"AVEU"` \| `"DEMONSTRATION"`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / ObservationSource
+[sneq-engine API](../README.md) / ObservationSource
 
 # Type Alias: ObservationSource
 
 > **ObservationSource** = `"GM_NARRATION"` \| `"PLAYER_UTTERANCE"` \| `"DICE_ROLL"` \| `"SYSTEM"`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / ProviderErrorCode
+[sneq-engine API](../README.md) / ProviderErrorCode
 
 # Type Alias: ProviderErrorCode
 
 > **ProviderErrorCode** = `"QUOTA"` \| `"AUTH"` \| `"SERVER"` \| `"TIMEOUT"` \| `"MALFORMED"` \| `"NETWORK"` \| `"UNSUPPORTED"`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / ProviderKind
+[sneq-engine API](../README.md) / ProviderKind
 
 # Type Alias: ProviderKind
 
 > **ProviderKind** = `"openai-compatible"` \| `"anthropic"` \| `"google-genai"` \| `"custom"`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / RegleContrainte
+[sneq-engine API](../README.md) / RegleContrainte
 
 # Type Alias: RegleContrainte
 
 > **RegleContrainte** = \{ `type`: `"DOIT_ETRE"`; `valeurs`: [`AttributValue`](AttributValue.md)[]; \} \| \{ `type`: `"NE_PEUT_PAS_ETRE"`; `valeurs`: [`AttributValue`](AttributValue.md)[]; \} \| \{ `condition`: `string`; `consequence`: `string`; `type`: `"IMPLIQUE"`; \} \| \{ `autreAttribut`: `string`; `autreEntite`: [`EntityID`](EntityID.md); `type`: `"CORRELE_AVEC"`; \} \| \{ `max?`: `number`; `min?`: `number`; `type`: `"RANGE_NUMERIQUE"`; \} \| \{ `pattern`: `string`; `type`: `"REGEX"`; \}
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / SceneId
+[sneq-engine API](../README.md) / SceneId
 
 # Type Alias: SceneId
 
@@ -5411,31 +5411,31 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 > `readonly` **\[brand\]**: `"SceneId"`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / Tier
+[sneq-engine API](../README.md) / Tier
 
 # Type Alias: Tier
 
 > **Tier** = `"heavy"` \| `"light"` \| `"embeddings"`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / ToolName
+[sneq-engine API](../README.md) / ToolName
 
 # Type Alias: ToolName
 
 > **ToolName** = *typeof* [`ToolNames`](../variables/ToolNames.md)\[`number`\]
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / TypeRelation
+[sneq-engine API](../README.md) / TypeRelation
 
 # Type Alias: TypeRelation
 
@@ -5444,11 +5444,11 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 ## functions
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / anthropicTools
+[sneq-engine API](../README.md) / anthropicTools
 
 # Function: anthropicTools()
 
@@ -5458,11 +5458,11 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 `object`[]
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / asCampaignId
+[sneq-engine API](../README.md) / asCampaignId
 
 # Function: asCampaignId()
 
@@ -5478,11 +5478,11 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 [`CampaignId`](../type-aliases/CampaignId.md)
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / asConstraintId
+[sneq-engine API](../README.md) / asConstraintId
 
 # Function: asConstraintId()
 
@@ -5498,11 +5498,11 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 [`ConstraintId`](../type-aliases/ConstraintId.md)
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / asEntityID
+[sneq-engine API](../README.md) / asEntityID
 
 # Function: asEntityID()
 
@@ -5518,11 +5518,11 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 [`EntityID`](../type-aliases/EntityID.md)
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / asFactId
+[sneq-engine API](../README.md) / asFactId
 
 # Function: asFactId()
 
@@ -5538,11 +5538,11 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 [`FactId`](../type-aliases/FactId.md)
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / asSceneId
+[sneq-engine API](../README.md) / asSceneId
 
 # Function: asSceneId()
 
@@ -5558,11 +5558,11 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 [`SceneId`](../type-aliases/SceneId.md)
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / createDefaultDeps
+[sneq-engine API](../README.md) / createDefaultDeps
 
 # Function: createDefaultDeps()
 
@@ -5578,11 +5578,11 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 [`RouterDeps`](../interfaces/RouterDeps.md)
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / defaultRouterConfig
+[sneq-engine API](../README.md) / defaultRouterConfig
 
 # Function: defaultRouterConfig()
 
@@ -5592,11 +5592,11 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 [`RouterConfig`](../interfaces/RouterConfig.md)
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / dispatchToolCall
+[sneq-engine API](../README.md) / dispatchToolCall
 
 # Function: dispatchToolCall()
 
@@ -5620,11 +5620,11 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 `Promise`\<`unknown`\>
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / geminiTools
+[sneq-engine API](../README.md) / geminiTools
 
 # Function: geminiTools()
 
@@ -5634,11 +5634,11 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 `object`[]
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / genericTools
+[sneq-engine API](../README.md) / genericTools
 
 # Function: genericTools()
 
@@ -5648,11 +5648,11 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 `object`[]
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / loadConfigFromFile
+[sneq-engine API](../README.md) / loadConfigFromFile
 
 # Function: loadConfigFromFile()
 
@@ -5676,11 +5676,11 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 > **router**: [`RouterConfig`](../interfaces/RouterConfig.md)
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / openAITools
+[sneq-engine API](../README.md) / openAITools
 
 # Function: openAITools()
 
@@ -5690,11 +5690,11 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 `object`[]
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / propagate
+[sneq-engine API](../README.md) / propagate
 
 # Function: propagate()
 
@@ -5710,11 +5710,11 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 [`PropagationResult`](../interfaces/PropagationResult.md)
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / validateValue
+[sneq-engine API](../README.md) / validateValue
 
 # Function: validateValue()
 
@@ -5737,11 +5737,11 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 ## variables
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / ADVERTISED\_TOOL\_NAMES
+[sneq-engine API](../README.md) / ADVERTISED\_TOOL\_NAMES
 
 # Variable: ADVERTISED\_TOOL\_NAMES
 
@@ -5750,31 +5750,31 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 Tools advertised to LLMs. collapse_attribute is excluded until it is actually
  wired (V2 throws) — advertising a tool that always fails trains the model on traps.
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / SNEQ\_ENGINE\_VERSION
+[sneq-engine API](../README.md) / SNEQ\_ENGINE\_VERSION
 
 # Variable: SNEQ\_ENGINE\_VERSION
 
 > `const` **SNEQ\_ENGINE\_VERSION**: `"0.1.0"` = `"0.1.0"`
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / ToolNames
+[sneq-engine API](../README.md) / ToolNames
 
 # Variable: ToolNames
 
 > `const` **ToolNames**: readonly \[`"sneq__lookup_entity"`, `"sneq__get_entity"`, `"sneq__get_relevant_facts"`, `"sneq__suggest_existing"`, `"sneq__mention_entity"`, `"sneq__register_fact"`, `"sneq__add_constraint"`, `"sneq__collapse_attribute"`, `"sneq__set_scene"`, `"sneq__advance_turn"`, `"sneq__validate_narration"`\]
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / defaultNarrationGateHook
+[sneq-engine API](../README.md) / defaultNarrationGateHook
 
 # Variable: defaultNarrationGateHook
 
@@ -5784,51 +5784,51 @@ Default `NarrationGateHook` implementation backed by the Validator. Engine
 uses this as the registry fallback so a consumer that never registers a
 custom hook still gets the built-in behavior.
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / noopLogger
+[sneq-engine API](../README.md) / noopLogger
 
 # Variable: noopLogger
 
 > `const` **noopLogger**: [`Logger`](../interfaces/Logger.md)
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / noopPreGenerationHook
+[sneq-engine API](../README.md) / noopPreGenerationHook
 
 # Variable: noopPreGenerationHook
 
 > `const` **noopPreGenerationHook**: [`PreGenerationHook`](../interfaces/PreGenerationHook.md)
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / toolDescriptions
+[sneq-engine API](../README.md) / toolDescriptions
 
 # Variable: toolDescriptions
 
 > `const` **toolDescriptions**: `Record`\<[`ToolName`](../type-aliases/ToolName.md), `string`\>
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / toolJsonSchemas
+[sneq-engine API](../README.md) / toolJsonSchemas
 
 # Variable: toolJsonSchemas
 
 > `const` **toolJsonSchemas**: `Record`\<[`ToolName`](../type-aliases/ToolName.md), `object`\>
 
-[**@sneq/engine API**](../README.md)
+[**sneq-engine API**](../README.md)
 
 ***
 
-[@sneq/engine API](../README.md) / toolSchemas
+[sneq-engine API](../README.md) / toolSchemas
 
 # Variable: toolSchemas
 

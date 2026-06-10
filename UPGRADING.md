@@ -1,8 +1,8 @@
-# Upgrading to @sneq/engine 0.1.0
+# Upgrading to sneq-engine 0.1.0
 
 This guide is written to be consumed by **humans and agents** (Hermes-Agent, Claude Code
 sessions, scripts). If you operate a system that calls `sneq-engine` or imports
-`@sneq/engine`, read the section that matches how you consume it, apply the checklist,
+`sneq-engine`, read the section that matches how you consume it, apply the checklist,
 then run the verification commands at the bottom.
 
 > **TL;DR for out-of-process (CLI) consumers:** your existing database files keep working
@@ -126,7 +126,7 @@ refresh your copy of the skill file.
 
 ---
 
-## 2. In-process consumers (TypeScript `import "@sneq/engine"`)
+## 2. In-process consumers (TypeScript `import "sneq-engine"`)
 
 Breaking changes (pre-publish window — nothing on npm consumed 0.0.x):
 
@@ -141,7 +141,7 @@ Breaking changes (pre-publish window — nothing on npm consumed 0.0.x):
 | Advertised tool sets are 10 tools (`ADVERTISED_TOOL_NAMES`) | `collapse_attribute` is excluded; the dispatcher still accepts it (it throws). |
 | Writes throw `SneqCampaignNotFoundError` for never-created campaigns | Create campaigns before writing (you should already). |
 
-New capabilities worth adopting: `@sneq/engine/memory` and `@sneq/engine/json`
+New capabilities worth adopting: `sneq-engine/memory` and `sneq-engine/json`
 repositories (zero native deps), keyless mode, `Entity.description`, real retries.
 
 ---

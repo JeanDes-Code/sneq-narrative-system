@@ -21,9 +21,9 @@ Le CLI ne réécrit aucune logique : il parse `argv`, charge la config, instanci
 
 Le repo livre actuellement `@sneq/engine` (V2 alpha) comme **librairie TypeScript** consommée *in-process* : un agent qui peut embed Node/TS récupère les tool schemas (`Engine.tools.anthropic`/`openai`/`gemini`), les passe à son LLM, puis dispatch les tool calls via `campaign.handleToolCall(name, args)`.
 
-Ce modèle exclut les consommateurs out-of-process : agents écrits dans un autre langage, scripts shell, agents qui tournent dans un runtime isolé sans accès au module TypeScript. Le cas concret immédiat est Hermes-Agent sur Discord : elle a son propre cycle conversationnel et son propre LLM, et ne veut pas embed une lib Node — elle veut shellout par tour pour le bookkeeping pur.
+Ce modèle exclut les consommateurs out-of-process : agents écrits dans un autre langage, scripts shell, agents qui tournent dans un runtime isolé sans accès au module TypeScript. Le cas concret immédiat est Hermes-Agent sur Discord : il a son propre cycle conversationnel et son propre LLM, et ne veut pas embed une lib Node — il veut shellout par tour pour le bookkeeping pur.
 
-the agent a sketché un spec CLI à 9 commandes (cf. message brainstorming 2026-05-20). Ce document formalise ce spec, l'aligne sur les 10 tools du dispatcher, et tranche les questions ouvertes (provenance des observations, format d'args, bootstrap config).
+L'agent a sketché un spec CLI à 9 commandes (brainstorming du 2026-05-20). Ce document formalise ce spec, l'aligne sur les 10 tools du dispatcher, et tranche les questions ouvertes (provenance des observations, format d'args, bootstrap config).
 
 ---
 

@@ -13,7 +13,7 @@ When an LLM plays GM, two things break over a real campaign:
 1. **It forgets.** Three sessions in, the blacksmith's name has drifted, the village your character liberated has a different geography, the secret it hinted at last week has been silently rewritten.
 2. **It forks canon.** Even within a single session, the model will happily invent a "captain of the guard" who is structurally the same person as the captain you met in chapter one — under a different name, with a different personality, in a different city.
 
-`@sneq/engine` is a **bookkeeping library** that sits next to your GM agent. You drive the narration; the engine tracks canonical entities, facts, scenes, and turns, resolves new mentions against the existing world, and refuses to let the model fork reality.
+`sneq-engine` is a **bookkeeping library** that sits next to your GM agent. You drive the narration; the engine tracks canonical entities, facts, scenes, and turns, resolves new mentions against the existing world, and refuses to let the model fork reality.
 
 It implements the SNEQ model — **Système Narratif à État Quantique** — a constraint-driven narrative engine where attributes stay undefined until the player observes them, then collapse into permanent facts that propagate constraints to the rest of the world. The original v1 design lives in [`SNEQ/`](./SNEQ/). This repo implements V2, recalibrated for turn-based dialog rather than the real-time RPG framing of v1.
 
@@ -24,7 +24,7 @@ It implements the SNEQ model — **Système Narratif à État Quantique** — a 
 - **Layered entity resolution** — `alias → vector → LLM judge → user-prompt` cascade for "is this the same NPC as 3 sessions ago?". Runs **keyless** in a degraded alias-only mode (omit the embeddings tier, `embeddingDim: 0`) — useful for demos, prototypes, and providers without an embeddings endpoint (DeepSeek).
 - **Anti-fork guard** — `mention_entity` refuses to silently create a near-duplicate when resolution is ambiguous: it returns `needsAdjudication: true` + candidates so the caller decides (re-use an id, or re-call with `force: true`).
 - **Provider router** with three task tiers (`heavy` / `light` / optional `embeddings`), each with primary + fallback chain and real retry/backoff. Built-in adapters for DeepSeek, Mistral, Together, OpenRouter (fetch-based, zero deps), plus Anthropic and Google GenAI (lazy-loaded — their SDKs are genuinely optional peers), and a `custom` escape hatch.
-- **Three repository adapters** behind one contract: SQLite + sqlite-vec (file-based, zero ops), in-memory (`@sneq/engine/memory`, zero deps, brute-force cosine), and JSON-file (`@sneq/engine/json`, atomic write-through, human-readable saves). The shared contract test suite is the seam's specification.
+- **Three repository adapters** behind one contract: SQLite + sqlite-vec (file-based, zero ops), in-memory (`sneq-engine/memory`, zero deps, brute-force cosine), and JSON-file (`sneq-engine/json`, atomic write-through, human-readable saves). The shared contract test suite is the seam's specification.
 - **Tool-call protocol** — Zod-validated tool schemas + ready-to-drop-in adapter shapes for Anthropic, OpenAI-compatible, and Gemini SDKs (10 advertised tools).
 - **Agent-discoverable skill** — drop [`skills/sneq-narrative-engine.md`](./skills/sneq-narrative-engine.md) into a Claude Code / Hermes-Agent skills dir and the agent learns when to call which engine tool.
 
@@ -48,16 +48,16 @@ pnpm build                # produces dist/
 Once published the install will be:
 
 ```bash
-pnpm add @sneq/engine     # only hard dependency: zod
+pnpm add sneq-engine     # only hard dependency: zod
 ```
 
 Optional peers, **only for what you actually use** (the core import never touches them):
 
 | You use | Install |
 |---|---|
-| `@sneq/engine/memory` or `@sneq/engine/json` | nothing |
-| `@sneq/engine/sqlite` without vectors (`embeddingDim: 0`) | `better-sqlite3` |
-| `@sneq/engine/sqlite` with vector resolution | `better-sqlite3 sqlite-vec` |
+| `sneq-engine/memory` or `sneq-engine/json` | nothing |
+| `sneq-engine/sqlite` without vectors (`embeddingDim: 0`) | `better-sqlite3` |
+| `sneq-engine/sqlite` with vector resolution | `better-sqlite3 sqlite-vec` |
 | DeepSeek / Mistral / Together / OpenRouter / any OpenAI-compatible | nothing (fetch-based) |
 | the Anthropic provider | `@anthropic-ai/sdk` |
 | the Google GenAI provider | `@google/generative-ai` |
@@ -68,8 +68,8 @@ No API keys, no native modules: the in-memory adapter plus alias-only resolution
 This is the smallest thing that works — perfect for a demo mode or a prototype.
 
 ```ts
-import { Engine, asCampaignId } from "@sneq/engine";
-import { memoryRepository } from "@sneq/engine/memory";
+import { Engine, asCampaignId } from "sneq-engine";
+import { memoryRepository } from "sneq-engine/memory";
 
 const engine = new Engine({
   repository: memoryRepository(),         // or jsonFileRepository({ path: "./save.json" })
@@ -91,8 +91,8 @@ keys at all the engine stays fully functional on exact-alias resolution.
 ## Quick start — full cascade (SQLite + vectors)
 
 ```ts
-import { Engine, defaultRouterConfig, asCampaignId } from "@sneq/engine";
-import { sqliteRepository } from "@sneq/engine/sqlite";
+import { Engine, defaultRouterConfig, asCampaignId } from "sneq-engine";
+import { sqliteRepository } from "sneq-engine/sqlite";
 
 const engine = new Engine({
   repository: sqliteRepository({ path: "./my-campaign.db", embeddingDim: 768 }),
@@ -167,7 +167,7 @@ sneq-engine validate-narration --db ./campaign.db --campaign forge-de-valmure \
 ## Wiring as agent tools
 
 ```ts
-import { Engine } from "@sneq/engine";
+import { Engine } from "sneq-engine";
 
 // Get the tool schemas in the shape your model wants (10 advertised tools —
 // collapse_attribute is excluded until it is actually wired):

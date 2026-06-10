@@ -505,7 +505,7 @@ Tracked here so V2 doesn't accidentally close them off:
 ## 15. References
 
 - v1 design docs in this repo: `SNEQ/01_Introduction_et_Concept.md` … `SNEQ/08_Recapitulatif.md`
-- Brainstorming transcript: this conversation, captured in `~/.claude/projects/local/`
+- Brainstorming transcript: this conversation, captured locally
 - Stack rules: `~/.claude/Contexts/about-me.md` (no OpenAI, no xAI/Grok)
 
 ---
