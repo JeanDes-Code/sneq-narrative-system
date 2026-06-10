@@ -193,3 +193,74 @@ describe("Resolver · generation-direction suggestion", () => {
     expect(s.recommendsNew).toBe(true);
   });
 });
+
+describe("Resolver · degraded mode (no embedder)", () => {
+  it("alias hits still resolve with embedder: null", async () => {
+    const judge = replayProvider("m", []);
+    const r = new Resolver({
+      repo, router: makeRouter(judge), thresholds: defaultThresholds,
+      userPromptRegistry: new UserPromptRegistry(), embedder: null
+    });
+    const res = await r.resolveEntity({ campaignId: cid, mention: "le forgeron" });
+    expect(res.match?.id).toBe(asEntityID("e1"));
+    expect(res.layerUsed).toBe("alias");
+  });
+
+  it("non-alias mentions return no-match instead of throwing", async () => {
+    const judge = replayProvider("m", []);
+    const r = new Resolver({
+      repo, router: makeRouter(judge), thresholds: defaultThresholds,
+      userPromptRegistry: new UserPromptRegistry(), embedder: null
+    });
+    const res = await r.resolveEntity({ campaignId: cid, mention: "someone entirely new" });
+    expect(res.match).toBeNull();
+    expect(res.layerUsed).toBe("none");
+    expect(res.notFoundReason).toBe("no-match");
+  });
+
+  it("suggestExisting falls back to alias lookup", async () => {
+    const judge = replayProvider("m", []);
+    const r = new Resolver({
+      repo, router: makeRouter(judge), thresholds: defaultThresholds,
+      userPromptRegistry: new UserPromptRegistry(), embedder: null
+    });
+    const s = await r.suggestExisting({ campaignId: cid, mention: "Le Forgeron", type: "PERSONNAGE" });
+    expect(s.candidates.map(c => String(c.id))).toEqual(["e1"]);
+    expect(s.recommendsNew).toBe(false);
+    const none = await r.suggestExisting({ campaignId: cid, mention: "inconnu", type: "PERSONNAGE" });
+    expect(none.recommendsNew).toBe(true);
+  });
+});
+
+describe("Resolver · judge robustness", () => {
+  it("a judge whose chain is exhausted yields ambiguous, not a throw", async () => {
+    const judge = replayProvider("m", [
+      { kind: "error", code: "AUTH", status: 401, message: "no key" }
+    ]);
+    const r = new Resolver({
+      repo, router: makeRouter(judge), thresholds: { ...defaultThresholds, tauHigh: 0.99 },
+      userPromptRegistry: new UserPromptRegistry(),
+      embedder: { async embed() { return new Float32Array([0.8, 0.6, 0]); } }
+    });
+    const res = await r.resolveEntity({ campaignId: cid, mention: "smith-ish" });
+    expect(res.match).toBeNull();
+    expect(res.layerUsed).toBe("judge");
+    expect(res.notFoundReason).toBe("ambiguous");
+    expect(res.reasoning).toMatch(/judge unavailable/i);
+  });
+
+  it("retries once on malformed judge JSON and uses the second answer", async () => {
+    const judge = replayProvider("m", [
+      { kind: "chat", response: { text: "Sure! The answer is 0." } },
+      { kind: "chat", response: { text: JSON.stringify({ matchedIndex: 0, confidence: 0.9, reasoning: "second" }) } }
+    ]);
+    const r = new Resolver({
+      repo, router: makeRouter(judge), thresholds: { ...defaultThresholds, tauHigh: 0.99 },
+      userPromptRegistry: new UserPromptRegistry(),
+      embedder: { async embed() { return new Float32Array([0.8, 0.6, 0]); } }
+    });
+    const res = await r.resolveEntity({ campaignId: cid, mention: "smith-ish" });
+    expect(res.match).not.toBeNull();
+    expect(judge.callCount()).toBe(2);
+  });
+});
