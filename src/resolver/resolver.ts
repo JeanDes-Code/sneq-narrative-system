@@ -5,7 +5,7 @@ import type { Entity, EntityType } from "../domain/entity.js";
 import type { CampaignId } from "../domain/ids.js";
 import { defaultThresholds, type ResolverThresholds } from "./thresholds.js";
 import { normalizeAlias } from "./normalize.js";
-import { judgeMatch } from "./judge.js";
+import { judgeMatch, type JudgeResult } from "./judge.js";
 
 export interface Embedder {
   embed(text: string): Promise<Float32Array>;
@@ -14,7 +14,8 @@ export interface Embedder {
 export interface ResolverDeps {
   repo: Repository;
   router: Router;
-  embedder: Embedder;
+  /** null = degraded alias-only mode (no embeddings provider configured). */
+  embedder: Embedder | null;
   userPromptRegistry: UserPromptRegistry;
   thresholds?: Partial<ResolverThresholds>;
 }
@@ -67,12 +68,15 @@ export class Resolver {
       return make({ match: aliasHits[0]!, confidence: 0.95, candidates: aliasHits, layerUsed: "alias" });
     }
     if (aliasHits.length > 1) {
-      const j = await judgeMatch(this.deps.router, { mention, sceneDescription, candidates: aliasHits });
+      const j = await this.safeJudge({ mention, sceneDescription, candidates: aliasHits });
       const matched = j.matchedIndex !== null ? aliasHits[j.matchedIndex] ?? null : null;
       return make({ match: matched, confidence: j.confidence, candidates: aliasHits, layerUsed: "judge", reasoning: j.reasoning });
     }
 
-    // L2: vector
+    // L2: vector — requires an embedder; without one, degrade to alias-only.
+    if (!this.deps.embedder) {
+      return make({ match: null, confidence: 0, candidates: [], layerUsed: "none" });
+    }
     const vec = await this.deps.embedder.embed(mention);
     const opts2: import("../repository/interface.js").VectorSearchOpts = type
       ? { topK: this.t.topK, filterType: type }
@@ -92,7 +96,7 @@ export class Resolver {
     }
 
     // L3: judge
-    const j = await judgeMatch(this.deps.router, { mention, sceneDescription, candidates: hits.map(h => h.entity) });
+    const j = await this.safeJudge({ mention, sceneDescription, candidates: hits.map(h => h.entity) });
     if (j.matchedIndex !== null) {
       return make({
         match: hits[j.matchedIndex]?.entity ?? null,
@@ -118,11 +122,28 @@ export class Resolver {
   }
 
   async suggestExisting(opts: { campaignId: CampaignId; mention: string; type: EntityType }): Promise<SuggestionResult> {
+    if (!this.deps.embedder) {
+      const hits = await this.deps.repo.findEntitiesByAlias(opts.campaignId, normalizeAlias(opts.mention), opts.type);
+      return { candidates: hits, recommendsNew: hits.length === 0 };
+    }
     const vec = await this.deps.embedder.embed(opts.mention);
     const hits = await this.deps.repo.searchEntitiesByVector(opts.campaignId, vec, { topK: this.t.topK, filterType: opts.type });
     const top = hits[0];
     const recommendsNew = !top || top.score < this.t.tauLow;
     return { candidates: hits.map(h => h.entity), recommendsNew };
+  }
+
+  /** The judge must never take the resolver down: provider failures degrade to
+   *  an ambiguous non-match so the caller can adjudicate instead of crashing. */
+  private async safeJudge(args: { mention: string; sceneDescription: string; candidates: Entity[] }): Promise<JudgeResult> {
+    try {
+      return await judgeMatch(this.deps.router, args);
+    } catch (e) {
+      return {
+        matchedIndex: null, confidence: 0,
+        reasoning: `judge unavailable: ${e instanceof Error ? e.message : String(e)}`
+      };
+    }
   }
 }
 

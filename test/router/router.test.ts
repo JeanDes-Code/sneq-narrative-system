@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { Router } from "../../src/router/router.js";
+import { Router, createDefaultDeps } from "../../src/router/router.js";
 import { replayProvider, type ReplayProvider } from "../fixtures/replay-provider.js";
-import type { RouterConfig } from "../../src/router/interface.js";
+import type { Provider, RouterConfig } from "../../src/router/interface.js";
 
 function makeRouter(opts: {
   heavy: ReplayProvider[];
@@ -80,5 +80,112 @@ describe("Router", () => {
     expect(Array.from(r.vectors[0]!)).toEqual([
       expect.closeTo(0.1, 5), expect.closeTo(0.2, 5), expect.closeTo(0.3, 5)
     ]);
+  });
+});
+
+describe("createDefaultDeps · lazy SDK loading", () => {
+  it("wraps a missing optional peer in an UNSUPPORTED ProviderHttpError naming the package", async () => {
+    const deps = createDefaultDeps({
+      _importProvider: async () => { throw new Error("Cannot find module '@anthropic-ai/sdk'"); }
+    });
+    await expect(Promise.resolve(deps.resolveProvider(
+      { provider: "anthropic", apiKeyEnv: "X", model: "m" }
+    ))).rejects.toThrow(/@anthropic-ai\/sdk.*pnpm add @anthropic-ai\/sdk/s);
+  });
+
+  it("a chain falls through past a provider whose peer is missing", async () => {
+    const fallback = replayProvider("m2", [{ kind: "chat", response: { text: "rescued" } }]);
+    const brokenDeps = createDefaultDeps({
+      _importProvider: async () => { throw new Error("Cannot find module '@anthropic-ai/sdk'"); }
+    });
+    const router = new Router(
+      {
+        tiers: {
+          heavy: { primary: { provider: "anthropic", apiKeyEnv: "X", model: "m1" }, fallbacks: [fallback.ref] },
+          light: { primary: fallback.ref, fallbacks: [] },
+          embeddings: { primary: fallback.ref, fallbacks: [] }
+        },
+        defaults: { timeoutMs: 1000, maxRetries: 0 }
+      },
+      {
+        resolveProvider(ref): Provider | Promise<Provider> {
+          if (ref.provider === "anthropic") return brokenDeps.resolveProvider(ref);
+          return fallback;
+        }
+      }
+    );
+    const r = await router.chat("heavy", { messages: [{ role: "user", content: "hi" }] });
+    expect(r.text).toBe("rescued");
+  });
+
+  it("resolves the real anthropic provider via dynamic import when the SDK is installed", async () => {
+    process.env["_FAKE_KEY"] = "k";
+    const p = await createDefaultDeps().resolveProvider({ provider: "anthropic", apiKeyEnv: "_FAKE_KEY", model: "m" });
+    expect(p.ref.provider).toBe("anthropic");
+  });
+});
+
+describe("Router · retries", () => {
+  function cfgWith(p: ReplayProvider, maxRetries: number): RouterConfig {
+    return {
+      tiers: { heavy: { primary: p.ref, fallbacks: [] }, light: { primary: p.ref, fallbacks: [] }, embeddings: { primary: p.ref, fallbacks: [] } },
+      defaults: { timeoutMs: 1000, maxRetries, backoff: { strategy: "fixed", baseMs: 1 } }
+    };
+  }
+
+  it("retries the same provider on QUOTA up to maxRetries", async () => {
+    const p = replayProvider("m", [
+      { kind: "error", code: "QUOTA", status: 429, message: "x" },
+      { kind: "chat", response: { text: "second try" } }
+    ]);
+    const router = new Router(cfgWith(p, 1), { resolveProvider: () => p });
+    const r = await router.chat("heavy", { messages: [{ role: "user", content: "hi" }] });
+    expect(r.text).toBe("second try");
+    expect(p.callCount()).toBe(2);
+  });
+
+  it("does not retry MALFORMED", async () => {
+    const p = replayProvider("m", [{ kind: "error", code: "MALFORMED", status: null, message: "bad" }]);
+    const router = new Router(cfgWith(p, 3), { resolveProvider: () => p });
+    await expect(router.chat("heavy", { messages: [{ role: "user", content: "hi" }] })).rejects.toThrow(/exhausted/i);
+    expect(p.callCount()).toBe(1);
+  });
+
+  it("does not retry AUTH and disables the provider", async () => {
+    const p = replayProvider("m", [{ kind: "error", code: "AUTH", status: 401, message: "no" }]);
+    const router = new Router(cfgWith(p, 3), { resolveProvider: () => p });
+    await expect(router.chat("heavy", { messages: [{ role: "user", content: "hi" }] })).rejects.toThrow(/exhausted/i);
+    expect(p.callCount()).toBe(1);
+  });
+});
+
+describe("Router · optional embeddings tier", () => {
+  it("hasEmbeddings() is false and embed() exhausts immediately when the tier is absent", async () => {
+    const p = replayProvider("m", []);
+    const router = new Router(
+      { tiers: { heavy: { primary: p.ref, fallbacks: [] }, light: { primary: p.ref, fallbacks: [] } } },
+      { resolveProvider: () => p }
+    );
+    expect(router.hasEmbeddings()).toBe(false);
+    await expect(router.embed({ texts: ["x"] })).rejects.toThrow(/no provider chain configured/i);
+  });
+
+  it("rejects an embeddings chain with conflicting declared dims", () => {
+    const a = { provider: "custom" as const, apiKeyEnv: "X", model: "a", embeddingDim: 768 };
+    const b = { provider: "custom" as const, apiKeyEnv: "X", model: "b", embeddingDim: 1024 };
+    expect(() => new Router(
+      { tiers: { heavy: { primary: a, fallbacks: [] }, light: { primary: a, fallbacks: [] }, embeddings: { primary: a, fallbacks: [b] } } },
+      { resolveProvider: () => { throw new Error("unused"); } }
+    )).toThrow(/mixes dimensions/i);
+  });
+
+  it("exposes the declared dim of the embeddings primary", () => {
+    const a = { provider: "custom" as const, apiKeyEnv: "X", model: "a", embeddingDim: 768 };
+    const router = new Router(
+      { tiers: { heavy: { primary: a, fallbacks: [] }, light: { primary: a, fallbacks: [] }, embeddings: { primary: a, fallbacks: [] } } },
+      { resolveProvider: () => { throw new Error("unused"); } }
+    );
+    expect(router.embeddingDim()).toBe(768);
+    expect(router.hasEmbeddings()).toBe(true);
   });
 });

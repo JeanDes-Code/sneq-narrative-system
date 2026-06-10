@@ -37,7 +37,7 @@ The full Zod / JSON Schema definitions are in `docs/api.md` of the `@sneq/engine
 
 ### Read tools (call before narrating)
 
-- **`sneq__lookup_entity({ mention, type?, sceneId? })`** — Resolve a player or your own mention to an existing entity. Returns `{ match, confidence, candidates, layerUsed }`. If `match` is null and `candidates` is empty, you are introducing something new.
+- **`sneq__lookup_entity({ mention, type? })`** — Resolve a player or your own mention to an existing entity. Returns `{ match, confidence, candidates, layerUsed }`. If `match` is null and `candidates` is empty, you are introducing something new. The current scene's description reaches the disambiguation judge automatically — keep `set_scene` up to date and resolution gets smarter for free.
 
 - **`sneq__suggest_existing({ mention, type })`** — Before *you* invent a new entity name, ask the engine if there's already one you should re-use. Returns `{ candidates, recommendsNew }`. If `recommendsNew` is false, pick from candidates.
 
@@ -47,7 +47,9 @@ The full Zod / JSON Schema definitions are in `docs/api.md` of the `@sneq/engine
 
 ### Register tools (call after narrating)
 
-- **`sneq__mention_entity({ canonicalName, type, aliases?, description })`** — Introduce or re-use an entity. Returns `{ entityId, isNew, resolvedTo? }`. If `isNew` is false, you actually merged into an existing entity — adjust your narration if needed.
+- **`sneq__mention_entity({ canonicalName, type, aliases?, description, force? })`** — Introduce or re-use an entity. Returns `{ entityId, isNew, resolvedTo? }`. If `isNew` is false, you actually merged into an existing entity — adjust your narration if needed. The `description` is **persisted canon**: write it as the one-line truth about this entity; it feeds future disambiguation.
+
+  **If the result has `needsAdjudication: true`** the engine refused to silently create a near-duplicate of an existing entity. `entityId` is null and `candidates` lists the suspects. Decide: if one of the candidates IS your entity, use its `entityId` directly; if it is genuinely someone new, re-call with `force: true`. When in doubt, ask the player out-of-character.
 
 - **`sneq__register_fact({ entityId, attributeKey, value, category, observation })`** — Commit a canonical fact. The engine returns `{ factId, contradictions }` instead of throwing on conflict. If `contradictions` is non-empty, you've just claimed something that contradicts an earlier figed fact — you must decide: regenerate (drop the claim), reinterpret (the new claim is a lie / mistake by an NPC), or reject the player's premise.
 
@@ -67,11 +69,13 @@ The engine is wired up by the host application (TTRPG app, Hermes runtime), not 
 
 - **Resolution L4 (askUser):** if the engine's resolver can't decide between candidates and there's an `askUser` handler registered, the player will be asked in-chat. Wait for their answer.
 - **Contradictions:** `register_fact` returning contradictions is normal — adjudicate explicitly, don't just retry.
+- **`needsAdjudication` from mention_entity:** also normal — pick a candidate's entityId or re-call with `force: true` (see above). Never ignore it.
+- **Degraded (no-embeddings) campaigns:** when the host runs without an embeddings provider (`embeddingDim: 0`), resolution is alias-only. Prefer exact established names and register aliases eagerly — they are the whole lookup surface.
 - **Provider exhausted:** the engine throws if every model in a tier's fallback chain has failed. Surface this to the user as a system issue.
 
 ## V2 scope note
 
-`sneq__collapse_attribute` currently throws — full collapse-with-validation-and-regeneration is deferred to a follow-up version. For now, when you need to "generate then commit" an attribute, compose it yourself: call your LLM with the heavy-tier router, validate the response, then `sneq__register_fact` if valid.
+`sneq__collapse_attribute` is not wired in V2 and is **not in your advertised tool set** — you should never see it. When you need to "generate then commit" an attribute, compose it yourself: decide the value in your own narration, then `sneq__register_fact` it.
 
 ## Pointer
 

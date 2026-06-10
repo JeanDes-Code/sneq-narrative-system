@@ -13,7 +13,7 @@ import type { CampaignId, EntityID, FactId } from "../../domain/ids.js";
 import { asCampaignId, asFactId } from "../../domain/ids.js";
 import { runMigrations } from "./migrations.js";
 import { loadVec, ensureVecTable, upsertVec, searchVec, deleteVecForCampaign } from "./vec.js";
-import { normalizeAlias } from "../../resolver/normalize.js";
+import { normalizeAlias, normalizeText } from "../../resolver/normalize.js";
 import {
   entityToRow, rowToEntity, type EntityRow,
   figedToRow, rowToFiged, type FigedRow,
@@ -24,23 +24,33 @@ import {
 
 export interface SqliteRepositoryOptions {
   path: string;
-  embeddingDim: number;
+  /** Vector dimension. Omit to adopt the dim already stored in the DB (existing DBs);
+   *  for a fresh DB the dim is taken from the first createCampaign(). 0 = no vectors. */
+  embeddingDim?: number;
   readonly?: boolean;
 }
 
 export class SqliteRepository implements Repository {
   private readonly db: BetterSqlite3.Database;
-  private readonly dim: number;
+  private dim: number | null;
   private txChain: Promise<unknown> = Promise.resolve();
 
   constructor(opts: SqliteRepositoryOptions) {
     this.db = new Database(opts.path, { readonly: opts.readonly ?? false });
     this.db.pragma("journal_mode = WAL");
+    this.db.pragma("busy_timeout = 5000");
     this.db.pragma("foreign_keys = ON");
     runMigrations(this.db);
-    loadVec(this.db);
-    ensureVecTable(this.db, opts.embeddingDim);
-    this.dim = opts.embeddingDim;
+    const row = this.db.prepare(`SELECT value FROM meta WHERE key = 'embedding_dim'`).get() as { value: string } | undefined;
+    const stored = row ? Number(row.value) : null;
+    if (stored !== null && opts.embeddingDim !== undefined && opts.embeddingDim !== stored) {
+      throw new Error(`Embedding dim mismatch: stored=${stored}, configured=${opts.embeddingDim}. Use a fresh database file or a matching --embedding-dim.`);
+    }
+    this.dim = stored ?? opts.embeddingDim ?? null;
+    if (this.dim !== null && this.dim > 0) {
+      loadVec(this.db);
+      ensureVecTable(this.db, this.dim);
+    }
   }
 
   async listCampaigns(): Promise<CampaignMeta[]> {
@@ -53,8 +63,16 @@ export class SqliteRepository implements Repository {
   }
 
   async createCampaign(meta: CampaignMeta): Promise<void> {
-    if (meta.embeddingDim !== this.dim) {
-      throw new Error(`Campaign embeddingDim=${meta.embeddingDim} != Repository dim=${this.dim}`);
+    if (this.dim === null) {
+      this.dim = meta.embeddingDim;
+      if (this.dim > 0) {
+        loadVec(this.db);
+        ensureVecTable(this.db, this.dim);
+      } else {
+        this.db.prepare(`INSERT OR REPLACE INTO meta (key, value) VALUES ('embedding_dim', ?)`).run(String(this.dim));
+      }
+    } else if (meta.embeddingDim !== this.dim) {
+      throw new Error(`Campaign embeddingDim=${meta.embeddingDim} != Repository dim=${this.dim} (one repository = one dimension)`);
     }
     this.db.prepare(
       `INSERT OR REPLACE INTO campaigns (id, name, created_at, embedding_dim) VALUES (?, ?, ?, ?)`
@@ -67,7 +85,7 @@ export class SqliteRepository implements Repository {
         this.db.prepare(`DELETE FROM ${t} WHERE campaign_id = ?`).run(id);
       }
       this.db.prepare(`DELETE FROM campaigns WHERE id = ?`).run(id);
-      deleteVecForCampaign(this.db, id);
+      if (this.dim !== null && this.dim > 0) deleteVecForCampaign(this.db, id);
     });
     tx();
   }
@@ -77,10 +95,11 @@ export class SqliteRepository implements Repository {
     const tx = this.db.transaction(() => {
       this.db.prepare(`
         INSERT OR REPLACE INTO entities
-          (campaign_id, id, type, name, nom_connu, aliases, tags, created_at, embedding_refreshed_at)
-        VALUES (@campaign_id, @id, @type, @name, @nom_connu, @aliases, @tags, @created_at, @embedding_refreshed_at)
+          (campaign_id, id, type, name, description, nom_connu, aliases, tags, created_at, embedding_refreshed_at)
+        VALUES (@campaign_id, @id, @type, @name, @description, @nom_connu, @aliases, @tags, @created_at, @embedding_refreshed_at)
       `).run({
         campaign_id: r.campaign_id, id: r.id, type: r.type, name: r.name,
+        description: r.description,
         nom_connu: r.nom_connu, aliases: r.aliases, tags: r.tags,
         created_at: r.created_at, embedding_refreshed_at: r.embedding_refreshed_at
       });
@@ -88,14 +107,20 @@ export class SqliteRepository implements Repository {
       this.db.prepare(`DELETE FROM aliases_norm WHERE campaign_id = ? AND entity_id = ?`).run(e.campaignId, e.id);
       const ins = this.db.prepare(`INSERT OR IGNORE INTO aliases_norm (campaign_id, entity_id, normalized) VALUES (?, ?, ?)`);
       const insertAlias = (text: string) => {
-        ins.run(e.campaignId, e.id, normalize(text));
+        ins.run(e.campaignId, e.id, normalizeText(text));
         const stripped = normalizeAlias(text);
-        if (stripped !== normalize(text)) ins.run(e.campaignId, e.id, stripped);
+        if (stripped !== normalizeText(text)) ins.run(e.campaignId, e.id, stripped);
       };
       insertAlias(e.name);
       for (const a of e.aliases) insertAlias(a.text);
 
       if (r._embedding) {
+        if (this.dim === null || this.dim === 0) {
+          throw new Error(`entity "${e.id}" has an embedding but this repository has no vector store (embeddingDim=${this.dim ?? "unset"})`);
+        }
+        if (e.embedding!.length !== this.dim) {
+          throw new Error(`embedding dim mismatch for entity "${e.id}": got ${e.embedding!.length}, repository stores ${this.dim}. Did the embedding model change? Keep one model per database.`);
+        }
         upsertVec(this.db, e.campaignId, e.id, e.embedding!);
       }
     });
@@ -107,13 +132,15 @@ export class SqliteRepository implements Repository {
       `SELECT * FROM entities WHERE campaign_id = ? AND id = ?`
     ).get(campaignId, entityId) as EntityRow | undefined;
     if (!row) return null;
-    const vec = this.db.prepare(`SELECT embedding FROM entity_vec WHERE entity_id = ?`)
-      .get(`${campaignId}|${entityId}`) as { embedding: Buffer } | undefined;
+    const vec = this.dim !== null && this.dim > 0
+      ? this.db.prepare(`SELECT embedding FROM entity_vec WHERE entity_id = ?`)
+          .get(`${campaignId}|${entityId}`) as { embedding: Buffer } | undefined
+      : undefined;
     return rowToEntity(row, vec?.embedding ?? null);
   }
 
   async findEntitiesByAlias(campaignId: CampaignId, aliasNormalized: string, type?: EntityType): Promise<Entity[]> {
-    const norm = normalize(aliasNormalized);
+    const norm = normalizeText(aliasNormalized);
     const sql = type
       ? `SELECT e.* FROM entities e
          JOIN aliases_norm a ON a.campaign_id = e.campaign_id AND a.entity_id = e.id
@@ -135,6 +162,10 @@ export class SqliteRepository implements Repository {
   }
 
   async searchEntitiesByVector(campaignId: CampaignId, vec: Float32Array, opts: VectorSearchOpts): Promise<EntityWithScore[]> {
+    if (this.dim === null || this.dim === 0) return [];
+    if (vec.length !== this.dim) {
+      throw new Error(`embedding dim mismatch: query has ${vec.length}, repository stores ${this.dim}`);
+    }
     // searchVec already scopes by campaignId via compound key and returns plain entity IDs
     const hits = searchVec(this.db, campaignId, vec, opts.topK * 3);
     const result: EntityWithScore[] = [];
@@ -313,11 +344,3 @@ export class SqliteRepository implements Repository {
   }
 }
 
-function normalize(s: string): string {
-  return s
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim();
-}

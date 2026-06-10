@@ -18,10 +18,12 @@ export function defaultRouterConfig(): RouterConfig {
         ]
       },
       embeddings: {
-        primary: { provider: "google-genai", apiKeyEnv: "GOOGLE_GENAI_API_KEY", model: "text-embedding-004" },
-        fallbacks: [
-          { provider: "openai-compatible", baseUrl: "https://api.mistral.ai/v1", apiKeyEnv: "MISTRAL_API_KEY", model: "mistral-embed" }
-        ]
+        // Single provider on purpose: text-embedding-004 outputs 768-dim vectors and
+        // the vector store is locked to one dim per database — a fallback with a
+        // different dim (e.g. mistral-embed at 1024) would poison writes on failover.
+        // Add your own fallbacks only if they produce the same dimension.
+        primary: { provider: "google-genai", apiKeyEnv: "GOOGLE_GENAI_API_KEY", model: "text-embedding-004", embeddingDim: 768 },
+        fallbacks: []
       }
     },
     defaults: { timeoutMs: 30_000, maxRetries: 1, backoff: { strategy: "exponential", baseMs: 500 } }

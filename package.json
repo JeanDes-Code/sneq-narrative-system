@@ -1,6 +1,6 @@
 {
   "name": "@sneq/engine",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "description": "Bookkeeping engine for turn-based AI-narrated games (SNEQ V2)",
   "type": "module",
   "engines": {
@@ -20,6 +20,14 @@
       "types": "./dist/repository/sqlite/index.d.ts",
       "default": "./dist/repository/sqlite/index.js"
     },
+    "./memory": {
+      "types": "./dist/repository/memory/index.d.ts",
+      "default": "./dist/repository/memory/index.js"
+    },
+    "./json": {
+      "types": "./dist/repository/json/index.d.ts",
+      "default": "./dist/repository/json/index.js"
+    },
     "./openai-compat": {
       "types": "./dist/router/providers/openai-compatible.d.ts",
       "default": "./dist/router/providers/openai-compatible.js"
@@ -29,7 +37,8 @@
     "dist",
     "skills",
     "docs/api.md",
-    "README.md"
+    "README.md",
+    "UPGRADING.md"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
@@ -40,8 +49,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "zod": "^3.23.0",
-    "zod-to-json-schema": "^3.25.2"
+    "zod": "^4.0.0"
   },
   "peerDependencies": {
     "@anthropic-ai/sdk": "^0.30.0",

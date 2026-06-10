@@ -113,3 +113,62 @@ describe("SqliteRepository · transaction serialization", () => {
     expect(y).not.toBeNull();
   });
 });
+
+describe("SqliteRepository · dim lifecycle", () => {
+  it("adopts the stored dim when reopened without embeddingDim", async () => {
+    const tmp = `${process.env["TMPDIR"] ?? "/tmp"}/sneq-dim-${Date.now()}-${Math.random().toString(36).slice(2)}.db`;
+    const r1 = new SqliteRepository({ path: tmp, embeddingDim: 4 });
+    await r1.createCampaign({ id: cid, name: "x", createdAt: 0, embeddingDim: 4 });
+    await r1.close();
+    const r2 = new SqliteRepository({ path: tmp }); // no dim flag
+    const metas = await r2.listCampaigns();
+    expect(metas[0]!.embeddingDim).toBe(4);
+    await expect(r2.upsertEntity({ ...someEntity("eX"), embedding: new Float32Array([1, 2]), embeddingRefreshedAt: 1 }))
+      .rejects.toThrow(/dim mismatch/i);
+    await r2.close();
+  });
+
+  it("rejects opening with a dim that contradicts the stored one", async () => {
+    const tmp = `${process.env["TMPDIR"] ?? "/tmp"}/sneq-dim2-${Date.now()}-${Math.random().toString(36).slice(2)}.db`;
+    const r1 = new SqliteRepository({ path: tmp, embeddingDim: 4 });
+    await r1.createCampaign({ id: cid, name: "x", createdAt: 0, embeddingDim: 4 });
+    await r1.close();
+    expect(() => new SqliteRepository({ path: tmp, embeddingDim: 8 })).toThrow(/dim mismatch/i);
+  });
+
+  it("supports embeddingDim 0: no vec table, vector search returns [], embedding writes throw", async () => {
+    const r = new SqliteRepository({ path: ":memory:", embeddingDim: 0 });
+    await r.createCampaign({ id: cid, name: "x", createdAt: 0, embeddingDim: 0 });
+    await r.upsertEntity(someEntity("e0"));
+    expect(await r.searchEntitiesByVector(cid, new Float32Array([1, 0, 0, 0]), { topK: 3 })).toEqual([]);
+    await expect(r.upsertEntity({ ...someEntity("e1"), embedding: new Float32Array([1, 0, 0, 0]), embeddingRefreshedAt: 1 }))
+      .rejects.toThrow(/no vector store/i);
+    await r.close();
+  });
+
+  it("a fresh DB with no dim option defers the vec table to createCampaign", async () => {
+    const r = new SqliteRepository({ path: ":memory:" });
+    expect(await r.searchEntitiesByVector(cid, new Float32Array([1, 0, 0, 0]), { topK: 3 })).toEqual([]);
+    await r.createCampaign({ id: cid, name: "x", createdAt: 0, embeddingDim: 4 });
+    await r.upsertEntity({ ...someEntity("eY"), embedding: new Float32Array([1, 0, 0, 0]), embeddingRefreshedAt: 1 });
+    const hits = await r.searchEntitiesByVector(cid, new Float32Array([1, 0, 0, 0]), { topK: 3 });
+    expect(hits).toHaveLength(1);
+    await r.close();
+  });
+
+  it("rejects a query vector with the wrong dimension", async () => {
+    const r = new SqliteRepository({ path: ":memory:", embeddingDim: 4 });
+    await r.createCampaign({ id: cid, name: "x", createdAt: 0, embeddingDim: 4 });
+    await expect(r.searchEntitiesByVector(cid, new Float32Array([1, 0]), { topK: 3 })).rejects.toThrow(/dim mismatch/i);
+    await r.close();
+  });
+});
+
+describe("SqliteRepository · entity description", () => {
+  it("persists and returns the description; absent stays undefined", async () => {
+    await repo.upsertEntity({ ...someEntity("ed"), description: "A grizzled smith." });
+    expect((await repo.getEntity(cid, asEntityID("ed")))?.description).toBe("A grizzled smith.");
+    await repo.upsertEntity(someEntity("ed2"));
+    expect((await repo.getEntity(cid, asEntityID("ed2")))?.description).toBeUndefined();
+  });
+});

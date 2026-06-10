@@ -7,6 +7,9 @@ export interface ProviderRef {
   model: string;
   maxTokens?: number;
   temperature?: number;
+  /** Output dimension of the embedding model. Embeddings refs only; lets the Router
+   *  reject mixed-dim chains and lets the CLI derive a default campaign dim. */
+  embeddingDim?: number;
   quotaHint?: { requestsPerMinute?: number; requestsPerDay?: number; isFreeTier?: boolean };
 }
 
@@ -17,8 +20,15 @@ export interface ProviderChain {
 
 export type Tier = "heavy" | "light" | "embeddings";
 
+export interface RouterTiers {
+  heavy: ProviderChain;
+  light: ProviderChain;
+  /** Optional: omit entirely to run keyless / alias-only (no vector resolution). */
+  embeddings?: ProviderChain;
+}
+
 export interface RouterConfig {
-  tiers: Record<Tier, ProviderChain>;
+  tiers: RouterTiers;
   defaults?: {
     timeoutMs?: number;
     maxRetries?: number;

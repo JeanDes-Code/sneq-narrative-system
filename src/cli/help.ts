@@ -10,7 +10,7 @@ const COMMAND_DESCRIPTIONS: Record<CommandName, string> = {
   "mention-entity":     "Introduce or re-use a canonical entity",
   "register-fact":      "Append a figed (canonical) attribute to an entity",
   "add-constraint":     "Add a soft or strict constraint to a non-figed attribute",
-  "collapse-attribute": "Drive an LLM to fill a specific attribute (heavy tier)",
+  "collapse-attribute": "NOT wired in V2 (exits 1 NOT_IMPLEMENTED); compose chat + validate + register-fact",
   "set-scene":          "Declare the current scene and its present entities",
   "advance-turn":       "Increment the campaign turn counter",
   "validate-narration": "Scan a candidate narration for unresolved proper nouns (hybrid: regex → resolver → light-tier LLM)",
@@ -31,8 +31,10 @@ Common flags:
   --source <preset>        Observation preset for register-fact:
                            gm-narration (default) | player-utterance | dice-roll | system
   --observation '<json>'   Partial override of the observation field
-  --embedding-dim <N>      Vector dimension (default 1024; match your embedding provider:
-                           Google text-embedding-004=768, Mistral mistral-embed=1024)
+  --embedding-dim <N>      Vector dimension for init-campaign (0 = no embeddings / alias-only).
+                           Default derives from the router config's embeddings primary
+                           (768 with the default config). Existing DBs remember their dim;
+                           the flag is only needed at init.
   --help                   Show this help, or help for a specific command
 
 Commands:

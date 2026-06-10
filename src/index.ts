@@ -1,8 +1,8 @@
-export const SNEQ_ENGINE_VERSION = "0.0.0";
+export const SNEQ_ENGINE_VERSION = "0.1.0";
 
 // Engine + CampaignContext
 export { Engine, type NewCampaignInput } from "./engine.js";
-export { CampaignContext, type MentionInput, type RegisterFactInput } from "./campaign.js";
+export { CampaignContext, type MentionInput, type MentionResult, type RegisterFactInput } from "./campaign.js";
 
 // Config + loading
 export { type EngineConfig, loadConfigFromFile } from "./config.js";
@@ -11,7 +11,7 @@ export { type EngineConfig, loadConfigFromFile } from "./config.js";
 export { defaultRouterConfig } from "./router/defaults.js";
 export { Router, RouterExhaustedError, createDefaultDeps, type RouterDeps, type DefaultDepsOptions } from "./router/router.js";
 export type {
-  RouterConfig, ProviderRef, ProviderChain, Tier,
+  RouterConfig, RouterTiers, ProviderRef, ProviderChain, Tier,
   ChatRequest, ChatResponse, EmbeddingRequest, EmbeddingResponse,
   Provider, ProviderKind, ProviderErrorCode
 } from "./router/interface.js";
@@ -19,7 +19,7 @@ export { ProviderHttpError } from "./router/interface.js";
 
 // Errors
 export {
-  SneqValidationError, SneqContradictionError, SneqProviderError,
+  SneqValidationError, SneqContradictionError, SneqProviderError, SneqCampaignNotFoundError,
   type ValidationFailureDetail
 } from "./errors.js";
 
@@ -40,9 +40,9 @@ export type {
 export type { NoeudGCN, AreteGCN, TypeRelation, ReglePropagation } from "./domain/gcn.js";
 export type { Scene } from "./domain/scene.js";
 export type { Turn } from "./domain/turn.js";
-export type { CampaignId, EntityID, FactId, ContraintId, SceneId } from "./domain/ids.js";
+export type { CampaignId, EntityID, FactId, ConstraintId, SceneId } from "./domain/ids.js";
 export {
-  asCampaignId, asEntityID, asFactId, asContraintId, asSceneId
+  asCampaignId, asEntityID, asFactId, asConstraintId, asSceneId
 } from "./domain/ids.js";
 
 // Resolver
@@ -54,7 +54,7 @@ export {
 // Tools
 export { ToolNames, type ToolName, schemas as toolSchemas, toolDescriptions } from "./tools/schemas.js";
 export { jsonSchemas as toolJsonSchemas } from "./tools/json-schema.js";
-export { anthropicTools, openAITools, geminiTools, genericTools } from "./tools/adapters.js";
+export { anthropicTools, openAITools, geminiTools, genericTools, ADVERTISED_TOOL_NAMES } from "./tools/adapters.js";
 export { dispatchToolCall, type ToolCallContext } from "./tools/dispatcher.js";
 
 // Hooks

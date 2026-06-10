@@ -10,8 +10,9 @@ import type {
   ValidationReport
 } from "./hooks/narration-gate.js";
 import type { Logger } from "./logger.js";
-import type { CampaignId, EntityID, FactId, ContraintId, SceneId } from "./domain/ids.js";
-import { asEntityID, asContraintId, asFactId, asSceneId } from "./domain/ids.js";
+import type { CampaignId, EntityID, FactId, ConstraintId, SceneId } from "./domain/ids.js";
+import { asEntityID, asConstraintId, asFactId, asSceneId } from "./domain/ids.js";
+import { SneqCampaignNotFoundError } from "./errors.js";
 import type { Entity, EntityType } from "./domain/entity.js";
 import type { AttributFige, AttributValue, CategorieAttribut } from "./domain/attribute.js";
 import type { Observation } from "./domain/observation.js";
@@ -24,7 +25,8 @@ export interface CampaignContextDeps {
   repo: Repository;
   router: Router;
   resolver: Resolver;
-  embedder: Embedder;
+  /** null = keyless mode (no embeddings tier): entities are stored without vectors. */
+  embedder: Embedder | null;
   userPrompt: UserPromptRegistry;
   preGen: PreGenerationRegistry;
   narrationGate: NarrationGateRegistry;
@@ -35,9 +37,15 @@ export interface MentionInput {
   canonicalName: string;
   type: EntityType;
   aliases?: string[];
-  sceneId?: string;
   description: string;
+  /** Create even when resolution is ambiguous (after the caller adjudicated). */
+  force?: boolean;
 }
+
+export type MentionResult =
+  | { entityId: EntityID; isNew: boolean; resolvedTo?: EntityID; needsAdjudication?: false }
+  | { entityId: null; isNew: false; needsAdjudication: true;
+      candidates: Array<{ entityId: EntityID; name: string; type: EntityType }> };
 
 export interface RegisterFactInput {
   entityId: EntityID;
@@ -49,14 +57,25 @@ export interface RegisterFactInput {
 
 export class CampaignContext implements ToolCallContext {
   readonly id: CampaignId;
+  private campaignVerified = false;
 
   constructor(private readonly deps: CampaignContextDeps) { this.id = deps.campaignId; }
 
-  resolveEntity(opts: { mention: string; type?: EntityType; sceneId?: string }): Promise<ResolutionResult> {
+  /** Library-path guard against phantom-campaign writes (the CLI pre-checks; in-process callers didn't). */
+  private async ensureCampaign(): Promise<void> {
+    if (this.campaignVerified) return;
+    const all = await this.deps.repo.listCampaigns();
+    if (!all.some(c => c.id === this.id)) throw new SneqCampaignNotFoundError(this.id);
+    this.campaignVerified = true;
+  }
+
+  async resolveEntity(opts: { mention: string; type?: EntityType }): Promise<ResolutionResult> {
+    const scene = await this.deps.repo.currentScene(this.id);
     return this.deps.resolver.resolveEntity({
       campaignId: this.id,
       mention: opts.mention,
-      ...(opts.type !== undefined ? { type: opts.type } : {})
+      ...(opts.type !== undefined ? { type: opts.type } : {}),
+      ...(scene?.description ? { sceneDescription: scene.description } : {})
     });
   }
 
@@ -84,7 +103,8 @@ export class CampaignContext implements ToolCallContext {
 
   async currentScene(): Promise<Scene | null> { return this.deps.repo.currentScene(this.id); }
 
-  async mentionEntity(input: MentionInput): Promise<{ entityId: EntityID; isNew: boolean; resolvedTo?: EntityID }> {
+  async mentionEntity(input: MentionInput): Promise<MentionResult> {
+    await this.ensureCampaign();
     const resolution = await this.resolveEntity({
       mention: input.canonicalName,
       type: input.type
@@ -92,44 +112,64 @@ export class CampaignContext implements ToolCallContext {
     if (resolution.match) {
       return { entityId: resolution.match.id, isNew: false, resolvedTo: resolution.match.id };
     }
+    // Ambiguous with live candidates: creating here would fork canon on a coin
+    // flip — exactly what the engine exists to prevent. The caller adjudicates
+    // (pick a candidate's entityId, or re-call with force:true).
+    if (!input.force && resolution.notFoundReason === "ambiguous" && resolution.candidates.length > 0) {
+      return {
+        entityId: null, isNew: false, needsAdjudication: true,
+        candidates: resolution.candidates.slice(0, 5).map(c => ({ entityId: c.id, name: c.name, type: c.type }))
+      };
+    }
     const id = asEntityID(`${input.type.toLowerCase()}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
-    const embeddingText = `${input.canonicalName}. ${input.description}`;
-    const embedding = await this.deps.embedder.embed(embeddingText);
+    let embedding: Float32Array | null = null;
+    let embeddingRefreshedAt: number | null = null;
+    if (this.deps.embedder) {
+      embedding = await this.deps.embedder.embed(`${input.canonicalName}. ${input.description}`);
+      embeddingRefreshedAt = Date.now();
+    }
     const entity: Entity = {
       campaignId: this.id, id, type: input.type, name: input.canonicalName,
+      description: input.description,
       nomConnu: true,
       aliases: (input.aliases ?? []).map(text => ({ text, source: { kind: "GM_NARRATION" as const }, observedAt: Date.now() })),
       tags: [], createdAt: Date.now(),
-      embedding, embeddingRefreshedAt: Date.now()
+      embedding, embeddingRefreshedAt
     };
     await this.deps.repo.upsertEntity(entity);
     return { entityId: id, isNew: true };
   }
 
   async registerFact(input: RegisterFactInput): Promise<{ factId: FactId | null; contradictions: AttributFige[] }> {
-    const existing = await this.deps.repo.queryFacts(this.id, {
-      entityId: input.entityId,
-      attributeKey: input.attributeKey
+    await this.ensureCampaign();
+    // Transactional: the contradiction check and the append must see the same
+    // state — two concurrent writers could otherwise both pass the check.
+    return this.deps.repo.transaction(async (tx) => {
+      const existing = await tx.queryFacts(this.id, {
+        entityId: input.entityId,
+        attributeKey: input.attributeKey
+      });
+      const contradictions = existing.filter(e => JSON.stringify(e.value) !== JSON.stringify(input.value));
+      if (contradictions.length > 0) {
+        return { factId: null, contradictions };
+      }
+      const factId = asFactId(`f_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
+      const latest = await tx.latestTurn(this.id);
+      const fact: AttributFige & { campaignId: CampaignId } = {
+        factId, entityId: input.entityId, key: input.attributeKey,
+        value: input.value, category: input.category, observation: input.observation,
+        turn: latest?.turnNumber ?? 0,
+        campaignId: this.id
+      };
+      await tx.appendFact(fact);
+      return { factId, contradictions: [] as AttributFige[] };
     });
-    const contradictions = existing.filter(e => JSON.stringify(e.value) !== JSON.stringify(input.value));
-    if (contradictions.length > 0) {
-      return { factId: null, contradictions };
-    }
-    const factId = asFactId(`f_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
-    const latest = await this.deps.repo.latestTurn(this.id);
-    const fact: AttributFige & { campaignId: CampaignId } = {
-      factId, entityId: input.entityId, key: input.attributeKey,
-      value: input.value, category: input.category, observation: input.observation,
-      turn: latest?.turnNumber ?? 0,
-      campaignId: this.id
-    };
-    await this.deps.repo.appendFact(fact);
-    return { factId, contradictions: [] };
   }
 
-  async addConstraint(input: { entityId: EntityID; attributeKey: string; rule: RegleContrainte; justification: string }): Promise<{ constraintId: ContraintId }> {
+  async addConstraint(input: { entityId: EntityID; attributeKey: string; rule: RegleContrainte; justification: string }): Promise<{ constraintId: ConstraintId }> {
+    await this.ensureCampaign();
     const existing = await this.deps.repo.getPotentialite(this.id, input.entityId, input.attributeKey);
-    const id = asContraintId(`c_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
+    const id = asConstraintId(`c_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
     const newContrainte = {
       id,
       source: { kind: "INFERENCE_IA" as const, confidence: 0.7 },
@@ -153,37 +193,45 @@ export class CampaignContext implements ToolCallContext {
   }
 
   async setScene(input: { locationEntityId: EntityID; presentEntityIds: EntityID[]; description: string }): Promise<{ sceneId: SceneId; turnNumber: number }> {
-    const sceneId = asSceneId(`s_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
-    const last = await this.deps.repo.latestTurn(this.id);
-    const turnNumber = (last?.turnNumber ?? 0) + 1;
-    await this.deps.repo.upsertScene({
-      campaignId: this.id, id: sceneId,
-      locationId: input.locationEntityId,
-      presentEntityIds: input.presentEntityIds,
-      description: input.description,
-      createdAtTurn: turnNumber
-    });
-    await this.deps.repo.appendTurn({
-      campaignId: this.id, turnNumber,
-      summary: null,
-      sceneId,
-      createdAt: Date.now()
+    await this.ensureCampaign();
+    const result = await this.deps.repo.transaction(async (tx) => {
+      const sceneId = asSceneId(`s_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
+      const last = await tx.latestTurn(this.id);
+      const turnNumber = (last?.turnNumber ?? 0) + 1;
+      await tx.upsertScene({
+        campaignId: this.id, id: sceneId,
+        locationId: input.locationEntityId,
+        presentEntityIds: input.presentEntityIds,
+        description: input.description,
+        createdAtTurn: turnNumber
+      });
+      await tx.appendTurn({
+        campaignId: this.id, turnNumber,
+        summary: null,
+        sceneId,
+        createdAt: Date.now()
+      });
+      return { sceneId, turnNumber };
     });
     this.deps.preGen.emit({ campaignId: this.id, triggerKind: "ENTRY_TO_SCENE", hint: {} });
-    return { sceneId, turnNumber };
+    return result;
   }
 
   async advanceTurn(summary?: string): Promise<{ turnNumber: number }> {
-    const last = await this.deps.repo.latestTurn(this.id);
-    const turnNumber = (last?.turnNumber ?? 0) + 1;
-    await this.deps.repo.appendTurn({
-      campaignId: this.id, turnNumber,
-      summary: summary ?? null,
-      sceneId: last?.sceneId ?? null,
-      createdAt: Date.now()
+    await this.ensureCampaign();
+    const result = await this.deps.repo.transaction(async (tx) => {
+      const last = await tx.latestTurn(this.id);
+      const turnNumber = (last?.turnNumber ?? 0) + 1;
+      await tx.appendTurn({
+        campaignId: this.id, turnNumber,
+        summary: summary ?? null,
+        sceneId: last?.sceneId ?? null,
+        createdAt: Date.now()
+      });
+      return { turnNumber };
     });
     this.deps.preGen.emit({ campaignId: this.id, triggerKind: "TURN_ADVANCED", hint: {} });
-    return { turnNumber };
+    return result;
   }
 
   handleToolCall(name: string, args: unknown): Promise<unknown> {

@@ -74,7 +74,16 @@ describe("parseArgv", () => {
       .toThrow(/INVALID_ARGS/);
     expect(() => parseArgv(["init-campaign", "--embedding-dim", "-1"]))
       .toThrow(/INVALID_ARGS/);
-    expect(() => parseArgv(["init-campaign", "--embedding-dim", "0"]))
-      .toThrow(/INVALID_ARGS/);
+  });
+});
+
+describe("parseArgv · embedding-dim 0", () => {
+  it("accepts --embedding-dim 0 (no embeddings)", () => {
+    const inv = parseArgv(["init-campaign", "--db", "x.db", "--campaign", "c", "--embedding-dim", "0"]);
+    expect(inv.embeddingDim).toBe(0);
+  });
+  it("rejects negative --embedding-dim", () => {
+    expect(() => parseArgv(["init-campaign", "--db", "x.db", "--campaign", "c", "--embedding-dim", "-1"]))
+      .toThrow(/non-negative/i);
   });
 });
