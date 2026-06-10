@@ -2,7 +2,7 @@
 
 A narrative-state engine for AI-narrated games — TTRPGs with an AI Game Master, AI-driven RPGs, agent-played campaigns on Discord, anything where the AI invents the world and you don't want it forgetting what it invented.
 
-> **Status:** V2 alpha. Working end-to-end; not yet published to npm; bindings to specific consumers (TTRPG app, Hermes-Agent on Discord) are separate follow-ups.
+> **Status:** V2 — published on npm as [`sneq-engine`](https://www.npmjs.com/package/sneq-engine). Bindings to specific consumers (TTRPG app, Hermes-Agent on Discord) are separate follow-ups.
 
 ---
 
@@ -34,22 +34,13 @@ The default router excludes **OpenAI** and **xAI/Grok**. The `custom` provider e
 
 ## Install
 
-Not yet on npm. To use it now, clone and `pnpm link` or build and import locally.
-
 ```bash
-git clone https://github.com/JeanDes-Code/sneq-narrative-system.git
-cd sneq-narrative-system
-pnpm install
-pnpm approve-builds       # approve native builds for better-sqlite3 + esbuild
-pnpm test                 # 235 tests should pass
-pnpm build                # produces dist/
+pnpm add sneq-engine      # only hard dependency: zod
+# or, for the CLI alone:
+npm i -g sneq-engine      # puts the `sneq-engine` binary on your PATH
 ```
 
-Once published the install will be:
-
-```bash
-pnpm add sneq-engine     # only hard dependency: zod
-```
+To hack on the engine itself, clone the repo and see [Development](#development).
 
 Optional peers, **only for what you actually use** (the core import never touches them):
 
