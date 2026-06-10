@@ -39,27 +39,40 @@ export class Router {
     const chain = this.chainFor(tier);
     const attempts: Array<{ provider: string; model: string; error: string }> = [];
     const timeoutMs = this.cfg.defaults?.timeoutMs ?? 30_000;
+    const maxRetries = this.cfg.defaults?.maxRetries ?? 0;
 
     for (const ref of chain) {
       const key = refKey(ref);
       if (this.disabled.has(key)) continue;
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), timeoutMs);
-      try {
-        const provider = await this.deps.resolveProvider(ref);
-        const r = await op(provider, ctrl.signal);
-        clearTimeout(timer);
-        return r;
-      } catch (e) {
-        clearTimeout(timer);
-        const err = normalizeError(e);
-        attempts.push({ provider: ref.provider, model: ref.model, error: `${err.code}:${err.message}` });
-        if (err.code === "AUTH") this.disabled.add(key);
-        continue;
+      for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        const ctrl = new AbortController();
+        const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+        try {
+          const provider = await this.deps.resolveProvider(ref);
+          const r = await op(provider, ctrl.signal);
+          clearTimeout(timer);
+          return r;
+        } catch (e) {
+          clearTimeout(timer);
+          const err = normalizeError(e);
+          attempts.push({ provider: ref.provider, model: ref.model, error: `${err.code}:${err.message}` });
+          if (err.code === "AUTH") { this.disabled.add(key); break; }
+          if (!RETRYABLE.has(err.code) || attempt === maxRetries) break;
+          await sleep(backoffDelay(this.cfg.defaults, attempt));
+        }
       }
     }
     throw new RouterExhaustedError(tier, attempts);
   }
+}
+
+const RETRYABLE: ReadonlySet<string> = new Set(["QUOTA", "SERVER", "TIMEOUT", "NETWORK"]);
+
+const sleep = (ms: number) => new Promise<void>(r => setTimeout(r, ms));
+
+function backoffDelay(defaults: RouterConfig["defaults"], attempt: number): number {
+  const b = defaults?.backoff ?? { strategy: "exponential" as const, baseMs: 500 };
+  return b.strategy === "fixed" ? b.baseMs : b.baseMs * 2 ** attempt;
 }
 
 function refKey(r: ProviderRef): string {
