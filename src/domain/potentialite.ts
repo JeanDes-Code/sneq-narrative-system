@@ -1,4 +1,4 @@
-import type { EntityID, ContraintId, FactId } from "./ids.js";
+import type { EntityID, ConstraintId, FactId } from "./ids.js";
 import type { AttributValue, CategorieAttribut } from "./attribute.js";
 
 export type EtatAttribut = "INDEFINI" | "CONTRAINT" | "FIGE";
@@ -18,7 +18,7 @@ export type RegleContrainte =
   | { type: "REGEX";           pattern: string };
 
 export interface Contrainte {
-  id: ContraintId;
+  id: ConstraintId;
   source: ContrainteSource;
   createdAt: number;
   regle: RegleContrainte;

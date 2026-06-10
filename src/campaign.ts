@@ -10,8 +10,8 @@ import type {
   ValidationReport
 } from "./hooks/narration-gate.js";
 import type { Logger } from "./logger.js";
-import type { CampaignId, EntityID, FactId, ContraintId, SceneId } from "./domain/ids.js";
-import { asEntityID, asContraintId, asFactId, asSceneId } from "./domain/ids.js";
+import type { CampaignId, EntityID, FactId, ConstraintId, SceneId } from "./domain/ids.js";
+import { asEntityID, asConstraintId, asFactId, asSceneId } from "./domain/ids.js";
 import type { Entity, EntityType } from "./domain/entity.js";
 import type { AttributFige, AttributValue, CategorieAttribut } from "./domain/attribute.js";
 import type { Observation } from "./domain/observation.js";
@@ -127,9 +127,9 @@ export class CampaignContext implements ToolCallContext {
     return { factId, contradictions: [] };
   }
 
-  async addConstraint(input: { entityId: EntityID; attributeKey: string; rule: RegleContrainte; justification: string }): Promise<{ constraintId: ContraintId }> {
+  async addConstraint(input: { entityId: EntityID; attributeKey: string; rule: RegleContrainte; justification: string }): Promise<{ constraintId: ConstraintId }> {
     const existing = await this.deps.repo.getPotentialite(this.id, input.entityId, input.attributeKey);
-    const id = asContraintId(`c_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
+    const id = asConstraintId(`c_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
     const newContrainte = {
       id,
       source: { kind: "INFERENCE_IA" as const, confidence: 0.7 },
