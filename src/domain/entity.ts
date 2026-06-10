@@ -27,6 +27,8 @@ export interface Entity {
   id: EntityID;
   type: EntityType;
   name: string;
+  /** Human-readable description, persisted at mention time. Feeds the judge prompt and prepare-turn. */
+  description?: string;
   nomConnu: boolean;
   aliases: Alias[];
   createdAt: number;
