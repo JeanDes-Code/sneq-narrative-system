@@ -158,3 +158,34 @@ describe("Router · retries", () => {
     expect(p.callCount()).toBe(1);
   });
 });
+
+describe("Router · optional embeddings tier", () => {
+  it("hasEmbeddings() is false and embed() exhausts immediately when the tier is absent", async () => {
+    const p = replayProvider("m", []);
+    const router = new Router(
+      { tiers: { heavy: { primary: p.ref, fallbacks: [] }, light: { primary: p.ref, fallbacks: [] } } },
+      { resolveProvider: () => p }
+    );
+    expect(router.hasEmbeddings()).toBe(false);
+    await expect(router.embed({ texts: ["x"] })).rejects.toThrow(/no provider chain configured/i);
+  });
+
+  it("rejects an embeddings chain with conflicting declared dims", () => {
+    const a = { provider: "custom" as const, apiKeyEnv: "X", model: "a", embeddingDim: 768 };
+    const b = { provider: "custom" as const, apiKeyEnv: "X", model: "b", embeddingDim: 1024 };
+    expect(() => new Router(
+      { tiers: { heavy: { primary: a, fallbacks: [] }, light: { primary: a, fallbacks: [] }, embeddings: { primary: a, fallbacks: [b] } } },
+      { resolveProvider: () => { throw new Error("unused"); } }
+    )).toThrow(/mixes dimensions/i);
+  });
+
+  it("exposes the declared dim of the embeddings primary", () => {
+    const a = { provider: "custom" as const, apiKeyEnv: "X", model: "a", embeddingDim: 768 };
+    const router = new Router(
+      { tiers: { heavy: { primary: a, fallbacks: [] }, light: { primary: a, fallbacks: [] }, embeddings: { primary: a, fallbacks: [] } } },
+      { resolveProvider: () => { throw new Error("unused"); } }
+    );
+    expect(router.embeddingDim()).toBe(768);
+    expect(router.hasEmbeddings()).toBe(true);
+  });
+});
