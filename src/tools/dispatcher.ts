@@ -6,7 +6,7 @@ import type { Observation } from "../domain/observation.js";
 import type { RegleContrainte } from "../domain/potentialite.js";
 import type { ResolutionResult, SuggestionResult } from "../resolver/resolver.js";
 import { classifyOutcome } from "../core/telemetry.js";
-import type { ToolCallLogEntry } from "../domain/feedback.js";
+import type { ToolCallLogEntry, FeedbackKind } from "../domain/feedback.js";
 
 export interface ToolCallContext {
   resolveEntity(opts: { mention: string; type?: EntityType }): Promise<ResolutionResult>;
@@ -20,6 +20,7 @@ export interface ToolCallContext {
   setScene(input: { locationEntityId: EntityID; presentEntityIds: EntityID[]; description: string }): Promise<{ sceneId: SceneId; turnNumber: number }>;
   advanceTurn(summary?: string): Promise<{ turnNumber: number }>;
   validateNarration(input: { narration: string; type?: EntityType; strict?: boolean }): Promise<import("../hooks/narration-gate.js").ValidationReport>;
+  reportFeedback(input: { kind: FeedbackKind; body: string; subject?: string; severity?: "LOW" | "MED" | "HIGH"; origin?: "AGENT" | "HUMAN" }): Promise<{ recorded: boolean }>;
   /** Optional passive-telemetry sink. Implementations MUST be safe to fail: the dispatcher swallows. */
   recordToolCall?(entry: ToolCallLogEntry): Promise<void>;
 }
@@ -113,6 +114,14 @@ async function runSwitch(toolName: ToolName, args: Record<string, unknown>, ctx:
         narration: args["narration"] as string,
         ...(args["type"] !== undefined ? { type: args["type"] as EntityType } : {}),
         ...(args["strict"] !== undefined ? { strict: args["strict"] as boolean } : {})
+      });
+    case "sneq__report_feedback":
+      return ctx.reportFeedback({
+        kind: args["kind"] as FeedbackKind,
+        body: args["body"] as string,
+        ...(args["subject"] !== undefined ? { subject: args["subject"] as string } : {}),
+        ...(args["severity"] !== undefined ? { severity: args["severity"] as "LOW" | "MED" | "HIGH" } : {}),
+        ...(args["origin"] !== undefined ? { origin: args["origin"] as "AGENT" | "HUMAN" } : {})
       });
   }
 }

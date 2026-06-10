@@ -15,7 +15,8 @@ function stubCtx(): ToolCallContext {
     collapseAttribute: async (_id, _key, _opts) => ({ value: { type: "STRING", value: "x" }, reasoning: "", propagation: { entitesImpactees: [] } } as never),
     setScene: async (_input) => ({ sceneId: "s1", turnNumber: 1 } as never),
     advanceTurn: async (summary) => ({ turnNumber: 42, _summary: summary ?? null } as never),
-    validateNarration: async (_input) => ({ ok: true, extractedNames: [], issues: [] })
+    validateNarration: async (_input) => ({ ok: true, extractedNames: [], issues: [] }),
+    reportFeedback: async (_input) => ({ recorded: true })
   };
 }
 
@@ -104,7 +105,7 @@ import { anthropicTools, openAITools, geminiTools, genericTools, ADVERTISED_TOOL
 
 describe("advertised tools", () => {
   it("collapse_attribute is not advertised in any adapter shape", () => {
-    expect(ADVERTISED_TOOL_NAMES).toHaveLength(10);
+    expect(ADVERTISED_TOOL_NAMES).toHaveLength(11);
     expect(ADVERTISED_TOOL_NAMES).not.toContain("sneq__collapse_attribute");
     expect(anthropicTools().map(t => t.name)).not.toContain("sneq__collapse_attribute");
     expect(openAITools().map(t => t.function.name)).not.toContain("sneq__collapse_attribute");
@@ -119,5 +120,29 @@ describe("advertised tools", () => {
     } as unknown as import("../../src/tools/dispatcher.js").ToolCallContext;
     await dispatchToolCall("sneq__mention_entity", { canonicalName: "X", type: "PERSONNAGE", description: "d", force: true }, ctx);
     expect((calls[0] as { force?: boolean }).force).toBe(true);
+  });
+});
+
+describe("sneq__report_feedback tool", () => {
+  it("is advertised in every adapter shape (11 advertised after this feature)", () => {
+    expect(ADVERTISED_TOOL_NAMES).toContain("sneq__report_feedback");
+    expect(anthropicTools().map(t => t.name)).toContain("sneq__report_feedback");
+  });
+
+  it("dispatches to ctx.reportFeedback with optionals passed through", async () => {
+    const calls: unknown[] = [];
+    const ctx = { ...stubCtx(), reportFeedback: async (input: unknown) => { calls.push(input); return { recorded: true }; } };
+    const r = await dispatchToolCall("sneq__report_feedback", {
+      kind: "MISSING", body: "no temporary relations", subject: "sneq__add_constraint", severity: "MED"
+    }, ctx);
+    expect(r).toEqual({ recorded: true });
+    expect(calls[0]).toEqual({
+      kind: "MISSING", body: "no temporary relations", subject: "sneq__add_constraint", severity: "MED"
+    });
+  });
+
+  it("rejects an unknown kind", async () => {
+    await expect(dispatchToolCall("sneq__report_feedback", { kind: "RANT", body: "x" }, stubCtx()))
+      .rejects.toThrow();
   });
 });

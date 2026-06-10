@@ -296,6 +296,33 @@ describe("CampaignContext · tool-call telemetry", () => {
   });
 });
 
+describe("CampaignContext · reportFeedback", () => {
+  it("persists an OPEN AGENT entry with best-effort turn stamp", async () => {
+    const { config, deps } = makeEmbedRouter([0.5, 0.5, 0.0]);
+    const repository = sqliteRepository({ path: ":memory:", embeddingDim: 3 });
+    const engine = new Engine({ repository, router: config, _routerDeps: deps });
+    const c = await engine.createCampaign({ id: asCampaignId("fb1"), name: "x", embeddingDim: 3 });
+    await c.advanceTurn();
+    const r = await c.reportFeedback({ kind: "FRICTION", body: "resolver feels slow", severity: "LOW" });
+    expect(r).toEqual({ recorded: true });
+    const open = await repository.queryFeedback(asCampaignId("fb1"), { status: "OPEN" });
+    expect(open).toHaveLength(1);
+    expect(open[0]).toMatchObject({ origin: "AGENT", kind: "FRICTION", severity: "LOW", createdTurn: 1 });
+    await engine.close();
+  });
+
+  it("fire-and-forget: returns {recorded:false} instead of throwing when the write fails", async () => {
+    const { config, deps } = makeEmbedRouter([0.5, 0.5, 0.0]);
+    const repository = sqliteRepository({ path: ":memory:", embeddingDim: 3 });
+    const engine = new Engine({ repository, router: config, _routerDeps: deps });
+    await engine.createCampaign({ id: asCampaignId("fb2"), name: "x", embeddingDim: 3 });
+    const c = engine.campaign(asCampaignId("fb2"));
+    await repository.close(); // sabotage: every write now throws
+    const r = await c.reportFeedback({ kind: "BROKEN", body: "x" });
+    expect(r).toEqual({ recorded: false });
+  });
+});
+
 describe("CampaignContext · scene context reaches the judge", () => {
   it("passes the current scene description as sceneDescription", async () => {
     const seen: string[] = [];

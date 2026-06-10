@@ -11,7 +11,8 @@ export const ToolNames = [
   "sneq__collapse_attribute",
   "sneq__set_scene",
   "sneq__advance_turn",
-  "sneq__validate_narration"
+  "sneq__validate_narration",
+  "sneq__report_feedback"
 ] as const;
 export type ToolName = typeof ToolNames[number];
 
@@ -90,6 +91,13 @@ export const schemas = {
     narration: z.string(),
     type: entityType.optional(),
     strict: z.boolean().optional()
+  }),
+  sneq__report_feedback: z.object({
+    kind: z.enum(["FRICTION","MISSING","BROKEN","REFLECTION","CORRECTION","PRAISE","IDEA"]),
+    body: z.string(),
+    subject: z.string().optional(),
+    severity: z.enum(["LOW","MED","HIGH"]).optional(),
+    origin: z.enum(["AGENT","HUMAN"]).optional()
   })
 } as const;
 
@@ -104,5 +112,6 @@ export const toolDescriptions: Record<ToolName, string> = {
   sneq__collapse_attribute: "Drive an LLM call (heavy tier) to fill a specific attribute, validate, inscribe, propagate. Engine-internal LLM use.",
   sneq__set_scene: "Declare the current scene: where the player is and which entities are present.",
   sneq__advance_turn: "Bump the campaign's monotonic turn counter, optionally with a one-line summary.",
-  sneq__validate_narration: "Validate a candidate narration string against the campaign canon. Returns the list of proper-noun candidates the regex extractor found, plus any that didn't resolve. Use BEFORE flushing narration to the player."
+  sneq__validate_narration: "Validate a candidate narration string against the campaign canon. Returns the list of proper-noun candidates the regex extractor found, plus any that didn't resolve. Use BEFORE flushing narration to the player.",
+  sneq__report_feedback: "Report an out-of-band issue with the SNEQ system itself: a missing capability you worked around, broken behavior, friction, or a player meta-break reflection (origin: HUMAN). NEVER shown to the player. Fire-and-forget: call it and keep narrating; it returns {recorded} and a failed write never breaks the story."
 };

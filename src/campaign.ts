@@ -11,8 +11,8 @@ import type {
 } from "./hooks/narration-gate.js";
 import type { Logger } from "./logger.js";
 import type { CampaignId, EntityID, FactId, ConstraintId, SceneId } from "./domain/ids.js";
-import type { ToolCallLogEntry } from "./domain/feedback.js";
-import { asEntityID, asConstraintId, asFactId, asSceneId } from "./domain/ids.js";
+import type { ToolCallLogEntry, FeedbackEntry, FeedbackKind } from "./domain/feedback.js";
+import { asEntityID, asConstraintId, asFactId, asSceneId, asFeedbackId } from "./domain/ids.js";
 import { SneqCampaignNotFoundError } from "./errors.js";
 import type { Entity, EntityType } from "./domain/entity.js";
 import type { AttributFige, AttributValue, CategorieAttribut } from "./domain/attribute.js";
@@ -249,6 +249,31 @@ export class CampaignContext implements ToolCallContext {
       });
     } catch (err) {
       this.deps.logger.warn("tool-call telemetry write failed", { err: String(err) });
+    }
+  }
+
+  /** Fire-and-forget (locked decision #6): swallows every failure and reports {recorded:false}.
+   *  This runs mid-narration — it must never break the agent's turn. */
+  async reportFeedback(input: { kind: FeedbackKind; body: string; subject?: string; severity?: "LOW" | "MED" | "HIGH"; origin?: "AGENT" | "HUMAN" }): Promise<{ recorded: boolean }> {
+    try {
+      await this.ensureCampaign();
+      const latest = await this.deps.repo.latestTurn(this.id);
+      const entry: FeedbackEntry = {
+        id: asFeedbackId(`fb_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`),
+        origin: input.origin ?? "AGENT",
+        kind: input.kind,
+        body: input.body,
+        ...(input.subject !== undefined ? { subject: input.subject } : {}),
+        ...(input.severity !== undefined ? { severity: input.severity } : {}),
+        status: "OPEN",
+        createdAt: Date.now(),
+        ...(latest ? { createdTurn: latest.turnNumber } : {})
+      };
+      await this.deps.repo.appendFeedback(this.id, entry);
+      return { recorded: true };
+    } catch (err) {
+      this.deps.logger.warn("report-feedback write failed", { err: String(err) });
+      return { recorded: false };
     }
   }
 
