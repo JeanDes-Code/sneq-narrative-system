@@ -124,3 +124,37 @@ describe("createDefaultDeps · lazy SDK loading", () => {
     expect(p.ref.provider).toBe("anthropic");
   });
 });
+
+describe("Router · retries", () => {
+  function cfgWith(p: ReplayProvider, maxRetries: number): RouterConfig {
+    return {
+      tiers: { heavy: { primary: p.ref, fallbacks: [] }, light: { primary: p.ref, fallbacks: [] }, embeddings: { primary: p.ref, fallbacks: [] } },
+      defaults: { timeoutMs: 1000, maxRetries, backoff: { strategy: "fixed", baseMs: 1 } }
+    };
+  }
+
+  it("retries the same provider on QUOTA up to maxRetries", async () => {
+    const p = replayProvider("m", [
+      { kind: "error", code: "QUOTA", status: 429, message: "x" },
+      { kind: "chat", response: { text: "second try" } }
+    ]);
+    const router = new Router(cfgWith(p, 1), { resolveProvider: () => p });
+    const r = await router.chat("heavy", { messages: [{ role: "user", content: "hi" }] });
+    expect(r.text).toBe("second try");
+    expect(p.callCount()).toBe(2);
+  });
+
+  it("does not retry MALFORMED", async () => {
+    const p = replayProvider("m", [{ kind: "error", code: "MALFORMED", status: null, message: "bad" }]);
+    const router = new Router(cfgWith(p, 3), { resolveProvider: () => p });
+    await expect(router.chat("heavy", { messages: [{ role: "user", content: "hi" }] })).rejects.toThrow(/exhausted/i);
+    expect(p.callCount()).toBe(1);
+  });
+
+  it("does not retry AUTH and disables the provider", async () => {
+    const p = replayProvider("m", [{ kind: "error", code: "AUTH", status: 401, message: "no" }]);
+    const router = new Router(cfgWith(p, 3), { resolveProvider: () => p });
+    await expect(router.chat("heavy", { messages: [{ role: "user", content: "hi" }] })).rejects.toThrow(/exhausted/i);
+    expect(p.callCount()).toBe(1);
+  });
+});
