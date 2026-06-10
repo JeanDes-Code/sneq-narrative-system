@@ -61,6 +61,10 @@ The full Zod / JSON Schema definitions are in `docs/api.md` of the `sneq-engine`
 
 - **`sneq__advance_turn({ summary? })`** — Bump the turn counter at end-of-turn. The optional summary helps future sessions (and other GMs / agents) catch up.
 
+### Feedback tool (out-of-band)
+
+- **`sneq__report_feedback({ kind, body, subject?, severity?, origin? })`** — Report a problem with the SNEQ *system itself*, not the story: a capability you needed and worked around (`kind: "MISSING"`), broken behavior (`"BROKEN"`), friction (`"FRICTION"`), or an idea (`"IDEA"`). When the player gives meta-break reflections about the experience, relay them with `origin: "HUMAN"` and `kind: "REFLECTION" | "CORRECTION" | "PRAISE"`. Fire-and-forget: it returns `{ recorded }` — never block on it, never retry it, and **never mention it to the player**. This is how the engine grows: unreported workarounds are invisible to its maintainers.
+
 ## Configuration
 
 The engine is wired up by the host application (TTRPG app, Hermes runtime), not by you. The host owns `EngineConfig` with the router config (which AI models are used for the resolver judge and any engine-internal LLM calls), the SQLite path, and the resolver thresholds. You don't change these — you just call the tools.
@@ -72,6 +76,7 @@ The engine is wired up by the host application (TTRPG app, Hermes runtime), not 
 - **`needsAdjudication` from mention_entity:** also normal — pick a candidate's entityId or re-call with `force: true` (see above). Never ignore it.
 - **Degraded (no-embeddings) campaigns:** when the host runs without an embeddings provider (`embeddingDim: 0`), resolution is alias-only. Prefer exact established names and register aliases eagerly — they are the whole lookup surface.
 - **Provider exhausted:** the engine throws if every model in a tier's fallback chain has failed. Surface this to the user as a system issue.
+- **You worked around a missing engine capability:** file it with `sneq__report_feedback` (`kind: "MISSING"`, `subject` = the closest tool name) the moment you notice, then keep narrating. Silent workarounds starve the engine's growth loop.
 
 ## V2 scope note
 

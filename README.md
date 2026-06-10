@@ -53,6 +53,28 @@ Optional peers, **only for what you actually use** (the core import never touche
 | the Anthropic provider | `@anthropic-ai/sdk` |
 | the Google GenAI provider | `@google/generative-ai` |
 
+## Feedback
+
+Two channels, depending on who you are:
+
+**You are a human** (integrating the package, running the CLI): open a GitHub issue — the
+[feedback template](.github/ISSUE_TEMPLATE/feedback.yml) for frictions / missing capabilities / ideas,
+the [bug template](.github/ISSUE_TEMPLATE/bug-report.yml) for broken behavior. Blank issues are fine too.
+
+**You operate an AI agent that consumes the engine**: the engine has an in-band channel.
+The agent calls `sneq__report_feedback` (fire-and-forget, never shown to the player) whenever it works
+around a missing capability or hits friction; every tool call is also passively logged with an outcome
+(`OK` / `EMPTY` / `NO_MATCH` / `CONTRADICTION` / `ERROR`). You read the accumulated signal with:
+
+```bash
+sneq-engine feedback --db ./campaign.db --campaign my-campaign --status open
+```
+
+The digest bundles per-tool coverage, the list of advertised tools **never called** (the gap the agent
+will never self-report), and the open feedback entries. Triage what matters
+(`sneq-engine triage-feedback --args '{"id":"fb_…","status":"PROMOTED","promotedTo":"<issue url>"}'`)
+and promote the real ones into GitHub issues — promotion is always a human decision, never automatic.
+
 ## Quick start — zero config, zero keys
 
 No API keys, no native modules: the in-memory adapter plus alias-only resolution.

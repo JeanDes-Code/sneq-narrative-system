@@ -1,0 +1,31 @@
+name: Feedback
+description: Friction, missing capability, or an idea — reviews welcome too
+title: "[feedback] "
+labels: ["feedback"]
+body:
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      description: Same taxonomy the engine uses internally
+      options:
+        - friction
+        - missing
+        - broken
+        - idea
+    validations:
+      required: true
+  - type: input
+    id: subject
+    attributes:
+      label: Subject
+      description: Tool or subsystem if you can point at one (e.g. sneq__add_constraint, CLI, resolver)
+    validations:
+      required: false
+  - type: textarea
+    id: body
+    attributes:
+      label: What happened, and what did you expect?
+      description: Tell the friction as you hit it. Workarounds you used are gold.
+    validations:
+      required: true
