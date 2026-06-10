@@ -1756,7 +1756,7 @@ Expected: `import ok: function | report_feedback advertised: true` + the two com
 Privacy grep (MUST be empty before push):
 
 ```bash
-git grep -riE "(anya|sang.?artemis|tamriel|leeloo|veill|fable-test|jeandesauw)" -- . ':!node_modules'
+git grep -riE "([a]nya|[s]ang.?artemis|[t]amriel|[l]eeloo|[v]eill|[f]able-test|[j]eandesauw)" -- . ':!node_modules'
 ```
 
 - [ ] **Step 3: Commit docs, push, open the PR**
