@@ -24,7 +24,7 @@ const attributValue: z.ZodType<unknown> = z.union([
   z.object({ type: z.literal("ENTITY_REF"), id: z.string() }),
   z.object({ type: z.literal("ENTITY_SET"), ids: z.array(z.string()) }),
   z.object({ type: z.literal("ENUM"),       value: z.string(), enumType: z.string() }),
-  z.object({ type: z.literal("COMPOSITE"),  fields: z.record(z.unknown()) })
+  z.object({ type: z.literal("COMPOSITE"),  fields: z.record(z.string(), z.unknown()) })
 ]);
 
 const category = z.enum(["IDENTITE","PSYCHOLOGIE","HISTORIQUE","SOCIAL","COMPETENCE","SECRET","ETAT","POSSESSION"]);
