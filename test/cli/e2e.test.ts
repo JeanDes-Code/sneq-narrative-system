@@ -475,3 +475,47 @@ describe("CLI e2e — help", () => {
     await engine.close();
   });
 });
+
+describe("CLI e2e — feedback channel roundtrip", () => {
+  let tmp: string;
+  beforeEach(() => { tmp = mkdtempSync(join(tmpdir(), "sneq-fbk-")); });
+  afterEach(() => { rmSync(tmp, { recursive: true, force: true }); });
+
+  it("report → digest (coverage + neverCalled + entry) → triage → filtered digests", async () => {
+    const db = join(tmp, "fbk.db");
+    const engine = makeEngine(db);
+    const exec = async (argv: string[]) => {
+      const out = captureStdout();
+      const code = await run(parseArgv(argv), { stdin: emptyStdin(), stdout: out.stream, engine });
+      return { code, json: JSON.parse(out.lines.join("").trim()) as Record<string, unknown> };
+    };
+
+    await exec(["init-campaign", "--db", db, "--campaign", "fbk", "--embedding-dim", "3", "--args", '{"name":"Feedback"}']);
+
+    const rep = await exec(["report-feedback", "--db", db, "--campaign", "fbk",
+      "--args", '{"kind":"MISSING","body":"no temporary relations","subject":"sneq__add_constraint","severity":"MED"}']);
+    expect(rep.code).toBe(0);
+    expect(rep.json).toEqual({ recorded: true });
+
+    const digest = await exec(["feedback", "--db", db, "--campaign", "fbk", "--status", "open"]);
+    expect(digest.code).toBe(0);
+    const coverage = digest.json["coverage"] as Array<{ tool: string }>;
+    expect(coverage.map(c => c.tool)).toContain("sneq__report_feedback");
+    expect(digest.json["neverCalled"]).toContain("sneq__lookup_entity");
+    const entries = digest.json["feedback"] as Array<{ id: string; kind: string }>;
+    expect(entries).toHaveLength(1);
+    expect(entries[0]!.kind).toBe("MISSING");
+
+    const triage = await exec(["triage-feedback", "--db", db, "--campaign", "fbk",
+      "--args", JSON.stringify({ id: entries[0]!.id, status: "PROMOTED", promotedTo: "https://github.com/JeanDes-Code/sneq-narrative-system/issues/1" })]);
+    expect(triage.json).toEqual({ updated: true });
+
+    const open = await exec(["feedback", "--db", db, "--campaign", "fbk"]);
+    expect(open.json["feedback"]).toEqual([]);
+
+    const promoted = await exec(["feedback", "--db", db, "--campaign", "fbk", "--status", "promoted"]);
+    expect((promoted.json["feedback"] as Array<{ promotedTo?: string }>)[0]?.promotedTo)
+      .toBe("https://github.com/JeanDes-Code/sneq-narrative-system/issues/1");
+    await engine.close();
+  });
+});

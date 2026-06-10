@@ -41,4 +41,11 @@ describe("CLI smoke (built binary)", () => {
     ]);
     expect(JSON.parse(stdout.trim())).toEqual({ campaignId: "smoke", created: true, embeddingDim: 768 });
   });
+
+  it("--help lists the feedback commands", async () => {
+    const { stdout } = await exec("node", [CLI, "--help"]);
+    expect(stdout).toMatch(/report-feedback/);
+    expect(stdout).toMatch(/triage-feedback/);
+    expect(stdout).toMatch(/--status/);
+  });
 });
