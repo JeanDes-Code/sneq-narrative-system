@@ -42,6 +42,8 @@
 - [Entity](interfaces/Entity.md)
 - [EntityWithScore](interfaces/EntityWithScore.md)
 - [FactQuery](interfaces/FactQuery.md)
+- [FeedbackDigest](interfaces/FeedbackDigest.md)
+- [FeedbackEntry](interfaces/FeedbackEntry.md)
 - [Logger](interfaces/Logger.md)
 - [MentionInput](interfaces/MentionInput.md)
 - [NarrationGateContext](interfaces/NarrationGateContext.md)
@@ -72,7 +74,9 @@
 - [Scene](interfaces/Scene.md)
 - [SuggestionResult](interfaces/SuggestionResult.md)
 - [Tendance](interfaces/Tendance.md)
+- [ToolCallAggregate](interfaces/ToolCallAggregate.md)
 - [ToolCallContext](interfaces/ToolCallContext.md)
+- [ToolCallLogEntry](interfaces/ToolCallLogEntry.md)
 - [Turn](interfaces/Turn.md)
 - [ValidationContext](interfaces/ValidationContext.md)
 - [ValidationFailure](interfaces/ValidationFailure.md)
@@ -95,6 +99,10 @@
 - [EntityType](type-aliases/EntityType.md)
 - [EtatAttribut](type-aliases/EtatAttribut.md)
 - [FactId](type-aliases/FactId.md)
+- [FeedbackId](type-aliases/FeedbackId.md)
+- [FeedbackKind](type-aliases/FeedbackKind.md)
+- [FeedbackOrigin](type-aliases/FeedbackOrigin.md)
+- [FeedbackStatus](type-aliases/FeedbackStatus.md)
 - [Fiabilite](type-aliases/Fiabilite.md)
 - [MentionResult](type-aliases/MentionResult.md)
 - [ObservationMethod](type-aliases/ObservationMethod.md)
@@ -104,6 +112,7 @@
 - [RegleContrainte](type-aliases/RegleContrainte.md)
 - [SceneId](type-aliases/SceneId.md)
 - [Tier](type-aliases/Tier.md)
+- [ToolCallOutcome](type-aliases/ToolCallOutcome.md)
 - [ToolName](type-aliases/ToolName.md)
 - [TypeRelation](type-aliases/TypeRelation.md)
 
@@ -126,6 +135,7 @@
 - [asConstraintId](functions/asConstraintId.md)
 - [asEntityID](functions/asEntityID.md)
 - [asFactId](functions/asFactId.md)
+- [asFeedbackId](functions/asFeedbackId.md)
 - [asSceneId](functions/asSceneId.md)
 - [createDefaultDeps](functions/createDefaultDeps.md)
 - [defaultRouterConfig](functions/defaultRouterConfig.md)
@@ -274,6 +284,30 @@
 
 ***
 
+### feedbackDigest()
+
+> **feedbackDigest**(`filter?`): `Promise`\<[`FeedbackDigest`](../interfaces/FeedbackDigest.md)\>
+
+Operator read. Default status filter: OPEN (triaged signal must not resurface — locked decision #8).
+
+#### Parameters
+
+##### filter?
+
+###### since?
+
+`number`
+
+###### status?
+
+[`FeedbackStatus`](../type-aliases/FeedbackStatus.md)
+
+#### Returns
+
+`Promise`\<[`FeedbackDigest`](../interfaces/FeedbackDigest.md)\>
+
+***
+
 ### getEntity()
 
 > **getEntity**(`entityId`): `Promise`\<[`Entity`](../interfaces/Entity.md) \| `null`\>
@@ -374,6 +408,28 @@
 
 ***
 
+### recordToolCall()
+
+> **recordToolCall**(`entry`): `Promise`\<`void`\>
+
+Telemetry sink for dispatchToolCall. Best-effort turn stamp; never throws (locked: swallow).
+
+#### Parameters
+
+##### entry
+
+[`ToolCallLogEntry`](../interfaces/ToolCallLogEntry.md)
+
+#### Returns
+
+`Promise`\<`void`\>
+
+#### Implementation of
+
+[`ToolCallContext`](../interfaces/ToolCallContext.md).[`recordToolCall`](../interfaces/ToolCallContext.md#recordtoolcall)
+
+***
+
 ### registerFact()
 
 > **registerFact**(`input`): `Promise`\<\{ `contradictions`: [`AttributFige`](../interfaces/AttributFige.md)[]; `factId`: [`FactId`](../type-aliases/FactId.md) \| `null`; \}\>
@@ -466,6 +522,47 @@
 
 ***
 
+### reportFeedback()
+
+> **reportFeedback**(`input`): `Promise`\<\{ `recorded`: `boolean`; \}\>
+
+Fire-and-forget (locked decision #6): swallows every failure and reports {recorded:false}.
+ This runs mid-narration — it must never break the agent's turn.
+
+#### Parameters
+
+##### input
+
+###### body
+
+`string`
+
+###### kind
+
+[`FeedbackKind`](../type-aliases/FeedbackKind.md)
+
+###### origin?
+
+`"AGENT"` \| `"HUMAN"`
+
+###### severity?
+
+`"LOW"` \| `"MED"` \| `"HIGH"`
+
+###### subject?
+
+`string`
+
+#### Returns
+
+`Promise`\<\{ `recorded`: `boolean`; \}\>
+
+#### Implementation of
+
+[`ToolCallContext`](../interfaces/ToolCallContext.md).[`reportFeedback`](../interfaces/ToolCallContext.md#reportfeedback)
+
+***
+
 ### resolveEntity()
 
 > **resolveEntity**(`opts`): `Promise`\<[`ResolutionResult`](../interfaces/ResolutionResult.md)\>
@@ -546,6 +643,34 @@
 
 ***
 
+### triageFeedback()
+
+> **triageFeedback**(`input`): `Promise`\<\{ `updated`: `boolean`; \}\>
+
+Operator-only triage (NOT an LLM tool). Errors propagate: this is a deliberate meta action.
+
+#### Parameters
+
+##### input
+
+###### id
+
+`string`
+
+###### promotedTo?
+
+`string`
+
+###### status
+
+[`FeedbackStatus`](../type-aliases/FeedbackStatus.md)
+
+#### Returns
+
+`Promise`\<\{ `updated`: `boolean`; \}\>
+
+***
+
 ### validateNarration()
 
 > **validateNarration**(`input`): `Promise`\<[`ValidationReport`](../interfaces/ValidationReport.md)\>
@@ -608,7 +733,7 @@
 
 #### jsonSchema
 
-> `readonly` **jsonSchema**: `Record`\<`"sneq__lookup_entity"` \| `"sneq__get_entity"` \| `"sneq__get_relevant_facts"` \| `"sneq__suggest_existing"` \| `"sneq__mention_entity"` \| `"sneq__register_fact"` \| `"sneq__add_constraint"` \| `"sneq__collapse_attribute"` \| `"sneq__set_scene"` \| `"sneq__advance_turn"` \| `"sneq__validate_narration"`, `object`\> = `jsonSchemas`
+> `readonly` **jsonSchema**: `Record`\<`"sneq__lookup_entity"` \| `"sneq__get_entity"` \| `"sneq__get_relevant_facts"` \| `"sneq__suggest_existing"` \| `"sneq__mention_entity"` \| `"sneq__register_fact"` \| `"sneq__add_constraint"` \| `"sneq__collapse_attribute"` \| `"sneq__set_scene"` \| `"sneq__advance_turn"` \| `"sneq__validate_narration"` \| `"sneq__report_feedback"`, `object`\> = `jsonSchemas`
 
 #### openai
 
@@ -649,6 +774,10 @@
 ##### zod.sneq\_\_register\_fact
 
 > `readonly` **sneq\_\_register\_fact**: `ZodObject`\<\{ `attributeKey`: `ZodString`; `category`: `ZodEnum`\<\{ `COMPETENCE`: `"COMPETENCE"`; `ETAT`: `"ETAT"`; `HISTORIQUE`: `"HISTORIQUE"`; `IDENTITE`: `"IDENTITE"`; `POSSESSION`: `"POSSESSION"`; `PSYCHOLOGIE`: `"PSYCHOLOGIE"`; `SECRET`: `"SECRET"`; `SOCIAL`: `"SOCIAL"`; \}\>; `entityId`: `ZodString`; `observation`: `ZodObject`\<\{ `emittedBy`: `ZodOptional`\<`ZodString`\>; `excerpt`: `ZodOptional`\<`ZodString`\>; `fiabilite`: `ZodEnum`\<\{ `CERTAINE`: `"CERTAINE"`; `RUMEUR_CONFIRMEE`: `"RUMEUR_CONFIRMEE"`; `TEMOIGNAGE`: `"TEMOIGNAGE"`; \}\>; `method`: `ZodEnum`\<\{ `AVEU`: `"AVEU"`; `DEDUCTION_CONFIRMEE`: `"DEDUCTION_CONFIRMEE"`; `DEMONSTRATION`: `"DEMONSTRATION"`; `DIALOGUE_DIRECT`: `"DIALOGUE_DIRECT"`; `DOCUMENT`: `"DOCUMENT"`; `OBSERVATION_VISUELLE`: `"OBSERVATION_VISUELLE"`; \}\>; `sceneId`: `ZodOptional`\<`ZodString`\>; `source`: `ZodEnum`\<\{ `DICE_ROLL`: `"DICE_ROLL"`; `GM_NARRATION`: `"GM_NARRATION"`; `PLAYER_UTTERANCE`: `"PLAYER_UTTERANCE"`; `SYSTEM`: `"SYSTEM"`; \}\>; `timestamp`: `ZodNumber`; \}, `$strip`\>; `value`: `ZodType`\<`unknown`, `unknown`, `$ZodTypeInternals`\<`unknown`, `unknown`\>\>; \}, `$strip`\>
+
+##### zod.sneq\_\_report\_feedback
+
+> `readonly` **sneq\_\_report\_feedback**: `ZodObject`\<\{ `body`: `ZodString`; `kind`: `ZodEnum`\<\{ `BROKEN`: `"BROKEN"`; `CORRECTION`: `"CORRECTION"`; `FRICTION`: `"FRICTION"`; `IDEA`: `"IDEA"`; `MISSING`: `"MISSING"`; `PRAISE`: `"PRAISE"`; `REFLECTION`: `"REFLECTION"`; \}\>; `origin`: `ZodOptional`\<`ZodEnum`\<\{ `AGENT`: `"AGENT"`; `HUMAN`: `"HUMAN"`; \}\>\>; `severity`: `ZodOptional`\<`ZodEnum`\<\{ `HIGH`: `"HIGH"`; `LOW`: `"LOW"`; `MED`: `"MED"`; \}\>\>; `subject`: `ZodOptional`\<`ZodString`\>; \}, `$strip`\>
 
 ##### zod.sneq\_\_set\_scene
 
@@ -3129,6 +3258,110 @@ Human-readable description, persisted at mention time. Feeds the judge prompt an
 
 ***
 
+[sneq-engine API](../README.md) / FeedbackDigest
+
+# Interface: FeedbackDigest
+
+Operator-facing growth-loop bundle: coverage + the "never touched" gap + open entries.
+
+## Properties
+
+### coverage
+
+> **coverage**: [`ToolCallAggregate`](ToolCallAggregate.md)[]
+
+***
+
+### feedback
+
+> **feedback**: [`FeedbackEntry`](FeedbackEntry.md)[]
+
+***
+
+### neverCalled
+
+> **neverCalled**: `string`[]
+
+ADVERTISED_TOOL_NAMES minus the tools seen in the telemetry log.
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / FeedbackEntry
+
+# Interface: FeedbackEntry
+
+Out-of-band system feedback. Never narrative state, never shown to the player.
+
+## Properties
+
+### body
+
+> **body**: `string`
+
+***
+
+### createdAt
+
+> **createdAt**: `number`
+
+***
+
+### createdTurn?
+
+> `optional` **createdTurn?**: `number`
+
+***
+
+### id
+
+> **id**: [`FeedbackId`](../type-aliases/FeedbackId.md)
+
+***
+
+### kind
+
+> **kind**: [`FeedbackKind`](../type-aliases/FeedbackKind.md)
+
+***
+
+### origin
+
+> **origin**: [`FeedbackOrigin`](../type-aliases/FeedbackOrigin.md)
+
+***
+
+### promotedTo?
+
+> `optional` **promotedTo?**: `string`
+
+GitHub issue URL. Set iff status === "PROMOTED" — enforced at write-time by triage, not by this type.
+
+***
+
+### severity?
+
+> `optional` **severity?**: `"LOW"` \| `"MED"` \| `"HIGH"`
+
+***
+
+### status
+
+> **status**: [`FeedbackStatus`](../type-aliases/FeedbackStatus.md)
+
+***
+
+### subject?
+
+> `optional` **subject?**: `string`
+
+Pointer: tool name, subsystem, "general".
+
+[**sneq-engine API**](../README.md)
+
+***
+
 [sneq-engine API](../README.md) / Logger
 
 # Interface: Logger
@@ -3906,6 +4139,22 @@ Output dimension of the embedding model. Embeddings refs only; lets the Router
 
 ## Methods
 
+### aggregateToolCalls()
+
+> **aggregateToolCalls**(`campaignId`): `Promise`\<[`ToolCallAggregate`](ToolCallAggregate.md)[]\>
+
+#### Parameters
+
+##### campaignId
+
+[`CampaignId`](../type-aliases/CampaignId.md)
+
+#### Returns
+
+`Promise`\<[`ToolCallAggregate`](ToolCallAggregate.md)[]\>
+
+***
+
 ### appendFact()
 
 > **appendFact**(`f`): `Promise`\<\{ `factId`: [`FactId`](../type-aliases/FactId.md); \}\>
@@ -3919,6 +4168,46 @@ Output dimension of the embedding model. Embeddings refs only; lets the Router
 #### Returns
 
 `Promise`\<\{ `factId`: [`FactId`](../type-aliases/FactId.md); \}\>
+
+***
+
+### appendFeedback()
+
+> **appendFeedback**(`campaignId`, `entry`): `Promise`\<`void`\>
+
+#### Parameters
+
+##### campaignId
+
+[`CampaignId`](../type-aliases/CampaignId.md)
+
+##### entry
+
+[`FeedbackEntry`](FeedbackEntry.md)
+
+#### Returns
+
+`Promise`\<`void`\>
+
+***
+
+### appendToolCallLog()
+
+> **appendToolCallLog**(`campaignId`, `entry`): `Promise`\<`void`\>
+
+#### Parameters
+
+##### campaignId
+
+[`CampaignId`](../type-aliases/CampaignId.md)
+
+##### entry
+
+[`ToolCallLogEntry`](ToolCallLogEntry.md)
+
+#### Returns
+
+`Promise`\<`void`\>
 
 ***
 
@@ -4154,6 +4443,34 @@ Output dimension of the embedding model. Embeddings refs only; lets the Router
 
 ***
 
+### queryFeedback()
+
+> **queryFeedback**(`campaignId`, `filter`): `Promise`\<[`FeedbackEntry`](FeedbackEntry.md)[]\>
+
+No status filter = all statuses. `since` filters on createdAt >= since. Ordered by createdAt asc.
+
+#### Parameters
+
+##### campaignId
+
+[`CampaignId`](../type-aliases/CampaignId.md)
+
+##### filter
+
+###### since?
+
+`number`
+
+###### status?
+
+[`FeedbackStatus`](../type-aliases/FeedbackStatus.md)
+
+#### Returns
+
+`Promise`\<[`FeedbackEntry`](FeedbackEntry.md)[]\>
+
+***
+
 ### removePotentialite()
 
 > **removePotentialite**(`campaignId`, `entityId`, `attribut`): `Promise`\<`void`\>
@@ -4243,6 +4560,36 @@ Return up to `k` entities for the campaign, ordered by `embeddingRefreshedAt` de
 #### Returns
 
 `Promise`\<`T`\>
+
+***
+
+### updateFeedbackStatus()
+
+> **updateFeedbackStatus**(`campaignId`, `id`, `status`, `promotedTo?`): `Promise`\<`boolean`\>
+
+Returns false when the id does not exist in the campaign.
+
+#### Parameters
+
+##### campaignId
+
+[`CampaignId`](../type-aliases/CampaignId.md)
+
+##### id
+
+[`FeedbackId`](../type-aliases/FeedbackId.md)
+
+##### status
+
+[`FeedbackStatus`](../type-aliases/FeedbackStatus.md)
+
+##### promotedTo?
+
+`string`
+
+#### Returns
+
+`Promise`\<`boolean`\>
 
 ***
 
@@ -4674,6 +5021,40 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 ***
 
+[sneq-engine API](../README.md) / ToolCallAggregate
+
+# Interface: ToolCallAggregate
+
+Per-tool aggregate of the telemetry log. Sorted by tool name in all adapters.
+
+## Properties
+
+### calls
+
+> **calls**: `number`
+
+***
+
+### lastCalledAt
+
+> **lastCalledAt**: `number`
+
+***
+
+### outcomes
+
+> **outcomes**: `Partial`\<`Record`\<[`ToolCallOutcome`](../type-aliases/ToolCallOutcome.md), `number`\>\>
+
+***
+
+### tool
+
+> **tool**: `string`
+
+[**sneq-engine API**](../README.md)
+
+***
+
 [sneq-engine API](../README.md) / ToolCallContext
 
 # Interface: ToolCallContext
@@ -4832,6 +5213,24 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 ***
 
+### recordToolCall()?
+
+> `optional` **recordToolCall**(`entry`): `Promise`\<`void`\>
+
+Optional passive-telemetry sink. Implementations MUST be safe to fail: the dispatcher swallows.
+
+#### Parameters
+
+##### entry
+
+[`ToolCallLogEntry`](ToolCallLogEntry.md)
+
+#### Returns
+
+`Promise`\<`void`\>
+
+***
+
 ### registerFact()
 
 > **registerFact**(`input`): `Promise`\<\{ `contradictions`: [`AttributFige`](AttributFige.md)[]; `factId`: [`FactId`](../type-aliases/FactId.md) \| `null`; \}\>
@@ -4863,6 +5262,40 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 #### Returns
 
 `Promise`\<\{ `contradictions`: [`AttributFige`](AttributFige.md)[]; `factId`: [`FactId`](../type-aliases/FactId.md) \| `null`; \}\>
+
+***
+
+### reportFeedback()
+
+> **reportFeedback**(`input`): `Promise`\<\{ `recorded`: `boolean`; \}\>
+
+#### Parameters
+
+##### input
+
+###### body
+
+`string`
+
+###### kind
+
+[`FeedbackKind`](../type-aliases/FeedbackKind.md)
+
+###### origin?
+
+`"AGENT"` \| `"HUMAN"`
+
+###### severity?
+
+`"LOW"` \| `"MED"` \| `"HIGH"`
+
+###### subject?
+
+`string`
+
+#### Returns
+
+`Promise`\<\{ `recorded`: `boolean`; \}\>
 
 ***
 
@@ -4957,6 +5390,59 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 #### Returns
 
 `Promise`\<[`ValidationReport`](ValidationReport.md)\>
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / ToolCallLogEntry
+
+# Interface: ToolCallLogEntry
+
+One row per tool call, captured passively at dispatchToolCall.
+ Never contains raw args or narration (telemetry must hold no PII/prose).
+
+## Properties
+
+### createdAt
+
+> **createdAt**: `number`
+
+***
+
+### detail?
+
+> `optional` **detail?**: `string`
+
+Minimal machine detail: error name, "facts=0", "issues=2".
+
+***
+
+### durationMs
+
+> **durationMs**: `number`
+
+***
+
+### outcome
+
+> **outcome**: [`ToolCallOutcome`](../type-aliases/ToolCallOutcome.md)
+
+***
+
+### tool
+
+> **tool**: `string`
+
+A ToolName as plain string — this module stays dependency-free of the tools layer.
+
+***
+
+### turn?
+
+> `optional` **turn?**: `number`
+
+Best-effort campaign turn at call time.
 
 [**sneq-engine API**](../README.md)
 
@@ -5329,6 +5815,52 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 ***
 
+[sneq-engine API](../README.md) / FeedbackId
+
+# Type Alias: FeedbackId
+
+> **FeedbackId** = `string` & `object`
+
+## Type Declaration
+
+### \[brand\]
+
+> `readonly` **\[brand\]**: `"FeedbackId"`
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / FeedbackKind
+
+# Type Alias: FeedbackKind
+
+> **FeedbackKind** = `"FRICTION"` \| `"MISSING"` \| `"BROKEN"` \| `"REFLECTION"` \| `"CORRECTION"` \| `"PRAISE"` \| `"IDEA"`
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / FeedbackOrigin
+
+# Type Alias: FeedbackOrigin
+
+> **FeedbackOrigin** = `"AGENT"` \| `"HUMAN"`
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / FeedbackStatus
+
+# Type Alias: FeedbackStatus
+
+> **FeedbackStatus** = `"OPEN"` \| `"TRIAGED"` \| `"PROMOTED"` \| `"DISMISSED"`
+
+[**sneq-engine API**](../README.md)
+
+***
+
 [sneq-engine API](../README.md) / Fiabilite
 
 # Type Alias: Fiabilite
@@ -5420,6 +5952,16 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 # Type Alias: Tier
 
 > **Tier** = `"heavy"` \| `"light"` \| `"embeddings"`
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / ToolCallOutcome
+
+# Type Alias: ToolCallOutcome
+
+> **ToolCallOutcome** = `"OK"` \| `"EMPTY"` \| `"NO_MATCH"` \| `"CONTRADICTION"` \| `"ERROR"`
 
 [**sneq-engine API**](../README.md)
 
@@ -5537,6 +6079,26 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 ## Returns
 
 [`FactId`](../type-aliases/FactId.md)
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / asFeedbackId
+
+# Function: asFeedbackId()
+
+> **asFeedbackId**(`s`): [`FeedbackId`](../type-aliases/FeedbackId.md)
+
+## Parameters
+
+### s
+
+`string`
+
+## Returns
+
+[`FeedbackId`](../type-aliases/FeedbackId.md)
 
 [**sneq-engine API**](../README.md)
 
@@ -5768,7 +6330,7 @@ Tools advertised to LLMs. collapse_attribute is excluded until it is actually
 
 # Variable: ToolNames
 
-> `const` **ToolNames**: readonly \[`"sneq__lookup_entity"`, `"sneq__get_entity"`, `"sneq__get_relevant_facts"`, `"sneq__suggest_existing"`, `"sneq__mention_entity"`, `"sneq__register_fact"`, `"sneq__add_constraint"`, `"sneq__collapse_attribute"`, `"sneq__set_scene"`, `"sneq__advance_turn"`, `"sneq__validate_narration"`\]
+> `const` **ToolNames**: readonly \[`"sneq__lookup_entity"`, `"sneq__get_entity"`, `"sneq__get_relevant_facts"`, `"sneq__suggest_existing"`, `"sneq__mention_entity"`, `"sneq__register_fact"`, `"sneq__add_constraint"`, `"sneq__collapse_attribute"`, `"sneq__set_scene"`, `"sneq__advance_turn"`, `"sneq__validate_narration"`, `"sneq__report_feedback"`\]
 
 [**sneq-engine API**](../README.md)
 
@@ -5867,6 +6429,10 @@ custom hook still gets the built-in behavior.
 ### sneq\_\_register\_fact
 
 > `readonly` **sneq\_\_register\_fact**: `ZodObject`\<\{ `attributeKey`: `ZodString`; `category`: `ZodEnum`\<\{ `COMPETENCE`: `"COMPETENCE"`; `ETAT`: `"ETAT"`; `HISTORIQUE`: `"HISTORIQUE"`; `IDENTITE`: `"IDENTITE"`; `POSSESSION`: `"POSSESSION"`; `PSYCHOLOGIE`: `"PSYCHOLOGIE"`; `SECRET`: `"SECRET"`; `SOCIAL`: `"SOCIAL"`; \}\>; `entityId`: `ZodString`; `observation`: `ZodObject`\<\{ `emittedBy`: `ZodOptional`\<`ZodString`\>; `excerpt`: `ZodOptional`\<`ZodString`\>; `fiabilite`: `ZodEnum`\<\{ `CERTAINE`: `"CERTAINE"`; `RUMEUR_CONFIRMEE`: `"RUMEUR_CONFIRMEE"`; `TEMOIGNAGE`: `"TEMOIGNAGE"`; \}\>; `method`: `ZodEnum`\<\{ `AVEU`: `"AVEU"`; `DEDUCTION_CONFIRMEE`: `"DEDUCTION_CONFIRMEE"`; `DEMONSTRATION`: `"DEMONSTRATION"`; `DIALOGUE_DIRECT`: `"DIALOGUE_DIRECT"`; `DOCUMENT`: `"DOCUMENT"`; `OBSERVATION_VISUELLE`: `"OBSERVATION_VISUELLE"`; \}\>; `sceneId`: `ZodOptional`\<`ZodString`\>; `source`: `ZodEnum`\<\{ `DICE_ROLL`: `"DICE_ROLL"`; `GM_NARRATION`: `"GM_NARRATION"`; `PLAYER_UTTERANCE`: `"PLAYER_UTTERANCE"`; `SYSTEM`: `"SYSTEM"`; \}\>; `timestamp`: `ZodNumber`; \}, `$strip`\>; `value`: `ZodType`\<`unknown`, `unknown`, `$ZodTypeInternals`\<`unknown`, `unknown`\>\>; \}, `$strip`\>
+
+### sneq\_\_report\_feedback
+
+> `readonly` **sneq\_\_report\_feedback**: `ZodObject`\<\{ `body`: `ZodString`; `kind`: `ZodEnum`\<\{ `BROKEN`: `"BROKEN"`; `CORRECTION`: `"CORRECTION"`; `FRICTION`: `"FRICTION"`; `IDEA`: `"IDEA"`; `MISSING`: `"MISSING"`; `PRAISE`: `"PRAISE"`; `REFLECTION`: `"REFLECTION"`; \}\>; `origin`: `ZodOptional`\<`ZodEnum`\<\{ `AGENT`: `"AGENT"`; `HUMAN`: `"HUMAN"`; \}\>\>; `severity`: `ZodOptional`\<`ZodEnum`\<\{ `HIGH`: `"HIGH"`; `LOW`: `"LOW"`; `MED`: `"MED"`; \}\>\>; `subject`: `ZodOptional`\<`ZodString`\>; \}, `$strip`\>
 
 ### sneq\_\_set\_scene
 
