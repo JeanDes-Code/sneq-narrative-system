@@ -5,6 +5,7 @@ import { asCampaignId, asEntityID } from "../src/domain/ids.js";
 import type { RouterConfig } from "../src/router/interface.js";
 import type { Provider, ProviderRef, ChatRequest, EmbeddingRequest } from "../src/router/interface.js";
 import type { Observation } from "../src/domain/observation.js";
+import { ADVERTISED_TOOL_NAMES } from "../src/tools/adapters.js";
 
 
 function makeEmbedRouter(vec: number[]): { config: RouterConfig; deps: { resolveProvider(ref: ProviderRef): Provider } } {
@@ -350,6 +351,50 @@ describe("CampaignContext · scene context reaches the judge", () => {
     await c.resolveEntity({ mention: "le maitre des lieux" });
     expect(seen.some(s => s.includes("Dans la forge de Valmure"))).toBe(true);
     expect(seen.some(s => s.includes("smith"))).toBe(true);
+    await engine.close();
+  });
+});
+
+describe("CampaignContext · feedbackDigest + triageFeedback", () => {
+  it("digest: coverage from telemetry, neverCalled vs ADVERTISED tools, OPEN entries by default", async () => {
+    const { config, deps } = makeEmbedRouter([0.5, 0.5, 0.0]);
+    const repository = sqliteRepository({ path: ":memory:", embeddingDim: 3 });
+    const engine = new Engine({ repository, router: config, _routerDeps: deps });
+    const c = await engine.createCampaign({ id: asCampaignId("dg1"), name: "x", embeddingDim: 3 });
+
+    await c.handleToolCall("sneq__get_entity", { entityId: "ghost" });
+    await c.handleToolCall("sneq__report_feedback", { kind: "MISSING", body: "no temporary relations", subject: "sneq__add_constraint" });
+
+    const digest = await c.feedbackDigest();
+    const tools = digest.coverage.map(a => a.tool);
+    expect(tools).toContain("sneq__get_entity");
+    expect(tools).toContain("sneq__report_feedback");
+    expect(digest.neverCalled).toContain("sneq__lookup_entity");
+    expect(digest.neverCalled).not.toContain("sneq__get_entity");
+    // de-advertised tool must never appear as a gap
+    expect(digest.neverCalled).not.toContain("sneq__collapse_attribute");
+    expect(digest.coverage.length + digest.neverCalled.length).toBe(ADVERTISED_TOOL_NAMES.length);
+    expect(digest.feedback).toHaveLength(1);
+    expect(digest.feedback[0]).toMatchObject({ kind: "MISSING", status: "OPEN" });
+    await engine.close();
+  });
+
+  it("triage: PROMOTED entries leave the default digest, promotedTo persisted; unknown id → {updated:false}", async () => {
+    const { config, deps } = makeEmbedRouter([0.5, 0.5, 0.0]);
+    const repository = sqliteRepository({ path: ":memory:", embeddingDim: 3 });
+    const engine = new Engine({ repository, router: config, _routerDeps: deps });
+    const c = await engine.createCampaign({ id: asCampaignId("dg2"), name: "x", embeddingDim: 3 });
+    await c.reportFeedback({ kind: "IDEA", body: "ship a digest" });
+    const before = await c.feedbackDigest();
+    const id = String(before.feedback[0]!.id);
+
+    const r = await c.triageFeedback({ id, status: "PROMOTED", promotedTo: "https://github.com/x/y/issues/9" });
+    expect(r).toEqual({ updated: true });
+    expect((await c.feedbackDigest()).feedback).toHaveLength(0);
+    const promoted = await c.feedbackDigest({ status: "PROMOTED" });
+    expect(promoted.feedback[0]?.promotedTo).toBe("https://github.com/x/y/issues/9");
+
+    expect(await c.triageFeedback({ id: "fb_nope", status: "DISMISSED" })).toEqual({ updated: false });
     await engine.close();
   });
 });

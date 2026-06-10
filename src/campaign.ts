@@ -11,8 +11,10 @@ import type {
 } from "./hooks/narration-gate.js";
 import type { Logger } from "./logger.js";
 import type { CampaignId, EntityID, FactId, ConstraintId, SceneId } from "./domain/ids.js";
-import type { ToolCallLogEntry, FeedbackEntry, FeedbackKind } from "./domain/feedback.js";
+import type { ToolCallLogEntry, FeedbackEntry, FeedbackKind, FeedbackStatus } from "./domain/feedback.js";
 import { asEntityID, asConstraintId, asFactId, asSceneId, asFeedbackId } from "./domain/ids.js";
+import type { ToolCallAggregate } from "./repository/interface.js";
+import { ADVERTISED_TOOL_NAMES } from "./tools/adapters.js";
 import { SneqCampaignNotFoundError } from "./errors.js";
 import type { Entity, EntityType } from "./domain/entity.js";
 import type { AttributFige, AttributValue, CategorieAttribut } from "./domain/attribute.js";
@@ -47,6 +49,14 @@ export type MentionResult =
   | { entityId: EntityID; isNew: boolean; resolvedTo?: EntityID; needsAdjudication?: false }
   | { entityId: null; isNew: false; needsAdjudication: true;
       candidates: Array<{ entityId: EntityID; name: string; type: EntityType }> };
+
+/** Operator-facing growth-loop bundle: coverage + the "never touched" gap + open entries. */
+export interface FeedbackDigest {
+  coverage: ToolCallAggregate[];
+  /** ADVERTISED_TOOL_NAMES minus the tools seen in the telemetry log. */
+  neverCalled: string[];
+  feedback: FeedbackEntry[];
+}
 
 export interface RegisterFactInput {
   entityId: EntityID;
@@ -275,6 +285,29 @@ export class CampaignContext implements ToolCallContext {
       this.deps.logger.warn("report-feedback write failed", { err: String(err) });
       return { recorded: false };
     }
+  }
+
+  /** Operator read. Default status filter: OPEN (triaged signal must not resurface — locked decision #8). */
+  async feedbackDigest(filter?: { status?: FeedbackStatus; since?: number }): Promise<FeedbackDigest> {
+    await this.ensureCampaign();
+    const coverage = await this.deps.repo.aggregateToolCalls(this.id);
+    const seen = new Set(coverage.map(a => a.tool));
+    const neverCalled = ADVERTISED_TOOL_NAMES.filter(t => !seen.has(t));
+    const feedback = await this.deps.repo.queryFeedback(this.id, {
+      status: filter?.status ?? "OPEN",
+      ...(filter?.since !== undefined ? { since: filter.since } : {})
+    });
+    return { coverage, neverCalled: [...neverCalled], feedback };
+  }
+
+  /** Operator-only triage (NOT an LLM tool). Errors propagate: this is a deliberate meta action. */
+  async triageFeedback(input: { id: string; status: FeedbackStatus; promotedTo?: string }): Promise<{ updated: boolean }> {
+    await this.ensureCampaign();
+    const updated = await this.deps.repo.updateFeedbackStatus(
+      this.id, asFeedbackId(input.id), input.status,
+      input.promotedTo
+    );
+    return { updated };
   }
 
   registerUserPromptHandler(fn: AskUserFn): { dispose(): void } {
