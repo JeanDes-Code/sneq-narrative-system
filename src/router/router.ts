@@ -12,7 +12,10 @@ export interface RouterDeps {
 
 export class RouterExhaustedError extends Error {
   constructor(public tier: Tier, public attempts: Array<{ provider: string; model: string; error: string }>) {
-    super(`Router chain exhausted for tier ${tier} after ${attempts.length} attempts`);
+    super(
+      `Router chain exhausted for tier ${tier} after ${attempts.length} attempts` +
+      (attempts.length > 0 ? ` (${attempts.map(a => `${a.provider}/${a.model}: ${a.error}`).join("; ")})` : "")
+    );
     this.name = "RouterExhaustedError";
   }
 }
@@ -20,7 +23,17 @@ export class RouterExhaustedError extends Error {
 export class Router {
   private disabled = new Set<string>();
 
-  constructor(private readonly cfg: RouterConfig, private readonly deps: RouterDeps) {}
+  constructor(private readonly cfg: RouterConfig, private readonly deps: RouterDeps) {
+    const emb = cfg.tiers.embeddings;
+    if (emb) {
+      const dims = [...new Set([emb.primary, ...emb.fallbacks]
+        .map(r => r.embeddingDim)
+        .filter((d): d is number => d !== undefined))];
+      if (dims.length > 1) {
+        throw new Error(`embeddings chain mixes dimensions (${dims.join(", ")}): every provider in the chain must produce the same dim, or vector storage breaks on failover`);
+      }
+    }
+  }
 
   async chat(tier: Tier, req: ChatRequest): Promise<ChatResponse> {
     return this.runWithFallback(tier, async (provider, signal) => provider.chat(req, signal));
@@ -30,8 +43,16 @@ export class Router {
     return this.runWithFallback("embeddings", async (provider, signal) => provider.embed(req, signal));
   }
 
+  hasEmbeddings(): boolean { return this.cfg.tiers.embeddings !== undefined; }
+
+  /** Declared dim of the embeddings primary, if annotated. */
+  embeddingDim(): number | undefined { return this.cfg.tiers.embeddings?.primary.embeddingDim; }
+
   private chainFor(tier: Tier): ProviderRef[] {
     const c = this.cfg.tiers[tier];
+    if (!c) {
+      throw new RouterExhaustedError(tier, [{ provider: "none", model: "none", error: `CONFIG:tier "${tier}" has no provider chain configured` }]);
+    }
     return [c.primary, ...c.fallbacks];
   }
 
