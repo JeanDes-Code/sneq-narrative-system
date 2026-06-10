@@ -26,7 +26,7 @@ export {
 // Repository (interface + types). Reference SQLite adapter is also exposed,
 // but lazy-loadable via sneq-engine/sqlite for consumers who don't want better-sqlite3.
 export type {
-  Repository, CampaignMeta, FactQuery, VectorSearchOpts, EntityWithScore
+  Repository, CampaignMeta, FactQuery, VectorSearchOpts, EntityWithScore, ToolCallAggregate
 } from "./repository/interface.js";
 
 // Domain

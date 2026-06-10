@@ -1,6 +1,6 @@
 import type BetterSqlite3 from "better-sqlite3";
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 const MIGRATIONS: Array<{ version: number; sql: string }> = [
   {
@@ -112,6 +112,37 @@ const MIGRATIONS: Array<{ version: number; sql: string }> = [
   {
     version: 2,
     sql: `ALTER TABLE entities ADD COLUMN description TEXT;`
+  },
+  {
+    version: 3,
+    sql: `
+      CREATE TABLE IF NOT EXISTS feedback_entry (
+        id TEXT PRIMARY KEY,
+        campaign_id TEXT NOT NULL,
+        origin TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        body TEXT NOT NULL,
+        subject TEXT,
+        severity TEXT,
+        status TEXT NOT NULL DEFAULT 'OPEN',
+        promoted_to TEXT,
+        created_at INTEGER NOT NULL,
+        created_turn INTEGER
+      );
+      CREATE INDEX IF NOT EXISTS idx_feedback_campaign_status ON feedback_entry(campaign_id, status);
+
+      CREATE TABLE IF NOT EXISTS tool_call_log (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        campaign_id TEXT NOT NULL,
+        tool TEXT NOT NULL,
+        outcome TEXT NOT NULL,
+        duration_ms INTEGER NOT NULL,
+        detail TEXT,
+        created_at INTEGER NOT NULL,
+        turn INTEGER
+      );
+      CREATE INDEX IF NOT EXISTS idx_toolcall_campaign_tool ON tool_call_log(campaign_id, tool);
+    `
   }
 ];
 

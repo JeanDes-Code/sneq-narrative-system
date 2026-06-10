@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { JsonFileRepository } from "../../src/repository/json/index.js";
 import { repositoryContract, DIM } from "./contract.js";
-import { asCampaignId, asEntityID } from "../../src/domain/ids.js";
+import { asCampaignId, asEntityID, asFeedbackId } from "../../src/domain/ids.js";
 
 repositoryContract("json-file", () => {
   const dir = mkdtempSync(join(tmpdir(), "sneq-json-"));
@@ -23,12 +23,21 @@ describe("JsonFileRepository · persistence", () => {
       nomConnu: true, aliases: [], tags: [], createdAt: 0, description: "smith",
       embedding: new Float32Array([1, 0, 0, 0]), embeddingRefreshedAt: 1
     });
+    await r1.appendFeedback(cid, {
+      id: asFeedbackId("fb_1"), origin: "AGENT", kind: "FRICTION",
+      body: "persist me", status: "OPEN", createdAt: 1
+    });
+    await r1.appendToolCallLog(cid, { tool: "sneq__get_entity", outcome: "OK", durationMs: 5, createdAt: 1 });
     await r1.close();
     const r2 = new JsonFileRepository({ path }); // no dim: adopt from file
     const got = await r2.getEntity(cid, asEntityID("e1"));
     expect(got?.description).toBe("smith");
     expect(got?.embedding).toBeInstanceOf(Float32Array);
     expect(Array.from(got!.embedding!)).toEqual([1, 0, 0, 0]);
+    expect(await r2.queryFeedback(cid, {})).toHaveLength(1);
+    const agg = await r2.aggregateToolCalls(cid);
+    expect(agg).toHaveLength(1);
+    expect(agg[0]?.calls).toBe(1);
     await expect(r2.createCampaign({ id: asCampaignId("c2"), name: "bad", createdAt: 0, embeddingDim: 9 }))
       .rejects.toThrow(/dim/i);
     await r2.close();

@@ -3,7 +3,8 @@ import type { AttributFige } from "../../domain/attribute.js";
 import type { Potentialite } from "../../domain/potentialite.js";
 import type { AreteGCN, NoeudGCN } from "../../domain/gcn.js";
 import type { CampaignId } from "../../domain/ids.js";
-import { asCampaignId, asEntityID, asFactId } from "../../domain/ids.js";
+import { asCampaignId, asEntityID, asFactId, asFeedbackId } from "../../domain/ids.js";
+import type { FeedbackEntry, ToolCallLogEntry } from "../../domain/feedback.js";
 
 export interface EntityRow {
   campaign_id: string;
@@ -185,5 +186,59 @@ export function rowToEdge(row: EdgeRow): AreteGCN {
     forcePropagation: row.force_propagation,
     etatArete: row.etat_arete as AreteGCN["etatArete"],
     attributs: JSON.parse(row.attributs) as AreteGCN["attributs"]
+  };
+}
+
+export interface FeedbackRow {
+  id: string;
+  campaign_id: string;
+  origin: string;
+  kind: string;
+  body: string;
+  subject: string | null;
+  severity: string | null;
+  status: string;
+  promoted_to: string | null;
+  created_at: number;
+  created_turn: number | null;
+}
+
+export function feedbackToRow(e: FeedbackEntry, campaignId: CampaignId): FeedbackRow {
+  return {
+    id: e.id, campaign_id: campaignId, origin: e.origin, kind: e.kind, body: e.body,
+    subject: e.subject ?? null, severity: e.severity ?? null, status: e.status,
+    promoted_to: e.promotedTo ?? null, created_at: e.createdAt, created_turn: e.createdTurn ?? null
+  };
+}
+
+export function rowToFeedback(row: FeedbackRow): FeedbackEntry {
+  return {
+    id: asFeedbackId(row.id),
+    origin: row.origin as FeedbackEntry["origin"],
+    kind: row.kind as FeedbackEntry["kind"],
+    body: row.body,
+    ...(row.subject !== null ? { subject: row.subject } : {}),
+    ...(row.severity !== null ? { severity: row.severity as NonNullable<FeedbackEntry["severity"]> } : {}),
+    status: row.status as FeedbackEntry["status"],
+    ...(row.promoted_to !== null ? { promotedTo: row.promoted_to } : {}),
+    createdAt: row.created_at,
+    ...(row.created_turn !== null ? { createdTurn: row.created_turn } : {})
+  };
+}
+
+export interface ToolCallRow {
+  campaign_id: string;
+  tool: string;
+  outcome: string;
+  duration_ms: number;
+  detail: string | null;
+  created_at: number;
+  turn: number | null;
+}
+
+export function toolCallToRow(e: ToolCallLogEntry, campaignId: CampaignId): ToolCallRow {
+  return {
+    campaign_id: campaignId, tool: e.tool, outcome: e.outcome, duration_ms: e.durationMs,
+    detail: e.detail ?? null, created_at: e.createdAt, turn: e.turn ?? null
   };
 }

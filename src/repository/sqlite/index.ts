@@ -1,7 +1,7 @@
 import Database from "better-sqlite3";
 import type BetterSqlite3 from "better-sqlite3";
 import type {
-  Repository, CampaignMeta, VectorSearchOpts, EntityWithScore, FactQuery
+  Repository, CampaignMeta, VectorSearchOpts, EntityWithScore, FactQuery, ToolCallAggregate
 } from "../interface.js";
 import type { Entity, EntityType } from "../../domain/entity.js";
 import type { AttributFige } from "../../domain/attribute.js";
@@ -9,8 +9,9 @@ import type { Potentialite } from "../../domain/potentialite.js";
 import type { AreteGCN, NoeudGCN } from "../../domain/gcn.js";
 import type { Scene } from "../../domain/scene.js";
 import type { Turn } from "../../domain/turn.js";
-import type { CampaignId, EntityID, FactId } from "../../domain/ids.js";
+import type { CampaignId, EntityID, FactId, FeedbackId } from "../../domain/ids.js";
 import { asCampaignId, asFactId } from "../../domain/ids.js";
+import type { FeedbackEntry, FeedbackStatus, ToolCallLogEntry } from "../../domain/feedback.js";
 import { runMigrations } from "./migrations.js";
 import { loadVec, ensureVecTable, upsertVec, searchVec, deleteVecForCampaign } from "./vec.js";
 import { normalizeAlias, normalizeText } from "../../resolver/normalize.js";
@@ -19,7 +20,9 @@ import {
   figedToRow, rowToFiged, type FigedRow,
   potentialiteToRow, rowToPotentialite, type PotentialiteRow,
   nodeToRow, rowToNode, type NodeRow,
-  edgeToRow, rowToEdge, type EdgeRow
+  edgeToRow, rowToEdge, type EdgeRow,
+  feedbackToRow, rowToFeedback, type FeedbackRow,
+  toolCallToRow
 } from "./serialization.js";
 
 export interface SqliteRepositoryOptions {
@@ -81,7 +84,7 @@ export class SqliteRepository implements Repository {
 
   async deleteCampaign(id: CampaignId): Promise<void> {
     const tx = this.db.transaction(() => {
-      for (const t of ["entities", "aliases_norm", "figed", "potentialites", "nodes", "edges", "turns", "scenes"]) {
+      for (const t of ["entities", "aliases_norm", "figed", "potentialites", "nodes", "edges", "turns", "scenes", "feedback_entry", "tool_call_log"]) {
         this.db.prepare(`DELETE FROM ${t} WHERE campaign_id = ?`).run(id);
       }
       this.db.prepare(`DELETE FROM campaigns WHERE id = ?`).run(id);
@@ -316,6 +319,60 @@ export class SqliteRepository implements Repository {
       description: row.description,
       createdAtTurn: row.created_at_turn
     };
+  }
+
+  async appendFeedback(campaignId: CampaignId, entry: FeedbackEntry): Promise<void> {
+    const row = feedbackToRow(entry, campaignId);
+    // OR REPLACE: ids are caller-generated, so re-appending the same id is an idempotent replay, not data loss.
+    this.db.prepare(`
+      INSERT OR REPLACE INTO feedback_entry
+        (id, campaign_id, origin, kind, body, subject, severity, status, promoted_to, created_at, created_turn)
+      VALUES (@id, @campaign_id, @origin, @kind, @body, @subject, @severity, @status, @promoted_to, @created_at, @created_turn)
+    `).run(row);
+  }
+
+  async queryFeedback(campaignId: CampaignId, filter: { status?: FeedbackStatus; since?: number }): Promise<FeedbackEntry[]> {
+    const clauses: string[] = ["campaign_id = ?"];
+    const params: unknown[] = [campaignId];
+    if (filter.status !== undefined) { clauses.push("status = ?");      params.push(filter.status); }
+    if (filter.since !== undefined)  { clauses.push("created_at >= ?"); params.push(filter.since); }
+    const rows = this.db.prepare(
+      `SELECT * FROM feedback_entry WHERE ${clauses.join(" AND ")} ORDER BY created_at, id`
+    ).all(...params) as FeedbackRow[];
+    return rows.map(rowToFeedback);
+  }
+
+  async updateFeedbackStatus(campaignId: CampaignId, id: FeedbackId, status: FeedbackStatus, promotedTo?: string): Promise<boolean> {
+    const r = promotedTo !== undefined
+      ? this.db.prepare(`UPDATE feedback_entry SET status = ?, promoted_to = ? WHERE campaign_id = ? AND id = ?`)
+          .run(status, promotedTo, campaignId, id)
+      : this.db.prepare(`UPDATE feedback_entry SET status = ? WHERE campaign_id = ? AND id = ?`)
+          .run(status, campaignId, id);
+    return r.changes > 0;
+  }
+
+  async appendToolCallLog(campaignId: CampaignId, entry: ToolCallLogEntry): Promise<void> {
+    const row = toolCallToRow(entry, campaignId);
+    this.db.prepare(`
+      INSERT INTO tool_call_log (campaign_id, tool, outcome, duration_ms, detail, created_at, turn)
+      VALUES (@campaign_id, @tool, @outcome, @duration_ms, @detail, @created_at, @turn)
+    `).run(row);
+  }
+
+  async aggregateToolCalls(campaignId: CampaignId): Promise<ToolCallAggregate[]> {
+    const rows = this.db.prepare(`
+      SELECT tool, outcome, COUNT(*) AS calls, MAX(created_at) AS last
+      FROM tool_call_log WHERE campaign_id = ? GROUP BY tool, outcome ORDER BY tool
+    `).all(campaignId) as Array<{ tool: string; outcome: string; calls: number; last: number }>;
+    const byTool = new Map<string, ToolCallAggregate>();
+    for (const r of rows) {
+      let agg = byTool.get(r.tool);
+      if (!agg) { agg = { tool: r.tool, calls: 0, outcomes: {}, lastCalledAt: 0 }; byTool.set(r.tool, agg); }
+      agg.calls += r.calls;
+      agg.outcomes[r.outcome as keyof ToolCallAggregate["outcomes"]] = r.calls;
+      agg.lastCalledAt = Math.max(agg.lastCalledAt, r.last);
+    }
+    return [...byTool.values()].sort((a, b) => a.tool.localeCompare(b.tool));
   }
 
   // Manual BEGIN/COMMIT so the transaction lifetime matches the async fn's await.

@@ -4,7 +4,8 @@ import type { Entity } from "../../src/domain/entity.js";
 import type { AttributFige } from "../../src/domain/attribute.js";
 import type { Observation } from "../../src/domain/observation.js";
 import type { CampaignId } from "../../src/domain/ids.js";
-import { asCampaignId, asEntityID, asFactId, asSceneId } from "../../src/domain/ids.js";
+import { asCampaignId, asEntityID, asFactId, asSceneId, asFeedbackId } from "../../src/domain/ids.js";
+import type { FeedbackEntry, ToolCallLogEntry } from "../../src/domain/feedback.js";
 
 export const DIM = 4;
 const cid = asCampaignId("c1");
@@ -26,6 +27,17 @@ function fact(eid: string, key: string, value: string, turn = 1): AttributFige &
     campaignId: cid, factId: asFactId(`f_${eid}_${key}_${turn}`), entityId: asEntityID(eid),
     key, value: { type: "STRING", value }, category: "HISTORIQUE", observation: obs, turn
   };
+}
+
+function fb(id: string, over: Partial<FeedbackEntry> = {}): FeedbackEntry {
+  return {
+    id: asFeedbackId(id), origin: "AGENT", kind: "FRICTION",
+    body: `body of ${id}`, status: "OPEN", createdAt: 100, ...over
+  };
+}
+
+function tc(tool: string, over: Partial<ToolCallLogEntry> = {}): ToolCallLogEntry {
+  return { tool, outcome: "OK", durationMs: 5, createdAt: 100, ...over };
 }
 
 /**
@@ -163,10 +175,63 @@ export function repositoryContract(name: string, makeRepo: () => Repository | Pr
       await expect(repo.transaction(async tx => {
         await tx.upsertEntity(entity("ghost"));
         await tx.appendFact(fact("ghost", "k", "v"));
+        await tx.appendFeedback(cid, fb("fb_tx"));
+        await tx.appendToolCallLog(cid, tc("sneq__tx_tool"));
         throw new Error("boom");
       })).rejects.toThrow("boom");
       expect(await repo.getEntity(cid, asEntityID("ghost"))).toBeNull();
       expect(await repo.getFigedAttributes(cid, asEntityID("ghost"))).toEqual([]);
+      expect(await repo.queryFeedback(cid, {})).toEqual([]);
+      expect(await repo.aggregateToolCalls(cid)).toEqual([]);
+    });
+
+    it("feedback: append, query by status and since, roundtrips optional fields", async () => {
+      await repo.appendFeedback(cid, fb("fb_1", { subject: "sneq__add_constraint", severity: "MED", createdTurn: 3 }));
+      await repo.appendFeedback(cid, fb("fb_2", { kind: "IDEA", createdAt: 200 }));
+      await repo.appendFeedback(cid, fb("fb_3", { status: "DISMISSED", createdAt: 300 }));
+
+      const open = await repo.queryFeedback(cid, { status: "OPEN" });
+      expect(open.map(e => String(e.id))).toEqual(["fb_1", "fb_2"]);
+      expect(open[0]?.subject).toBe("sneq__add_constraint");
+      expect(open[0]?.severity).toBe("MED");
+      expect(open[0]?.createdTurn).toBe(3);
+      expect(open[1]?.subject).toBeUndefined();
+
+      expect((await repo.queryFeedback(cid, { status: "OPEN", since: 150 })).map(e => String(e.id))).toEqual(["fb_2"]);
+      expect((await repo.queryFeedback(cid, {})).map(e => String(e.id))).toEqual(["fb_1", "fb_2", "fb_3"]);
+    });
+
+    it("feedback: updateFeedbackStatus sets status + promotedTo, returns false on unknown id", async () => {
+      await repo.appendFeedback(cid, fb("fb_1"));
+      const ok = await repo.updateFeedbackStatus(cid, asFeedbackId("fb_1"), "PROMOTED", "https://github.com/x/y/issues/12");
+      expect(ok).toBe(true);
+      const promoted = await repo.queryFeedback(cid, { status: "PROMOTED" });
+      expect(promoted[0]?.promotedTo).toBe("https://github.com/x/y/issues/12");
+      expect(await repo.queryFeedback(cid, { status: "OPEN" })).toEqual([]);
+      expect(await repo.updateFeedbackStatus(cid, asFeedbackId("nope"), "DISMISSED")).toBe(false);
+    });
+
+    it("tool-call log: append + aggregate folds counts, outcomes, lastCalledAt, sorted by tool", async () => {
+      await repo.appendToolCallLog(cid, tc("sneq__lookup_entity", { createdAt: 10 }));
+      await repo.appendToolCallLog(cid, tc("sneq__lookup_entity", { outcome: "NO_MATCH", detail: "ambiguous", createdAt: 30 }));
+      await repo.appendToolCallLog(cid, tc("sneq__get_entity", { outcome: "EMPTY", createdAt: 20, turn: 2 }));
+
+      const agg = await repo.aggregateToolCalls(cid);
+      expect(agg.map(a => a.tool)).toEqual(["sneq__get_entity", "sneq__lookup_entity"]);
+      const lookup = agg.find(a => a.tool === "sneq__lookup_entity")!;
+      expect(lookup.calls).toBe(2);
+      expect(lookup.outcomes).toEqual({ OK: 1, NO_MATCH: 1 });
+      expect(lookup.lastCalledAt).toBe(30);
+      expect(await repo.aggregateToolCalls(asCampaignId("other"))).toEqual([]);
+    });
+
+    it("deleteCampaign purges feedback and tool-call log", async () => {
+      await repo.appendFeedback(cid, fb("fb_1"));
+      await repo.appendToolCallLog(cid, tc("sneq__get_entity"));
+      await repo.deleteCampaign(cid);
+      await repo.createCampaign({ id: cid, name: "Contract", createdAt: 0, embeddingDim: DIM });
+      expect(await repo.queryFeedback(cid, {})).toEqual([]);
+      expect(await repo.aggregateToolCalls(cid)).toEqual([]);
     });
   });
 }

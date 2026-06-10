@@ -1,5 +1,5 @@
 import type {
-  Repository, CampaignMeta, FactQuery, VectorSearchOpts, EntityWithScore
+  Repository, CampaignMeta, FactQuery, VectorSearchOpts, EntityWithScore, ToolCallAggregate
 } from "../interface.js";
 import type { Entity, EntityType } from "../../domain/entity.js";
 import type { AttributFige } from "../../domain/attribute.js";
@@ -7,8 +7,9 @@ import type { Potentialite } from "../../domain/potentialite.js";
 import type { AreteGCN, NoeudGCN } from "../../domain/gcn.js";
 import type { Scene } from "../../domain/scene.js";
 import type { Turn } from "../../domain/turn.js";
-import type { CampaignId, EntityID, FactId } from "../../domain/ids.js";
+import type { CampaignId, EntityID, FactId, FeedbackId } from "../../domain/ids.js";
 import { asFactId } from "../../domain/ids.js";
+import type { FeedbackEntry, FeedbackStatus, ToolCallLogEntry } from "../../domain/feedback.js";
 import { normalizeAlias, normalizeText } from "../../resolver/normalize.js";
 
 export interface MemoryState {
@@ -20,12 +21,15 @@ export interface MemoryState {
   edges: Map<string, Map<string, AreteGCN>>;
   turns: Map<string, Map<number, Turn>>;
   scenes: Map<string, Map<string, Scene>>;
+  feedback: Map<string, Map<string, FeedbackEntry>>;
+  toolCalls: Map<string, ToolCallLogEntry[]>;
 }
 
 export function emptyMemoryState(): MemoryState {
   return {
     campaigns: new Map(), entities: new Map(), facts: new Map(), potentialites: new Map(),
-    nodes: new Map(), edges: new Map(), turns: new Map(), scenes: new Map()
+    nodes: new Map(), edges: new Map(), turns: new Map(), scenes: new Map(),
+    feedback: new Map(), toolCalls: new Map()
   };
 }
 
@@ -70,6 +74,8 @@ export class InMemoryRepository implements Repository {
                           this.state.nodes, this.state.edges, this.state.turns, this.state.scenes]) {
       bucket.delete(id);
     }
+    this.state.feedback.delete(id);
+    this.state.toolCalls.delete(id);
     await this.mutated();
   }
 
@@ -245,6 +251,56 @@ export class InMemoryRepository implements Repository {
     if (!sceneId) return null;
     const s = this.state.scenes.get(campaignId)?.get(sceneId);
     return s ? structuredClone(s) : null;
+  }
+
+  // -- meta channel (feedback + telemetry) -------------------------------------
+
+  private feedbackOf(cid: CampaignId): Map<string, FeedbackEntry> {
+    let m = this.state.feedback.get(cid);
+    if (!m) { m = new Map(); this.state.feedback.set(cid, m); }
+    return m;
+  }
+
+  async appendFeedback(campaignId: CampaignId, entry: FeedbackEntry): Promise<void> {
+    this.feedbackOf(campaignId).set(entry.id, structuredClone(entry));
+    await this.mutated();
+  }
+
+  async queryFeedback(campaignId: CampaignId, filter: { status?: FeedbackStatus; since?: number }): Promise<FeedbackEntry[]> {
+    return [...(this.state.feedback.get(campaignId)?.values() ?? [])]
+      .filter(e =>
+        (filter.status === undefined || e.status === filter.status) &&
+        (filter.since === undefined || e.createdAt >= filter.since))
+      .sort((a, b) => a.createdAt - b.createdAt || String(a.id).localeCompare(String(b.id)))
+      .map(e => structuredClone(e));
+  }
+
+  async updateFeedbackStatus(campaignId: CampaignId, id: FeedbackId, status: FeedbackStatus, promotedTo?: string): Promise<boolean> {
+    const e = this.state.feedback.get(campaignId)?.get(id);
+    if (!e) return false;
+    e.status = status;
+    if (promotedTo !== undefined) e.promotedTo = promotedTo;
+    await this.mutated();
+    return true;
+  }
+
+  async appendToolCallLog(campaignId: CampaignId, entry: ToolCallLogEntry): Promise<void> {
+    let list = this.state.toolCalls.get(campaignId);
+    if (!list) { list = []; this.state.toolCalls.set(campaignId, list); }
+    list.push(structuredClone(entry));
+    await this.mutated();
+  }
+
+  async aggregateToolCalls(campaignId: CampaignId): Promise<ToolCallAggregate[]> {
+    const byTool = new Map<string, ToolCallAggregate>();
+    for (const e of this.state.toolCalls.get(campaignId) ?? []) {
+      let agg = byTool.get(e.tool);
+      if (!agg) { agg = { tool: e.tool, calls: 0, outcomes: {}, lastCalledAt: 0 }; byTool.set(e.tool, agg); }
+      agg.calls += 1;
+      agg.outcomes[e.outcome] = (agg.outcomes[e.outcome] ?? 0) + 1;
+      agg.lastCalledAt = Math.max(agg.lastCalledAt, e.createdAt);
+    }
+    return [...byTool.values()].sort((a, b) => a.tool.localeCompare(b.tool));
   }
 
   // -- transaction ------------------------------------------------------------------

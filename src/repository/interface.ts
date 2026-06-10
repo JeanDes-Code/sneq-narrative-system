@@ -4,9 +4,18 @@ import type { Potentialite } from "../domain/potentialite.js";
 import type { AreteGCN, NoeudGCN } from "../domain/gcn.js";
 import type { Scene } from "../domain/scene.js";
 import type { Turn } from "../domain/turn.js";
-import type { CampaignId, EntityID, FactId } from "../domain/ids.js";
+import type { CampaignId, EntityID, FactId, FeedbackId } from "../domain/ids.js";
+import type { FeedbackEntry, FeedbackStatus, ToolCallLogEntry, ToolCallOutcome } from "../domain/feedback.js";
 
 export interface EntityWithScore { entity: Entity; score: number; }
+
+/** Per-tool aggregate of the telemetry log. Sorted by tool name in all adapters. */
+export interface ToolCallAggregate {
+  tool: string;
+  calls: number;
+  outcomes: Partial<Record<ToolCallOutcome, number>>;
+  lastCalledAt: number;
+}
 
 export interface FactQuery {
   entityId?: EntityID;
@@ -63,6 +72,15 @@ export interface Repository {
   latestTurn(campaignId: CampaignId): Promise<Turn | null>;
   upsertScene(s: Scene): Promise<void>;
   currentScene(campaignId: CampaignId): Promise<Scene | null>;
+
+  // Meta channel (feedback + telemetry) — orthogonal to the narrative graph
+  appendFeedback(campaignId: CampaignId, entry: FeedbackEntry): Promise<void>;
+  /** No status filter = all statuses. `since` filters on createdAt >= since. Ordered by createdAt asc. */
+  queryFeedback(campaignId: CampaignId, filter: { status?: FeedbackStatus; since?: number }): Promise<FeedbackEntry[]>;
+  /** Returns false when the id does not exist in the campaign. */
+  updateFeedbackStatus(campaignId: CampaignId, id: FeedbackId, status: FeedbackStatus, promotedTo?: string): Promise<boolean>;
+  appendToolCallLog(campaignId: CampaignId, entry: ToolCallLogEntry): Promise<void>;
+  aggregateToolCalls(campaignId: CampaignId): Promise<ToolCallAggregate[]>;
 
   // Transactional
   transaction<T>(fn: (tx: Repository) => Promise<T>): Promise<T>;
