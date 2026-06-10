@@ -1,5 +1,5 @@
 import { ZodError } from "zod";
-import { SneqValidationError, SneqContradictionError, SneqProviderError } from "../errors.js";
+import { SneqValidationError, SneqContradictionError, SneqProviderError, SneqCampaignNotFoundError } from "../errors.js";
 
 export type ErrorCode =
   | "INVALID_ARGS"
@@ -10,6 +10,7 @@ export type ErrorCode =
   | "PROVIDER_ERROR"
   | "REPOSITORY_ERROR"
   | "UNKNOWN_COMMAND"
+  | "NOT_IMPLEMENTED"
   | "INTERNAL_ERROR";
 
 export class CliError extends Error {
@@ -58,6 +59,16 @@ export function formatError(err: unknown): FormattedError {
         error: err.message,
         code: "VALIDATION_FAILED",
         details: { contradictions: err.contradictions }
+      }),
+      exitCode: 1
+    };
+  }
+  if (err instanceof SneqCampaignNotFoundError) {
+    return {
+      json: JSON.stringify({
+        error: err.message,
+        code: "CAMPAIGN_NOT_FOUND",
+        details: { campaignId: err.campaignId }
       }),
       exitCode: 1
     };

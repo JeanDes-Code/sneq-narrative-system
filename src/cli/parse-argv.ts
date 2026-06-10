@@ -69,8 +69,8 @@ export function parseArgv(argv: string[]): ParsedInvocation {
       case "--args": argsInline = parseJsonFlag("--args", next); break;
       case "--embedding-dim": {
         const parsed = Number(next);
-        if (!Number.isInteger(parsed) || parsed <= 0) {
-          throw new CliError("INVALID_ARGS", `--embedding-dim must be a positive integer, got: ${next}`);
+        if (!Number.isInteger(parsed) || parsed < 0) {
+          throw new CliError("INVALID_ARGS", `--embedding-dim must be a non-negative integer (0 = no embeddings), got: ${next}`);
         }
         embeddingDim = parsed;
         break;

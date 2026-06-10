@@ -49,9 +49,17 @@ async function main(): Promise<void> {
     return emitErrorAndExit(err);
   }
 
-  const embeddingDim = invocation.embeddingDim ?? 1024;
+  // The repository adopts the dim stored in an existing DB; the flag (or, for
+  // init-campaign, the dim derived from the router config) only matters for
+  // fresh databases. 0 = no vectors.
+  const repoOpts: Parameters<typeof sqliteRepository>[0] = { path: invocation.db };
+  if (invocation.embeddingDim !== undefined) repoOpts.embeddingDim = invocation.embeddingDim;
+
+  const embTier = routerConfig.tiers.embeddings;
+  const defaultEmbeddingDim: number | null = embTier ? (embTier.primary.embeddingDim ?? null) : 0;
+
   const engine = new Engine({
-    repository: sqliteRepository({ path: invocation.db, embeddingDim }),
+    repository: sqliteRepository(repoOpts),
     router: routerConfig
   });
 
@@ -60,7 +68,8 @@ async function main(): Promise<void> {
     exitCode = await run(invocation, {
       stdin: process.stdin,
       stdout: process.stdout,
-      engine
+      engine,
+      defaultEmbeddingDim
     });
   } finally {
     await engine.close();
