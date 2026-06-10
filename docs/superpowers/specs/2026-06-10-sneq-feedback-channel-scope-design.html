@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>SNEQ : Canal de Feedback // Brief de scope // SNEQ-FBK-2026-0610</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800&family=Archivo+Narrow:wght@400;500;600;700&family=VT323&display=swap" rel="stylesheet" />
+<style>
+  /* ============================================================
+     SNEQ // CANAL DE FEEDBACK — BRIEF DE SCOPE
+     Artefact interne : l'Intendance du Moteur au Maître de Forge
+     Palette : forge (ambre/bronze), hue 60
+     ============================================================ */
+
+  :root {
+    /* Surfaces, famille charbon tiédie vers la forge */
+    --bg:            oklch(0.16 0.012 60);
+    --bg-elev:       oklch(0.20 0.012 60);
+    --surface:       oklch(0.24 0.011 60);
+    --surface-2:     oklch(0.28 0.010 60);
+
+    --border:        oklch(0.36 0.016 60);
+    --border-strong: oklch(0.46 0.018 60);
+    --border-faint:  oklch(0.29 0.011 60);
+
+    --text:          oklch(0.95 0.006 75);
+    --text-mid:      oklch(0.78 0.012 70);
+    --text-muted:    oklch(0.62 0.014 68);
+    --text-dim:      oklch(0.46 0.016 65);
+
+    /* Braise */
+    --accent:        oklch(0.76 0.14 62);
+    --accent-soft:   oklch(0.62 0.11 60);
+    --accent-bg:     oklch(0.45 0.11 60 / 0.18);
+
+    --danger:        oklch(0.66 0.20 25);
+    --danger-soft:   oklch(0.54 0.18 25);
+    --danger-bg:     oklch(0.40 0.18 25 / 0.18);
+
+    --terminal:      oklch(0.80 0.17 145);
+    --terminal-bg:   oklch(0.45 0.15 145 / 0.15);
+
+    --warning:       oklch(0.78 0.15 85);
+
+    --t-mega:  clamp(3.25rem, 8.5vw, 6.5rem);
+    --t-xl:    clamp(2.25rem, 5vw, 3.5rem);
+    --t-lg:    clamp(1.5rem, 2.6vw, 2rem);
+    --t-md:    1.1875rem;
+    --t-base:  0.9375rem;
+    --t-sm:    0.8125rem;
+
+    --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px;
+    --s-5: 24px; --s-6: 32px; --s-7: 48px; --s-8: 64px;
+    --s-9: 96px;
+
+    --toc-w: 268px;
+    --content-max: 920px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Archivo', sans-serif;
+    font-size: var(--t-base);
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    pointer-events: none; z-index: 9999;
+    background: repeating-linear-gradient(0deg, transparent 0, transparent 2px, rgba(0,0,0,0.10) 2px, rgba(0,0,0,0.10) 3px);
+    mix-blend-mode: multiply;
+    opacity: 0.5;
+  }
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    pointer-events: none; z-index: 9998;
+    background-image:
+      linear-gradient(rgba(255,250,240,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,250,240,0.025) 1px, transparent 1px);
+    background-size: 56px 56px;
+    opacity: 0.6;
+  }
+
+  /* ===== Bandeaux de classification ===== */
+  .classification {
+    position: fixed; left: 0; right: 0;
+    background: var(--danger-bg);
+    border-bottom: 1px solid var(--danger-soft);
+    color: var(--danger);
+    font-family: 'VT323', monospace;
+    font-size: 0.95rem;
+    letter-spacing: 0.20em;
+    text-transform: uppercase;
+    padding: var(--s-2) var(--s-5);
+    z-index: 100;
+    backdrop-filter: blur(8px);
+    display: flex; justify-content: space-between; align-items: center; gap: var(--s-4);
+  }
+  .classification--top { top: 0; }
+  .classification--bot { bottom: 0; top: auto; border-bottom: none; border-top: 1px solid var(--danger-soft); }
+  .classification .dot {
+    display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+    background: var(--danger); box-shadow: 0 0 8px var(--danger);
+    animation: pulse 1.8s ease-in-out infinite;
+    margin-right: var(--s-2); vertical-align: middle;
+  }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  /* ===== Layout ===== */
+  .shell {
+    display: grid;
+    grid-template-columns: var(--toc-w) 1fr;
+    min-height: 100vh;
+    padding-top: 38px; padding-bottom: 38px;
+  }
+
+  .toc {
+    position: sticky; top: 38px; align-self: start;
+    height: calc(100vh - 76px);
+    border-right: 1px solid var(--border);
+    padding: var(--s-6) var(--s-5);
+    background: linear-gradient(180deg, var(--bg) 0%, oklch(0.14 0.012 60) 100%);
+    overflow-y: auto;
+  }
+  .toc-header {
+    font-family: 'VT323', monospace; color: var(--text-dim);
+    font-size: 0.95rem; letter-spacing: 0.15em; text-transform: uppercase;
+    margin-bottom: var(--s-2);
+  }
+  .toc-title {
+    font-family: 'Archivo Narrow', sans-serif; font-weight: 700;
+    font-size: 1.1rem; letter-spacing: 0.04em;
+    margin-bottom: var(--s-6); padding-bottom: var(--s-4);
+    border-bottom: 1px solid var(--border-faint);
+  }
+  .toc-title em { font-style: normal; color: var(--accent); }
+  .toc-list { list-style: none; display: flex; flex-direction: column; gap: 2px; }
+  .toc-item {
+    display: grid; grid-template-columns: 24px 1fr; gap: var(--s-3);
+    padding: var(--s-2) var(--s-3);
+    border-radius: 2px;
+    color: var(--text-mid); text-decoration: none;
+    font-size: 0.8125rem; line-height: 1.4;
+    transition: background 120ms ease, color 120ms ease;
+    border-left: 2px solid transparent;
+  }
+  .toc-item:hover { background: var(--surface); color: var(--text); }
+  .toc-item.is-active { background: var(--accent-bg); color: var(--text); border-left-color: var(--accent); }
+  .toc-num { font-family: 'VT323', monospace; color: var(--text-dim); font-size: 0.95rem; }
+  .toc-item.is-active .toc-num { color: var(--accent); }
+
+  .toc-meta {
+    margin-top: var(--s-6); padding-top: var(--s-5);
+    border-top: 1px solid var(--border-faint);
+    display: grid; gap: var(--s-3);
+  }
+  .toc-meta-row {
+    display: grid; grid-template-columns: 1fr auto; gap: var(--s-3);
+    font-family: 'VT323', monospace; font-size: 0.9rem; letter-spacing: 0.06em;
+  }
+  .toc-meta-label { color: var(--text-dim); text-transform: uppercase; }
+  .toc-meta-val { color: var(--text); text-align: right; }
+
+  main {
+    max-width: calc(var(--content-max) + var(--s-9) * 2);
+    padding: 0 var(--s-7);
+    width: 100%; margin: 0 auto;
+  }
+  section { padding: var(--s-9) 0; border-bottom: 1px dashed var(--border-faint); }
+  section:last-of-type { border-bottom: none; }
+
+  /* ===== Tête de chapitre ===== */
+  .ch-head {
+    display: grid;
+    grid-template-columns: minmax(140px, auto) 1fr;
+    gap: var(--s-7);
+    align-items: end;
+    margin-bottom: var(--s-7);
+  }
+  .ch-num {
+    font-family: 'Archivo Narrow', sans-serif; font-weight: 700;
+    font-size: clamp(5rem, 10vw, 8rem); line-height: 0.85;
+    color: transparent;
+    -webkit-text-stroke: 1.5px var(--border-strong);
+    letter-spacing: -0.04em; user-select: none;
+  }
+  .ch-meta { display: flex; flex-direction: column; gap: var(--s-2); padding-bottom: var(--s-2); }
+  .ch-eyebrow {
+    font-family: 'VT323', monospace; font-size: 1rem;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--accent);
+    display: flex; align-items: center; gap: var(--s-3);
+  }
+  .ch-eyebrow::before { content: ''; display: inline-block; width: 24px; height: 1px; background: var(--accent); }
+  .ch-title {
+    font-family: 'Archivo Narrow', sans-serif; font-weight: 700;
+    font-size: var(--t-xl); line-height: 1.05; letter-spacing: -0.01em;
+    color: var(--text);
+  }
+  .ch-lede { color: var(--text-mid); font-size: var(--t-md); max-width: 62ch; margin-top: var(--s-3); }
+  .ch-lede strong { color: var(--text); font-weight: 600; }
+
+  /* ===== Cover ===== */
+  .cover {
+    min-height: calc(100vh - 76px);
+    display: grid; grid-template-rows: auto 1fr auto;
+    gap: var(--s-5);
+    padding: var(--s-7) 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .doc-strip {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--s-4);
+    font-family: 'VT323', monospace; font-size: 0.95rem;
+    letter-spacing: 0.12em; text-transform: uppercase;
+  }
+  .doc-strip > div { padding: var(--s-3) var(--s-4); background: var(--bg-elev); border: 1px solid var(--border-faint); }
+  .doc-strip .lbl { color: var(--text-dim); display: block; margin-bottom: 2px; font-size: 0.78rem; }
+  .doc-strip .val { color: var(--text); font-size: 1.05rem; }
+
+  .cover-body {
+    display: grid; grid-template-columns: 1fr auto;
+    align-items: end; gap: var(--s-7);
+    padding: var(--s-7) 0;
+  }
+  .cover-title {
+    font-family: 'Archivo Narrow', sans-serif; font-weight: 700;
+    font-size: var(--t-mega); line-height: 0.88; letter-spacing: -0.02em;
+  }
+  .cover-title .accent { color: var(--accent); }
+  .cover-sub { margin-top: var(--s-5); font-size: 1.25rem; color: var(--text-mid); max-width: 56ch; }
+  .cover-sub strong { color: var(--text); font-weight: 500; }
+
+  .cover-stamp {
+    position: relative;
+    transform: rotate(-6deg);
+    border: 3px solid var(--terminal);
+    color: var(--terminal);
+    padding: var(--s-3) var(--s-5);
+    font-family: 'Archivo Narrow', sans-serif; font-weight: 700;
+    letter-spacing: 0.18em; text-transform: uppercase; font-size: 1rem;
+    background: oklch(0.30 0.15 145 / 0.05);
+    box-shadow: 0 0 20px oklch(0.55 0.15 145 / 0.15) inset;
+  }
+  .cover-stamp::after {
+    content: 'Brainstorm 2026-06-10';
+    display: block; font-size: 0.7rem; margin-top: 2px; letter-spacing: 0.10em;
+  }
+
+  .cover-stats {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    border-top: 1px solid var(--border);
+    padding-top: var(--s-6);
+  }
+  .cover-stat { padding: var(--s-4) var(--s-5) var(--s-4) 0; border-right: 1px solid var(--border-faint); }
+  .cover-stat:last-child { border-right: none; }
+  .cover-stat-num {
+    font-family: 'Archivo Narrow', sans-serif; font-weight: 700;
+    font-size: 2.75rem; line-height: 1; letter-spacing: -0.02em;
+    color: var(--text);
+  }
+  .cover-stat-num.accent { color: var(--accent); }
+  .cover-stat-lbl {
+    font-family: 'VT323', monospace; font-size: 0.92rem;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--text-muted); margin-top: var(--s-2);
+  }
+
+  /* ===== Helpers prose ===== */
+  .prose { color: var(--text-mid); max-width: 72ch; }
+  .prose p { margin-bottom: var(--s-4); }
+  .prose p:last-child { margin-bottom: 0; }
+  .prose strong { color: var(--text); font-weight: 600; }
+  .prose em { font-style: italic; color: var(--text); }
+  .prose code, .code {
+    font-family: 'VT323', monospace; font-size: 1rem;
+    background: var(--surface); padding: 1px var(--s-2);
+    color: var(--accent);
+  }
+  .h3 {
+    font-family: 'Archivo Narrow', sans-serif; font-weight: 700;
+    font-size: 1.4rem; color: var(--text);
+    margin: var(--s-7) 0 var(--s-4);
+  }
+  .label {
+    font-family: 'VT323', monospace; font-size: 0.9rem;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--text-dim);
+  }
+
+  /* ===== Citation de mission (transmission) ===== */
+  .fbk-quote {
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    padding: var(--s-6);
+    margin: var(--s-5) 0;
+    position: relative;
+  }
+  .fbk-quote-head {
+    font-family: 'VT323', monospace; font-size: 0.92rem;
+    letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: var(--s-4);
+    padding-bottom: var(--s-3);
+    border-bottom: 1px dashed var(--border-faint);
+  }
+  .fbk-quote-head .from { color: var(--accent); }
+  .fbk-quote-body {
+    font-size: 1.15rem; line-height: 1.6; color: var(--text);
+    font-style: italic; max-width: 64ch;
+  }
+  .fbk-quote-body .hl { background: var(--accent-bg); padding: 0 4px; font-style: normal; }
+
+  /* ===== Deux audiences ===== */
+  .fbk-aud { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-4); margin: var(--s-5) 0; }
+  .fbk-aud-col { background: var(--bg-elev); border: 1px solid var(--border); padding: var(--s-5); }
+  .fbk-aud-col .label { margin-bottom: var(--s-2); color: var(--accent); }
+  .fbk-aud-who {
+    font-family: 'Archivo Narrow', sans-serif; font-weight: 700;
+    font-size: 1.3rem; color: var(--text); margin-bottom: var(--s-3);
+  }
+  .fbk-aud-col ul { list-style: none; display: flex; flex-direction: column; gap: var(--s-2); }
+  .fbk-aud-col li { color: var(--text-mid); font-size: 0.9rem; line-height: 1.5; padding-left: var(--s-4); position: relative; }
+  .fbk-aud-col li::before { content: '▸'; position: absolute; left: 0; color: var(--accent); font-size: 0.8em; top: 4px; }
+  .fbk-aud-col li strong { color: var(--text); font-weight: 600; }
+  .fbk-aud-path {
+    margin-top: var(--s-4); padding-top: var(--s-3);
+    border-top: 1px dashed var(--border-faint);
+    font-family: 'VT323', monospace; font-size: 1rem;
+    color: var(--terminal); letter-spacing: 0.04em;
+  }
+
+  /* ===== Lignes de capacité (scope board) ===== */
+  .cap-board { display: grid; gap: 1px; background: var(--border-faint); border: 1px solid var(--border); margin: var(--s-5) 0; }
+  .cap-row {
+    display: grid;
+    grid-template-columns: 64px 1fr auto;
+    gap: var(--s-4);
+    padding: var(--s-4) var(--s-5);
+    background: var(--bg-elev);
+    align-items: center;
+  }
+  .cap-row.is-deferred { opacity: 0.62; }
+  .cap-num { font-family: 'VT323', monospace; font-size: 1.4rem; color: var(--accent); letter-spacing: 0.05em; }
+  .cap-name {
+    font-family: 'Archivo Narrow', sans-serif; font-weight: 700;
+    font-size: 1.1rem; color: var(--text);
+  }
+  .cap-desc { color: var(--text-mid); font-size: 0.85rem; line-height: 1.5; margin-top: 2px; }
+  .cap-desc .code { font-size: 0.95rem; }
+  .cap-tag {
+    font-family: 'VT323', monospace; font-size: 0.95rem;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    padding: 3px var(--s-3); border: 1px solid currentColor;
+    white-space: nowrap;
+  }
+  .cap-tag.keep { color: var(--terminal); background: var(--terminal-bg); }
+  .cap-tag.defer { color: var(--danger); background: var(--danger-bg); }
+
+  /* ===== Callout (pourquoi 3 avec 2) ===== */
+  .fbk-callout {
+    border: 1px solid var(--accent-soft);
+    background: var(--accent-bg);
+    padding: var(--s-5) var(--s-6);
+    margin: var(--s-5) 0;
+    max-width: 76ch;
+  }
+  .fbk-callout .label { color: var(--accent); margin-bottom: var(--s-2); display: block; }
+  .fbk-callout p { color: var(--text-mid); line-height: 1.65; }
+  .fbk-callout strong { color: var(--text); }
+
+  /* ===== Cartes tactiques (commandes CLI) ===== */
+  .tactics { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--s-4); margin: var(--s-5) 0; }
+  .tactic { background: var(--bg-elev); border: 1px solid var(--border); padding: var(--s-5); }
+  .tactic-num {
+    font-family: 'VT323', monospace; font-size: 1.15rem;
+    color: var(--accent); margin-bottom: var(--s-3);
+    letter-spacing: 0.06em;
+  }
+  .tactic-text { color: var(--text-mid); font-size: 0.9rem; line-height: 1.55; }
+  .tactic-text strong { color: var(--text); font-weight: 600; }
+  .tactic-llm {
+    margin-top: var(--s-3);
+    font-family: 'VT323', monospace; font-size: 0.85rem;
+    letter-spacing: 0.10em; text-transform: uppercase;
+  }
+  .tactic-llm.yes { color: var(--terminal); }
+  .tactic-llm.no { color: var(--text-dim); }
+
+  /* ===== Terminal ===== */
+  .term {
+    background: oklch(0.12 0.008 60);
+    border: 1px solid var(--border);
+    margin: var(--s-5) 0;
+    overflow: hidden;
+  }
+  .term-head {
+    display: flex; align-items: center; gap: var(--s-2);
+    padding: var(--s-3) var(--s-4);
+    background: oklch(0.17 0.010 60);
+    border-bottom: 1px solid var(--border-faint);
+  }
+  .term-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--border-strong); }
+  .term-dot:first-child { background: var(--danger-soft); }
+  .term-dot:nth-child(2) { background: var(--warning); opacity: 0.7; }
+  .term-dot:nth-child(3) { background: var(--terminal); opacity: 0.7; }
+  .term-title {
+    margin-left: var(--s-3);
+    font-family: 'VT323', monospace; font-size: 0.9rem;
+    color: var(--text-dim); letter-spacing: 0.10em;
+  }
+  .term-body {
+    padding: var(--s-5);
+    font-family: 'VT323', monospace;
+    font-size: 1.05rem;
+    line-height: 1.5;
+    color: var(--text-mid);
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .term-body .ps { color: var(--terminal); }
+  .term-body .cmd { color: var(--text); }
+  .term-body .k { color: var(--accent); }
+  .term-body .s { color: oklch(0.80 0.10 145); }
+  .term-body .n { color: var(--warning); }
+  .term-body .c { color: var(--text-dim); }
+
+  /* ===== Lignes delta ===== */
+  .dlt-board { display: grid; gap: 1px; background: var(--border-faint); border: 1px solid var(--border); margin: var(--s-5) 0; }
+  .dlt-head, .dlt-row {
+    display: grid;
+    grid-template-columns: 1.1fr 1fr 1.4fr;
+    gap: var(--s-4);
+    padding: var(--s-3) var(--s-5);
+    background: var(--bg-elev);
+    align-items: start;
+  }
+  .dlt-head {
+    background: var(--bg);
+    font-family: 'VT323', monospace; font-size: 0.88rem;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--text-dim);
+    padding-top: var(--s-2); padding-bottom: var(--s-2);
+  }
+  .dlt-row.is-key { background: oklch(0.23 0.030 60); }
+  .dlt-subject { font-family: 'Archivo Narrow', sans-serif; font-weight: 600; color: var(--text); font-size: 0.95rem; }
+  .dlt-was { color: var(--text-muted); font-size: 0.85rem; }
+  .dlt-now { color: var(--text-mid); font-size: 0.875rem; line-height: 1.5; }
+  .dlt-now strong { color: var(--text); font-weight: 600; }
+  .dlt-now .code { font-size: 0.95rem; }
+  .dlt-key-tag {
+    display: inline-block;
+    font-family: 'VT323', monospace; font-size: 0.78rem;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--accent); border: 1px solid var(--accent-soft);
+    padding: 0 var(--s-2); margin-left: var(--s-2);
+    vertical-align: 2px;
+  }
+
+  /* ===== Panneau code ===== */
+  .codepanel {
+    background: oklch(0.12 0.008 60);
+    border: 1px solid var(--border);
+    padding: var(--s-5);
+    margin: var(--s-5) 0;
+    font-family: 'VT323', monospace;
+    font-size: 1.05rem;
+    line-height: 1.55;
+    color: var(--text-mid);
+    overflow-x: auto;
+    white-space: pre;
+  }
+  .codepanel .k { color: var(--accent); }
+  .codepanel .t { color: oklch(0.78 0.10 145); }
+  .codepanel .c { color: var(--text-dim); }
+
+  /* ===== GitHub issue form (mimicry) ===== */
+  .gh-card {
+    background: oklch(0.14 0.006 250);
+    border: 1px solid oklch(0.32 0.012 250);
+    border-radius: 6px;
+    margin: var(--s-5) 0;
+    overflow: hidden;
+    font-family: 'Archivo', sans-serif;
+  }
+  .gh-head {
+    display: flex; align-items: center; gap: var(--s-3);
+    padding: var(--s-3) var(--s-5);
+    background: oklch(0.18 0.008 250);
+    border-bottom: 1px solid oklch(0.30 0.012 250);
+    font-size: 0.85rem; color: oklch(0.75 0.01 250);
+  }
+  .gh-head svg { width: 18px; height: 18px; fill: oklch(0.85 0.005 250); }
+  .gh-head .repo { font-weight: 600; color: oklch(0.92 0.005 250); }
+  .gh-head .sep { color: oklch(0.50 0.01 250); }
+  .gh-body { padding: var(--s-5) var(--s-6); }
+  .gh-form-title {
+    font-family: 'Archivo Narrow', sans-serif; font-weight: 700;
+    font-size: 1.3rem; color: oklch(0.95 0.005 250);
+    margin-bottom: var(--s-4);
+  }
+  .gh-field { margin-bottom: var(--s-4); }
+  .gh-field-lbl { font-size: 0.85rem; font-weight: 600; color: oklch(0.90 0.005 250); margin-bottom: var(--s-2); }
+  .gh-field-lbl .req { color: oklch(0.65 0.18 25); }
+  .gh-field-hint { font-size: 0.78rem; color: oklch(0.62 0.01 250); margin-bottom: var(--s-2); }
+  .gh-input, .gh-select, .gh-textarea {
+    background: oklch(0.11 0.006 250);
+    border: 1px solid oklch(0.34 0.012 250);
+    border-radius: 4px;
+    padding: var(--s-2) var(--s-3);
+    color: oklch(0.88 0.005 250);
+    font-size: 0.875rem;
+  }
+  .gh-select { display: inline-flex; align-items: center; gap: var(--s-5); }
+  .gh-select .caret { color: oklch(0.60 0.01 250); font-size: 0.7rem; }
+  .gh-textarea { min-height: 84px; display: block; width: 100%; color: oklch(0.55 0.01 250); font-style: italic; }
+  .gh-input { display: block; width: 100%; }
+  .gh-input .ph { color: oklch(0.55 0.01 250); font-style: italic; }
+  .gh-submit {
+    display: inline-block;
+    background: oklch(0.55 0.14 150);
+    color: oklch(0.98 0.01 150);
+    font-weight: 600; font-size: 0.875rem;
+    padding: var(--s-2) var(--s-4);
+    border-radius: 4px;
+    margin-top: var(--s-2);
+  }
+
+  /* Chips fichiers */
+  .file-chips { display: flex; flex-wrap: wrap; gap: var(--s-3); margin: var(--s-5) 0; }
+  .file-chip {
+    font-family: 'VT323', monospace; font-size: 1rem;
+    letter-spacing: 0.04em;
+    background: var(--bg-elev); border: 1px solid var(--border);
+    padding: var(--s-2) var(--s-4);
+    color: var(--text-mid);
+  }
+  .file-chip b { color: var(--accent); font-weight: 400; }
+
+  /* ===== Checklist ===== */
+  .checklist { display: grid; gap: var(--s-2); margin: var(--s-5) 0; }
+  .check {
+    display: grid; grid-template-columns: 28px 1fr; gap: var(--s-3);
+    padding: var(--s-3) var(--s-4);
+    background: var(--bg-elev); border: 1px solid var(--border-faint);
+    align-items: start;
+    transition: border-color 120ms ease;
+  }
+  .check:hover { border-color: var(--accent-soft); }
+  .check-box { width: 18px; height: 18px; border: 1.5px solid var(--border-strong); background: var(--bg); margin-top: 2px; }
+  .check-text { color: var(--text-mid); font-size: 0.9375rem; line-height: 1.5; }
+  .check-text strong { color: var(--text); font-weight: 600; }
+  .check-group { margin-top: var(--s-6); }
+  .check-group-h {
+    font-family: 'VT323', monospace; font-size: 0.95rem;
+    letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: var(--s-3); padding-bottom: var(--s-2);
+    border-bottom: 1px solid var(--border-faint);
+  }
+
+  /* ===== Timeline ===== */
+  .timeline { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: var(--s-4); margin: var(--s-5) 0; }
+  .day { background: var(--bg-elev); border: 1px solid var(--border); padding: var(--s-5); position: relative; overflow: hidden; }
+  .day::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: var(--accent); }
+  .day--d2::before { background: var(--warning); opacity: 0.85; }
+  .day--d3::before { background: var(--terminal); }
+  .day-num {
+    font-family: 'VT323', monospace; font-size: 1rem;
+    letter-spacing: 0.18em; text-transform: uppercase;
+    color: var(--accent); margin-bottom: var(--s-2);
+  }
+  .day--d2 .day-num { color: var(--warning); }
+  .day--d3 .day-num { color: var(--terminal); }
+  .day-title { font-family: 'Archivo Narrow', sans-serif; font-weight: 700; font-size: 1.25rem; color: var(--text); margin-bottom: var(--s-3); }
+  .day-detail { color: var(--text-mid); font-size: 0.875rem; line-height: 1.55; }
+  .day-detail strong { color: var(--text); font-weight: 600; }
+  .day-detail .code { font-size: 0.95rem; }
+
+  /* ===== Tampon final ===== */
+  .endstamp { margin-top: var(--s-8); text-align: center; padding: var(--s-6); border: 1px dashed var(--border-strong); }
+  .endstamp-title { font-family: 'Archivo Narrow', sans-serif; font-weight: 700; font-size: 1.5rem; color: var(--text); margin-bottom: var(--s-3); letter-spacing: 0.02em; }
+  .endstamp-sub { font-family: 'VT323', monospace; font-size: 1rem; letter-spacing: 0.10em; color: var(--text-muted); text-transform: uppercase; }
+  .endstamp .stamp {
+    display: inline-block; margin-top: var(--s-4);
+    border: 3px solid var(--terminal); color: var(--terminal);
+    padding: var(--s-3) var(--s-5);
+    font-family: 'Archivo Narrow', sans-serif; font-weight: 700;
+    font-size: 1.1rem; letter-spacing: 0.18em; text-transform: uppercase;
+    transform: rotate(-3deg);
+    box-shadow: 0 0 30px oklch(0.55 0.15 145 / 0.10) inset;
+  }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 1024px) {
+    .shell { grid-template-columns: 1fr; }
+    .toc { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+    main { padding: 0 var(--s-5); }
+    .cover-body { grid-template-columns: 1fr; }
+    .cover-stamp { justify-self: start; }
+    .doc-strip { grid-template-columns: 1fr 1fr; }
+    .cover-stats { grid-template-columns: 1fr 1fr; }
+    .fbk-aud { grid-template-columns: 1fr; }
+    .timeline { grid-template-columns: 1fr; }
+    .dlt-head { display: none; }
+    .dlt-row { grid-template-columns: 1fr; gap: var(--s-2); }
+    .cap-row { grid-template-columns: 48px 1fr; }
+    .cap-tag { grid-column: 2; justify-self: start; }
+  }
+
+  ::selection { background: var(--accent-bg); color: var(--text); }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border: 2px solid var(--bg); border-radius: 5px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+</style>
+</head>
+
+<body>
+
+<div class="classification classification--top">
+  <span><span class="dot"></span>Restreint // Distribution interne : Forge de Valmure</span>
+  <span>SNEQ : Intendance du Moteur</span>
+</div>
+
+<div class="shell">
+
+  <!-- ============== TOC ============== -->
+  <aside class="toc" id="toc">
+    <div class="toc-header">// Arbre du document</div>
+    <div class="toc-title">Chantier :<br><em>Canal de Feedback</em></div>
+    <ul class="toc-list" id="toc-list">
+      <li><a href="#sec-0" class="toc-item is-active"><span class="toc-num">00</span><span>Couverture</span></a></li>
+      <li><a href="#sec-1" class="toc-item"><span class="toc-num">01</span><span>Le gap, deux audiences</span></a></li>
+      <li><a href="#sec-2" class="toc-item"><span class="toc-num">02</span><span>Scope retenu</span></a></li>
+      <li><a href="#sec-3" class="toc-item"><span class="toc-num">03</span><span>Le canal agent</span></a></li>
+      <li><a href="#sec-4" class="toc-item"><span class="toc-num">04</span><span>Deltas vs spec mère</span></a></li>
+      <li><a href="#sec-5" class="toc-item"><span class="toc-num">05</span><span>Le chemin humain</span></a></li>
+      <li><a href="#sec-6" class="toc-item"><span class="toc-num">06</span><span>Tests &amp; garde-fous</span></a></li>
+      <li><a href="#sec-7" class="toc-item"><span class="toc-num">07</span><span>Workflow &amp; ship</span></a></li>
+    </ul>
+
+    <div class="toc-meta">
+      <div class="toc-meta-row"><span class="toc-meta-label">Doc ID</span><span class="toc-meta-val">SNEQ-FBK-2026-0610</span></div>
+      <div class="toc-meta-row"><span class="toc-meta-label">Révision</span><span class="toc-meta-val">A.0</span></div>
+      <div class="toc-meta-row"><span class="toc-meta-label">Statut</span><span class="toc-meta-val" style="color: var(--warning);">▸ EN REVUE</span></div>
+      <div class="toc-meta-row"><span class="toc-meta-label">Cible</span><span class="toc-meta-val">sneq-engine 0.2.0</span></div>
+    </div>
+  </aside>
+
+  <!-- ============== MAIN ============== -->
+  <main>
+
+    <!-- ========== 00 — COVER ========== -->
+    <section id="sec-0" class="cover">
+      <div class="doc-strip">
+        <div><span class="lbl">Document</span><span class="val">SNEQ-FBK-2026-0610</span></div>
+        <div><span class="lbl">Préparé par</span><span class="val">Nemo, Intendant</span></div>
+        <div><span class="lbl">Pour</span><span class="val">Jean, Maître de Forge</span></div>
+        <div><span class="lbl">Base</span><span class="val">Meta Layer 05-25</span></div>
+      </div>
+
+      <div class="cover-body">
+        <div>
+          <h1 class="cover-title">Canal de<br><span class="accent">Feedback.</span></h1>
+          <p class="cover-sub">Le moteur tourne, il est sur npm, et personne ne peut lui dire ce qui coince. Ce brief acte le scope du canal : <strong>capacités 2 et 3</strong> du spec Meta Layer pour l'agent, <strong>templates d'issues GitHub</strong> pour les humains, capacité 1 différée.</p>
+        </div>
+        <div class="cover-stamp">Scope verrouillé</div>
+      </div>
+
+      <div class="cover-stats">
+        <div class="cover-stat">
+          <div class="cover-stat-num accent">2/3</div>
+          <div class="cover-stat-lbl">Capacités retenues</div>
+        </div>
+        <div class="cover-stat">
+          <div class="cover-stat-num">18</div>
+          <div class="cover-stat-lbl">Commandes CLI (15&#8594;18)</div>
+        </div>
+        <div class="cover-stat">
+          <div class="cover-stat-num">3</div>
+          <div class="cover-stat-lbl">Adapters à couvrir</div>
+        </div>
+        <div class="cover-stat">
+          <div class="cover-stat-num accent">0</div>
+          <div class="cover-stat-lbl">Breaking change</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 01 — LE GAP ========== -->
+    <section id="sec-1">
+      <div class="ch-head">
+        <div class="ch-num">01</div>
+        <div class="ch-meta">
+          <div class="ch-eyebrow">Mission</div>
+          <h2 class="ch-title">Le gap, deux audiences</h2>
+          <p class="ch-lede">La commande du Maître de Forge, transmise en fin de session précédente :</p>
+        </div>
+      </div>
+
+      <div class="fbk-quote">
+        <div class="fbk-quote-head"><span class="from">De : Jean</span> · Canal : handoff 2026-06-10 · Objet : le dernier gap</div>
+        <p class="fbk-quote-body">« filling one remaining gap: <span class="hl">cli should be able to receive feedback from consumer</span> or we should have a <span class="hl">documented way for any consumer to create a gh issue</span> to send feedback/reviews/frictions etc »</p>
+      </div>
+
+      <div class="prose">
+        <p>Une seule phrase, mais <strong>deux populations</strong> qui ne peuvent pas emprunter le même chemin. La réponse est en deux moitiés, une par audience.</p>
+      </div>
+
+      <div class="fbk-aud">
+        <div class="fbk-aud-col">
+          <div class="label">Audience A</div>
+          <div class="fbk-aud-who">Les consommateurs humains</div>
+          <ul>
+            <li>Devs qui installent <strong>sneq-engine</strong> depuis npm.</li>
+            <li>Savent ouvrir une issue GitHub, encore faut-il leur dire où et comment : le repo n'a <strong>aucun dossier <span class="code">.github/</span></strong> aujourd'hui.</li>
+            <li>Frictions typiques : adapter, install, doc, API.</li>
+          </ul>
+          <div class="fbk-aud-path">&#8594; templates d'issues + section README</div>
+        </div>
+        <div class="fbk-aud-col">
+          <div class="label">Audience B</div>
+          <div class="fbk-aud-who">L'agent in-game</div>
+          <ul>
+            <li>Le MJ IA qui consomme le CLI en pleine partie.</li>
+            <li><strong>Ne peut pas ouvrir d'issue</strong>, et surtout : quand SNEQ ne marche pas, il <strong>contourne en silence</strong> pour ne pas casser la narration. Zéro visibilité.</li>
+            <li>Le signal le plus précieux est celui qu'il ne rapportera jamais de lui-même : ce qu'il n'a <em>pas</em> appelé.</li>
+          </ul>
+          <div class="fbk-aud-path">&#8594; verbe CLI + télémétrie passive</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 02 — SCOPE ========== -->
+    <section id="sec-2">
+      <div class="ch-head">
+        <div class="ch-num">02</div>
+        <div class="ch-meta">
+          <div class="ch-eyebrow">Décision</div>
+          <h2 class="ch-title">Scope retenu</h2>
+          <p class="ch-lede">Le spec Meta Layer (2026-05-25, approuvé) décrit trois capacités. Ce chantier en implémente deux, plus le chemin humain qui n'y figurait pas.</p>
+        </div>
+      </div>
+
+      <div class="cap-board">
+        <div class="cap-row is-deferred">
+          <div class="cap-num">CAP 1</div>
+          <div>
+            <div class="cap-name">CanonDirective</div>
+            <div class="cap-desc">Lois-monde posées en méta-break, remontée dans <span class="code">prepare-turn</span>. C'est du <strong>canon</strong>, pas du feedback : cycle de vie à part, hors-sujet pour ce gap. Le design reste intact dans le spec mère.</div>
+          </div>
+          <div class="cap-tag defer">Différée</div>
+        </div>
+        <div class="cap-row">
+          <div class="cap-num">CAP 2</div>
+          <div>
+            <div class="cap-name">FeedbackEntry</div>
+            <div class="cap-desc">Le verbe fire-and-forget <span class="code">report-feedback</span> (outil LLM), le digest <span class="code">feedback</span>, le triage <span class="code">triage-feedback</span> avec cycle de vie OPEN &#8594; TRIAGED / PROMOTED / DISMISSED.</div>
+          </div>
+          <div class="cap-tag keep">Retenue</div>
+        </div>
+        <div class="cap-row">
+          <div class="cap-num">CAP 3</div>
+          <div>
+            <div class="cap-name">Télémétrie de couverture</div>
+            <div class="cap-desc">Une ligne <span class="code">ToolCallLogEntry</span> par appel d'outil, capturée au point d'étranglement unique <span class="code">dispatchToolCall</span>, classifiée OK / EMPTY / NO_MATCH / CONTRADICTION / ERROR. Zéro effort agent.</div>
+          </div>
+          <div class="cap-tag keep">Retenue</div>
+        </div>
+        <div class="cap-row">
+          <div class="cap-num">NEW</div>
+          <div>
+            <div class="cap-name">Chemin humain</div>
+            <div class="cap-desc">Templates d'issues GitHub + section README « Feedback » + mise à jour du skill agent. Absent du spec mère, exigé par la mission.</div>
+          </div>
+          <div class="cap-tag keep">Retenue</div>
+        </div>
+      </div>
+
+      <div class="fbk-callout">
+        <span class="label">Pourquoi 3 avec 2</span>
+        <p>Sans télémétrie, le digest ne contient que ce que l'agent <strong>choisit</strong> de dire. Le signal « jamais appelé / contourné en silence » ne peut venir que de la capture passive, et elle est cheap : <strong>une fonction pure</strong> (<span class="code">classifyOutcome</span>), <strong>un try/finally</strong> au point d'étranglement, <strong>une table</strong>. L'écriture est swallowed : elle ne peut jamais casser un appel d'outil.</p>
+      </div>
+    </section>
+
+    <!-- ========== 03 — CANAL AGENT ========== -->
+    <section id="sec-3">
+      <div class="ch-head">
+        <div class="ch-num">03</div>
+        <div class="ch-meta">
+          <div class="ch-eyebrow">Boucle de croissance</div>
+          <h2 class="ch-title">Le canal agent, de bout en bout</h2>
+          <p class="ch-lede">Trois commandes nouvelles, un seul outil exposé au LLM. La promotion en issue GitHub reste <strong>manuelle</strong>, pilotée par l'Intendant : jamais d'auto-promotion (décision verrouillée du spec mère).</p>
+        </div>
+      </div>
+
+      <div class="tactics">
+        <div class="tactic">
+          <div class="tactic-num">report-feedback</div>
+          <div class="tactic-text"><strong>L'agent signale</strong> ce que la télémétrie ne peut pas inférer : « j'ai contourné l'absence de X ». Fire-and-forget : swallow, retourne <span class="code">{recorded}</span>, invisible au joueur par construction.</div>
+          <div class="tactic-llm yes">&#9654; outil LLM : sneq__report_feedback</div>
+        </div>
+        <div class="tactic">
+          <div class="tactic-num">feedback</div>
+          <div class="tactic-text"><strong>Le digest</strong> : couverture par outil, liste des outils jamais appelés, entrées ouvertes filtrables par <span class="code">--status</span> / <span class="code">--since</span>.</div>
+          <div class="tactic-llm no">&#9654; CLI-only (opérateur)</div>
+        </div>
+        <div class="tactic">
+          <div class="tactic-num">triage-feedback</div>
+          <div class="tactic-text"><strong>Le triage</strong> : passe une entrée à TRIAGED / PROMOTED / DISMISSED, avec <span class="code">promotedTo</span> = URL de l'issue. Le signal trié ne resurgit pas au digest suivant.</div>
+          <div class="tactic-llm no">&#9654; CLI-only (opérateur)</div>
+        </div>
+      </div>
+
+      <p class="prose">Le rituel « on a des feedbacks ? » devient une session de lecture du digest, synthèse des thèmes, puis promotion des vrais en issues :</p>
+
+      <div class="term">
+        <div class="term-head">
+          <span class="term-dot"></span><span class="term-dot"></span><span class="term-dot"></span>
+          <span class="term-title">intendance@forge : revue hebdomadaire</span>
+        </div>
+        <div class="term-body"><span class="ps">$</span> <span class="cmd">sneq-engine feedback --db ./campagne.db --campaign forge-de-valmure --status open</span>
+{
+  <span class="k">"coverage"</span>: [
+    { <span class="k">"tool"</span>: <span class="s">"sneq__register_fact"</span>,    <span class="k">"calls"</span>: <span class="n">41</span>, <span class="k">"outcomes"</span>: { <span class="k">"OK"</span>: <span class="n">39</span>, <span class="k">"CONTRADICTION"</span>: <span class="n">2</span> } },
+    { <span class="k">"tool"</span>: <span class="s">"sneq__lookup_entity"</span>,    <span class="k">"calls"</span>: <span class="n">28</span>, <span class="k">"outcomes"</span>: { <span class="k">"OK"</span>: <span class="n">24</span>, <span class="k">"NO_MATCH"</span>: <span class="n">4</span> } },
+    { <span class="k">"tool"</span>: <span class="s">"sneq__report_feedback"</span>,  <span class="k">"calls"</span>: <span class="n">3</span>,  <span class="k">"outcomes"</span>: { <span class="k">"OK"</span>: <span class="n">3</span> } }
+  ],
+  <span class="k">"neverCalled"</span>: [<span class="s">"sneq__suggest_existing"</span>, <span class="s">"sneq__validate_narration"</span>],  <span class="c">// le signal que l'agent ne donnera jamais</span>
+  <span class="k">"feedback"</span>: [
+    { <span class="k">"id"</span>: <span class="s">"fb_7kq2"</span>, <span class="k">"origin"</span>: <span class="s">"AGENT"</span>, <span class="k">"kind"</span>: <span class="s">"MISSING"</span>, <span class="k">"severity"</span>: <span class="s">"MED"</span>,
+      <span class="k">"subject"</span>: <span class="s">"sneq__add_constraint"</span>, <span class="k">"status"</span>: <span class="s">"OPEN"</span>,
+      <span class="k">"body"</span>: <span class="s">"Pas moyen de lier deux entités par une relation temporaire ; contourné avec un fait ETAT."</span> }
+  ]
+}
+<span class="ps">$</span> <span class="cmd">sneq-engine triage-feedback --db ./campagne.db --campaign forge-de-valmure \</span>
+  <span class="cmd">--args '{"id":"fb_7kq2","status":"PROMOTED","promotedTo":"https://github.com/JeanDes-Code/sneq-narrative-system/issues/14"}'</span>
+{ <span class="k">"updated"</span>: <span class="n">true</span> }</div>
+      </div>
+
+      <div class="prose">
+        <p>Sémantique verrouillée, héritée du spec mère : la télémétrie et <span class="code">report-feedback</span> sont <strong>swallowed</strong> (une écriture qui échoue ne casse jamais la partie), la télémétrie ne logge <strong>jamais les args bruts</strong> (nom d'outil, outcome, durée, détail minimal : pas de prose, pas de PII).</p>
+      </div>
+    </section>
+
+    <!-- ========== 04 — DELTAS ========== -->
+    <section id="sec-4">
+      <div class="ch-head">
+        <div class="ch-num">04</div>
+        <div class="ch-meta">
+          <div class="ch-eyebrow">Recalibrage</div>
+          <h2 class="ch-title">Deltas vs spec mère</h2>
+          <p class="ch-lede">Le spec Meta Layer date d'avant le hardening 0.1.0. Ses hypothèses ont été revérifiées contre le code : tout tient, avec les corrections suivantes. Les deux lignes surlignées sont les vraies décisions.</p>
+        </div>
+      </div>
+
+      <div class="dlt-board">
+        <div class="dlt-head"><span>Sujet</span><span>Spec mère disait</span><span>Retenu</span></div>
+        <div class="dlt-row">
+          <div class="dlt-subject">Outils LLM</div>
+          <div class="dlt-was">11 &#8594; 13</div>
+          <div class="dlt-now">11 &#8594; <strong>12</strong> : <span class="code">sneq__report_feedback</span> seul, <span class="code">record_directive</span> part avec la cap 1.</div>
+        </div>
+        <div class="dlt-row">
+          <div class="dlt-subject">Commandes CLI</div>
+          <div class="dlt-was">15 &#8594; 20</div>
+          <div class="dlt-now">15 &#8594; <strong>18</strong> : les trois commandes feedback, sans <span class="code">record-directive</span> ni <span class="code">list-directives</span>.</div>
+        </div>
+        <div class="dlt-row">
+          <div class="dlt-subject">Advertising des outils</div>
+          <div class="dlt-was">« les adapters auto-dérivent »</div>
+          <div class="dlt-now">Toujours vrai, via <span class="code">ADVERTISED_TOOL_NAMES</span> (post-hardening) : filtre exclusion-based, le nouvel outil s'auto-advertise en entrant dans <span class="code">ToolNames</span>. 10 &#8594; 11 advertised.</div>
+        </div>
+        <div class="dlt-row is-key">
+          <div class="dlt-subject">neverCalled du digest<span class="dlt-key-tag">décision</span></div>
+          <div class="dlt-was">calculé contre ToolNames</div>
+          <div class="dlt-now">calculé contre <strong>ADVERTISED_TOOL_NAMES</strong> : sinon <span class="code">collapse_attribute</span>, dé-advertisé et jamais appelable, pollue le digest à vie.</div>
+        </div>
+        <div class="dlt-row is-key">
+          <div class="dlt-subject">Adapters repository<span class="dlt-key-tag">décision</span></div>
+          <div class="dlt-was">sqlite seul</div>
+          <div class="dlt-now"><strong>3 adapters</strong> (sqlite / memory / json, post-hardening) : les 5 nouvelles méthodes s'implémentent dans les trois et entrent dans la suite contrat <span class="code">test/repository/contract.ts</span>.</div>
+        </div>
+        <div class="dlt-row">
+          <div class="dlt-subject">Migration SQLite</div>
+          <div class="dlt-was">3 tables</div>
+          <div class="dlt-now"><strong>2 tables</strong> : <span class="code">feedback_entry</span> + <span class="code">tool_call_log</span>, pas de <span class="code">canon_directive</span>.</div>
+        </div>
+        <div class="dlt-row">
+          <div class="dlt-subject">Dispatcher</div>
+          <div class="dlt-was">2 nouveaux cases</div>
+          <div class="dlt-now"><strong>1 nouveau case</strong> (<span class="code">report_feedback</span>) + l'instrumentation try/finally inchangée.</div>
+        </div>
+        <div class="dlt-row">
+          <div class="dlt-subject">prepare-turn</div>
+          <div class="dlt-was">gagne un champ directives</div>
+          <div class="dlt-now"><strong>Intouché</strong> : le champ part avec la cap 1.</div>
+        </div>
+      </div>
+
+      <p class="prose">Tout le reste s'applique tel quel : shapes des types, sémantique swallow / fire-and-forget, table de classification <span class="code">classifyOutcome</span>, cycle de vie du feedback, contrat CLI, locked decisions #4 à #12. Les cinq méthodes ajoutées au contrat repository :</p>
+
+      <div class="codepanel"><span class="k">appendFeedback</span>(campaignId, entry): <span class="t">Promise&lt;void&gt;</span>
+<span class="k">queryFeedback</span>(campaignId, filter: { status?, since? }): <span class="t">Promise&lt;FeedbackEntry[]&gt;</span>
+<span class="k">updateFeedbackStatus</span>(campaignId, id, status, promotedTo?): <span class="t">Promise&lt;boolean&gt;</span>
+<span class="k">appendToolCallLog</span>(campaignId, entry): <span class="t">Promise&lt;void&gt;</span>
+<span class="k">aggregateToolCalls</span>(campaignId): <span class="t">Promise&lt;ToolCallAggregate[]&gt;</span>  <span class="c">// {tool, calls, outcomes, lastCalledAt}</span></div>
+    </section>
+
+    <!-- ========== 05 — CHEMIN HUMAIN ========== -->
+    <section id="sec-5">
+      <div class="ch-head">
+        <div class="ch-num">05</div>
+        <div class="ch-meta">
+          <div class="ch-eyebrow">Audience A</div>
+          <h2 class="ch-title">Le chemin humain</h2>
+          <p class="ch-lede">Trois fichiers dans <span class="code">.github/ISSUE_TEMPLATE/</span>, une section README. Le formulaire de feedback réutilise la taxonomie du moteur : ce qu'un humain coche dans GitHub et ce que l'agent écrit dans la table parlent la même langue.</p>
+        </div>
+      </div>
+
+      <div class="file-chips">
+        <span class="file-chip"><b>.github/ISSUE_TEMPLATE/</b>bug-report.yml</span>
+        <span class="file-chip"><b>.github/ISSUE_TEMPLATE/</b>feedback.yml</span>
+        <span class="file-chip"><b>.github/ISSUE_TEMPLATE/</b>config.yml <span style="color: var(--text-dim);">(blank issues autorisées)</span></span>
+      </div>
+
+      <div class="gh-card">
+        <div class="gh-head">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"></path></svg>
+          <span class="repo">JeanDes-Code / sneq-narrative-system</span>
+          <span class="sep">·</span>
+          <span>New issue</span>
+        </div>
+        <div class="gh-body">
+          <div class="gh-form-title">Feedback: friction, missing capability, or idea</div>
+          <div class="gh-field">
+            <div class="gh-field-lbl">Title <span class="req">*</span></div>
+            <div class="gh-input"><span class="ph">[feedback] No way to link two entities with a temporary relation</span></div>
+          </div>
+          <div class="gh-field">
+            <div class="gh-field-lbl">Kind <span class="req">*</span></div>
+            <div class="gh-field-hint">Same taxonomy the engine uses internally.</div>
+            <div class="gh-select"><span>friction / missing / broken / idea</span><span class="caret">&#9660;</span></div>
+          </div>
+          <div class="gh-field">
+            <div class="gh-field-lbl">Subject</div>
+            <div class="gh-field-hint">Tool or subsystem, if you can point at one (e.g. sneq__add_constraint, CLI, resolver).</div>
+            <div class="gh-input"><span class="ph">sneq__add_constraint</span></div>
+          </div>
+          <div class="gh-field">
+            <div class="gh-field-lbl">What happened, what did you expect? <span class="req">*</span></div>
+            <div class="gh-textarea">Tell us the friction as you hit it. Workarounds you used are gold.</div>
+          </div>
+          <div class="gh-submit">Submit new issue</div>
+        </div>
+      </div>
+
+      <div class="prose">
+        <p>La section README « Feedback » documente les <strong>deux chemins</strong> : humains vers les issues, opérateurs d'agents vers le canal in-band (verbe &#8594; digest &#8594; triage, promotion manuelle en issue). Le skill <span class="code">skills/sneq-narrative-engine.md</span> gagne le mode d'emploi de <span class="code">sneq__report_feedback</span> : hors-bande, fire-and-forget, jamais montré au joueur.</p>
+      </div>
+    </section>
+
+    <!-- ========== 06 — TESTS ========== -->
+    <section id="sec-6">
+      <div class="ch-head">
+        <div class="ch-num">06</div>
+        <div class="ch-meta">
+          <div class="ch-eyebrow">Vigilance</div>
+          <h2 class="ch-title">Tests &amp; garde-fous</h2>
+          <p class="ch-lede">Layout du spec mère §10, moins les directives, plus la couverture contrat sur les trois adapters. Base actuelle : 235 tests verts, tsc strict.</p>
+        </div>
+      </div>
+
+      <div class="check-group">
+        <div class="check-group-h">// Couverture</div>
+        <div class="checklist">
+          <div class="check"><div class="check-box"></div><div class="check-text"><strong>Domain</strong> : <span class="code">test/domain/feedback.test.ts</span> : FeedbackEntry, ToolCallLogEntry, asFeedbackId.</div></div>
+          <div class="check"><div class="check-box"></div><div class="check-text"><strong>Classification</strong> : <span class="code">test/core/telemetry.test.ts</span> : un cas par ligne de la table classifyOutcome (OK / EMPTY / NO_MATCH / CONTRADICTION / ERROR).</div></div>
+          <div class="check"><div class="check-box"></div><div class="check-text"><strong>Contrat repository</strong> : CRUD feedback + tool_call_log + agrégats, exécuté sur <strong>sqlite, memory et json</strong> via la suite partagée.</div></div>
+          <div class="check"><div class="check-box"></div><div class="check-text"><strong>Campaign</strong> : reportFeedback, triageFeedback, feedbackDigest (coverage + neverCalled + entrées filtrées).</div></div>
+          <div class="check"><div class="check-box"></div><div class="check-text"><strong>CLI</strong> : un fichier unit par commande + les trois commandes dans les patterns e2e et smoke existants.</div></div>
+        </div>
+      </div>
+
+      <div class="check-group">
+        <div class="check-group-h">// Les trois tests qui comptent</div>
+        <div class="checklist">
+          <div class="check"><div class="check-box"></div><div class="check-text"><strong>Swallow</strong> : un <span class="code">recordToolCall</span> qui throw ne fait PAS échouer l'appel d'outil sous-jacent. C'est le test clé du dispatcher.</div></div>
+          <div class="check"><div class="check-box"></div><div class="check-text"><strong>neverCalled exhaustif</strong> : après une campagne où seuls 3 outils advertised sont appelés, le digest liste les 8 autres.</div></div>
+          <div class="check"><div class="check-box"></div><div class="check-text"><strong>Zéro PII</strong> : aucun <span class="code">detail</span> de télémétrie ne contient d'args bruts ni de narration.</div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== 07 — WORKFLOW ========== -->
+    <section id="sec-7">
+      <div class="ch-head">
+        <div class="ch-num">07</div>
+        <div class="ch-meta">
+          <div class="ch-eyebrow">Expédition</div>
+          <h2 class="ch-title">Workflow &amp; ship</h2>
+          <p class="ch-lede">Convention maison : un commit par tâche, TDD, et la PR ne se merge que sur ordre explicite du Maître de Forge.</p>
+        </div>
+      </div>
+
+      <div class="timeline">
+        <div class="day">
+          <div class="day-num">Phase 1</div>
+          <div class="day-title">Forge</div>
+          <div class="day-detail">Branche <span class="code">feat/feedback-channel</span> (déjà ouverte, specs commitées). Plan TDD via writing-plans, puis exécution : domain &#8594; repo ×3 + contrat &#8594; télémétrie + dispatcher &#8594; campaign &#8594; outil LLM &#8594; CLI &#8594; templates / README / skill &#8594; e2e + smoke.</div>
+        </div>
+        <div class="day day--d2">
+          <div class="day-num">Phase 2</div>
+          <div class="day-title">Inspection</div>
+          <div class="day-detail">Suite complète verte + <span class="code">tsc</span> strict + pack-smoke (<span class="code">npm pack</span> + install tmp). Grep privacy avant push : <strong>doit être vide</strong>. PR ouverte, revue de Jean.</div>
+        </div>
+        <div class="day day--d3">
+          <div class="day-num">Phase 3</div>
+          <div class="day-title">Expédition</div>
+          <div class="day-detail">Merge sur ton OK explicite. Bump <strong>0.2.0</strong> (additif, zéro breaking), <span class="code">npm publish</span> avec ton OTP. UPGRADING.md : a priori rien à faire côté consommateurs, API additive.</div>
+        </div>
+      </div>
+
+      <div class="endstamp">
+        <div class="endstamp-title">Fin du brief de scope</div>
+        <div class="endstamp-sub">SNEQ-FBK-2026-0610 · révision A.0 · Intendance du Moteur</div><br>
+        <span class="stamp">Approved for planning</span>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<div class="classification classification--bot">
+  <span><span class="dot"></span>Restreint // Fin de transmission</span>
+  <span>SNEQ-FBK-2026-0610 · A.0</span>
+</div>
+
+<script>
+  const links = Array.from(document.querySelectorAll('.toc-item'));
+  const sections = links
+    .map(a => document.querySelector(a.getAttribute('href')))
+    .filter(Boolean);
+
+  const byId = new Map(links.map(a => [a.getAttribute('href').slice(1), a]));
+  let current = null;
+
+  const obs = new IntersectionObserver((entries) => {
+    const visible = entries
+      .filter(e => e.isIntersecting)
+      .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+    if (!visible) return;
+    const link = byId.get(visible.target.id);
+    if (!link || link === current) return;
+    if (current) current.classList.remove('is-active');
+    link.classList.add('is-active');
+    current = link;
+  }, { rootMargin: '-15% 0px -55% 0px', threshold: [0, 0.15, 0.5] });
+
+  sections.forEach(s => obs.observe(s));
+  current = byId.get('sec-0');
+</script>
+
+</body>
+</html>
