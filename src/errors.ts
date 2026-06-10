@@ -20,6 +20,13 @@ export class SneqContradictionError extends Error {
   }
 }
 
+export class SneqCampaignNotFoundError extends Error {
+  constructor(public readonly campaignId: string) {
+    super(`campaign "${campaignId}" not found — create it first (engine.createCampaign / sneq-engine init-campaign)`);
+    this.name = "SneqCampaignNotFoundError";
+  }
+}
+
 export class SneqProviderError extends Error {
   constructor(public readonly tier: Tier, public readonly exhausted: boolean, message: string) {
     super(message);

@@ -30,19 +30,23 @@ export class Engine {
   private readonly logger: Logger;
   private readonly contexts = new Map<string, CampaignContext>();
 
-  private readonly embedder: Embedder;
+  private readonly embedder: Embedder | null;
 
   constructor(cfg: EngineConfig) {
     this.repo = cfg.repository;
     this.router = new Router(cfg.router, cfg._routerDeps ?? createDefaultDeps());
     this.logger = cfg.logger ?? noopLogger;
     this.preGen.setErrorHandler(err => this.logger.warn("pregen-hook error", { err: String(err) }));
-    this.embedder = {
-      embed: async (text: string) => {
-        const r = await this.router.embed({ texts: [text] });
-        return r.vectors[0]!;
-      }
-    };
+    // No embeddings tier configured → keyless / alias-only mode: the resolver
+    // degrades gracefully and mentioned entities are stored without vectors.
+    this.embedder = this.router.hasEmbeddings()
+      ? {
+          embed: async (text: string) => {
+            const r = await this.router.embed({ texts: [text] });
+            return r.vectors[0]!;
+          }
+        }
+      : null;
     this.resolver = new Resolver({
       repo: this.repo, router: this.router, embedder: this.embedder,
       userPromptRegistry: this.userPrompt,
