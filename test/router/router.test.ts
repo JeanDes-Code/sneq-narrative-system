@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { Router } from "../../src/router/router.js";
+import { Router, createDefaultDeps } from "../../src/router/router.js";
 import { replayProvider, type ReplayProvider } from "../fixtures/replay-provider.js";
-import type { RouterConfig } from "../../src/router/interface.js";
+import type { Provider, RouterConfig } from "../../src/router/interface.js";
 
 function makeRouter(opts: {
   heavy: ReplayProvider[];
@@ -80,5 +80,47 @@ describe("Router", () => {
     expect(Array.from(r.vectors[0]!)).toEqual([
       expect.closeTo(0.1, 5), expect.closeTo(0.2, 5), expect.closeTo(0.3, 5)
     ]);
+  });
+});
+
+describe("createDefaultDeps · lazy SDK loading", () => {
+  it("wraps a missing optional peer in an UNSUPPORTED ProviderHttpError naming the package", async () => {
+    const deps = createDefaultDeps({
+      _importProvider: async () => { throw new Error("Cannot find module '@anthropic-ai/sdk'"); }
+    });
+    await expect(Promise.resolve(deps.resolveProvider(
+      { provider: "anthropic", apiKeyEnv: "X", model: "m" }
+    ))).rejects.toThrow(/@anthropic-ai\/sdk.*pnpm add @anthropic-ai\/sdk/s);
+  });
+
+  it("a chain falls through past a provider whose peer is missing", async () => {
+    const fallback = replayProvider("m2", [{ kind: "chat", response: { text: "rescued" } }]);
+    const brokenDeps = createDefaultDeps({
+      _importProvider: async () => { throw new Error("Cannot find module '@anthropic-ai/sdk'"); }
+    });
+    const router = new Router(
+      {
+        tiers: {
+          heavy: { primary: { provider: "anthropic", apiKeyEnv: "X", model: "m1" }, fallbacks: [fallback.ref] },
+          light: { primary: fallback.ref, fallbacks: [] },
+          embeddings: { primary: fallback.ref, fallbacks: [] }
+        },
+        defaults: { timeoutMs: 1000, maxRetries: 0 }
+      },
+      {
+        resolveProvider(ref): Provider | Promise<Provider> {
+          if (ref.provider === "anthropic") return brokenDeps.resolveProvider(ref);
+          return fallback;
+        }
+      }
+    );
+    const r = await router.chat("heavy", { messages: [{ role: "user", content: "hi" }] });
+    expect(r.text).toBe("rescued");
+  });
+
+  it("resolves the real anthropic provider via dynamic import when the SDK is installed", async () => {
+    process.env["_FAKE_KEY"] = "k";
+    const p = await createDefaultDeps().resolveProvider({ provider: "anthropic", apiKeyEnv: "_FAKE_KEY", model: "m" });
+    expect(p.ref.provider).toBe("anthropic");
   });
 });
