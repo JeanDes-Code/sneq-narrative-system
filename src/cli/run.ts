@@ -10,6 +10,10 @@ export interface FullRunDeps {
   stdin: NodeJS.ReadableStream;
   stdout: NodeJS.WritableStream;
   engine: Engine;
+  /** Default dim for init-campaign when --embedding-dim is absent: derived from the
+   *  router config's embeddings primary (embeddingDim metadata), 0 when the config
+   *  has no embeddings tier, null/undefined when underivable (explicit flag required). */
+  defaultEmbeddingDim?: number | null;
 }
 
 export async function run(invocation: ParsedInvocation, deps: FullRunDeps): Promise<number> {
@@ -67,7 +71,12 @@ async function dispatch(inv: ParsedInvocation, deps: FullRunDeps): Promise<numbe
         throw new CliError("CAMPAIGN_ALREADY_EXISTS", `campaign '${inv.campaign}' already exists`);
       }
       const name = String(args["name"] ?? inv.campaign);
-      const embeddingDim = inv.embeddingDim ?? Number(args["embeddingDim"] ?? 1024);
+      const fromArgs = args["embeddingDim"] !== undefined ? Number(args["embeddingDim"]) : undefined;
+      const embeddingDim = inv.embeddingDim ?? fromArgs ?? deps.defaultEmbeddingDim ?? undefined;
+      if (embeddingDim === undefined || Number.isNaN(embeddingDim)) {
+        throw new CliError("INVALID_ARGS",
+          "embedding dimension required: pass --embedding-dim <N> (0 = no embeddings). The router config's embeddings primary has no embeddingDim metadata to derive a default from.");
+      }
       await deps.engine.createCampaign({ id: campaignId, name, embeddingDim });
       deps.stdout.write(JSON.stringify({ campaignId: inv.campaign, created: true, embeddingDim }) + "\n");
       return 0;
@@ -115,8 +124,11 @@ async function dispatch(inv: ParsedInvocation, deps: FullRunDeps): Promise<numbe
       deps.stdout.write(JSON.stringify(report) + "\n");
       return strict && !report.ok ? 1 : 0;
     }
+    case "collapse-attribute":
+      throw new CliError("NOT_IMPLEMENTED",
+        "collapse-attribute is not wired in V2 — compose your own LLM call (heavy tier) + validateValue + register-fact. The tool is no longer advertised to LLM agents either.");
     default: {
-      // 10 tool commands: kebab-case → sneq__snake_case
+      // 9 remaining tool commands: kebab-case → sneq__snake_case
       const toolName = `sneq__${inv.command.replaceAll("-", "_")}`;
       const finalArgs = await assembleToolArgs(inv, deps, args);
       const campaign = deps.engine.campaign(campaignId);
