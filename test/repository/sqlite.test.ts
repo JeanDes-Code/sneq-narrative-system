@@ -163,3 +163,12 @@ describe("SqliteRepository · dim lifecycle", () => {
     await r.close();
   });
 });
+
+describe("SqliteRepository · entity description", () => {
+  it("persists and returns the description; absent stays undefined", async () => {
+    await repo.upsertEntity({ ...someEntity("ed"), description: "A grizzled smith." });
+    expect((await repo.getEntity(cid, asEntityID("ed")))?.description).toBe("A grizzled smith.");
+    await repo.upsertEntity(someEntity("ed2"));
+    expect((await repo.getEntity(cid, asEntityID("ed2")))?.description).toBeUndefined();
+  });
+});

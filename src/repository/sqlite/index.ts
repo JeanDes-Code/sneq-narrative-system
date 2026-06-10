@@ -95,10 +95,11 @@ export class SqliteRepository implements Repository {
     const tx = this.db.transaction(() => {
       this.db.prepare(`
         INSERT OR REPLACE INTO entities
-          (campaign_id, id, type, name, nom_connu, aliases, tags, created_at, embedding_refreshed_at)
-        VALUES (@campaign_id, @id, @type, @name, @nom_connu, @aliases, @tags, @created_at, @embedding_refreshed_at)
+          (campaign_id, id, type, name, description, nom_connu, aliases, tags, created_at, embedding_refreshed_at)
+        VALUES (@campaign_id, @id, @type, @name, @description, @nom_connu, @aliases, @tags, @created_at, @embedding_refreshed_at)
       `).run({
         campaign_id: r.campaign_id, id: r.id, type: r.type, name: r.name,
+        description: r.description,
         nom_connu: r.nom_connu, aliases: r.aliases, tags: r.tags,
         created_at: r.created_at, embedding_refreshed_at: r.embedding_refreshed_at
       });

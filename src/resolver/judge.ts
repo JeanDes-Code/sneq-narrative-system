@@ -13,8 +13,8 @@ export async function judgeMatch(
 ): Promise<JudgeResult> {
   const { mention, sceneDescription, candidates } = args;
   const list = candidates.map((c, i) => {
-    const description = c.aliases.map(a => a.text).join(", ");
-    return `${i}. ${c.name} (${c.type}) — aliases: ${description || "(none)"}`;
+    const aliasText = c.aliases.map(a => a.text).join(", ");
+    return `${i}. ${c.name} (${c.type})${c.description ? ` — ${c.description}` : ""} — aliases: ${aliasText || "(none)"}`;
   }).join("\n");
 
   const res = await router.chat("light", {
