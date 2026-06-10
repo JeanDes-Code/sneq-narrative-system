@@ -14,7 +14,7 @@ language: en
 
 ## TL;DR
 
-V2 alpha failed its first adoption test: the pilot consumer app declined integration and
+V2 alpha failed its first adoption test: the pilot consumer app (separate private repo) declined integration and
 documented why in its ADR 0002 — *"non publié sur npm, better-sqlite3 natif, embeddings qui
 demandent des clés supplémentaires — une taxe d'intégration disproportionnée pour un proto."*
 This spec removes the integration tax and fixes the robustness flaws found in the 2026-06-10
@@ -79,7 +79,7 @@ review, without changing the SNEQ model itself. Sequenced **before** the meta-la
 - Postgres/Convex adapters, HTTP/MCP gateway, full `collapseAttribute`, local embedding models, telemetry sinks (no second adapter exists for any of those seams).
 - The meta-layer spec (2026-05-25) — lands after this.
 - `EntityID` → `EntityId` capitalization normalization (cosmetic churn across ~30 files; revisit pre-1.0).
-- Pilot-app-side integration adapter (lives in the pilot repo, per its ADR 0002).
+- Pilot-app-side integration adapter (lives in its own repo, per its ADR 0002).
 
 ## 4. Consumer impact
 

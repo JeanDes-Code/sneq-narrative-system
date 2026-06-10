@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Remove every adoption blocker named in the pilot app's ADR 0002 and fix the robustness flaws from the 2026-06-10 review, so `@sneq/engine` installs and runs with zero native deps, zero API keys, and honest defaults.
+**Goal:** Remove every adoption blocker named in the pilot consumer app's ADR 0002 and fix the robustness flaws from the 2026-06-10 review, so `@sneq/engine` installs and runs with zero native deps, zero API keys, and honest defaults.
 
 **Architecture:** No model changes. The work is: lazy-load optional SDK providers; make embeddings optional end-to-end (router tier → engine embedder → resolver cascade → repository dim 0); add two zero-native Repository adapters behind a shared contract test suite; harden the router (real retries, dim-coherent defaults, Google function-calling); harden the facade (campaign existence, transactions, scene context, adjudication instead of silent forks); persist `Entity.description`; modernize to zod v4; ship a publishable 0.1.0 package surface.
 
