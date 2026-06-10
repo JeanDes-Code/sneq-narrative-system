@@ -1,12 +1,27 @@
 import type BetterSqlite3 from "better-sqlite3";
-import * as sqliteVec from "sqlite-vec";
+import { createRequire } from "node:module";
 
 // sqlite-vec 0.1.x does not support filtering by auxiliary (+col) columns in
 // KNN queries, so we encode campaign_id into the primary key as
 // "<campaignId>|<entityId>" to allow per-campaign isolation and deletion.
 
+// Loaded lazily (and synchronously, via createRequire) so that repositories
+// with embeddingDim 0 never touch the native module — sqlite-vec stays a
+// genuinely optional peer for vector-free use.
+let vecMod: { load(db: BetterSqlite3.Database): void } | null = null;
+
 export function loadVec(db: BetterSqlite3.Database): void {
-  sqliteVec.load(db);
+  if (!vecMod) {
+    try {
+      const require = createRequire(import.meta.url);
+      vecMod = require("sqlite-vec") as { load(db: BetterSqlite3.Database): void };
+    } catch (e) {
+      throw new Error(
+        `sqlite-vec is required for campaigns with embeddingDim > 0 — install the optional peers: pnpm add better-sqlite3 sqlite-vec (cause: ${e instanceof Error ? e.message : String(e)})`
+      );
+    }
+  }
+  vecMod.load(db);
 }
 
 export function ensureVecTable(db: BetterSqlite3.Database, dim: number): void {
