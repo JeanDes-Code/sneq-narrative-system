@@ -40,10 +40,11 @@ export type {
 export type { NoeudGCN, AreteGCN, TypeRelation, ReglePropagation } from "./domain/gcn.js";
 export type { Scene } from "./domain/scene.js";
 export type { Turn } from "./domain/turn.js";
-export type { CampaignId, EntityID, FactId, ConstraintId, SceneId } from "./domain/ids.js";
+export type { CampaignId, EntityID, FactId, ConstraintId, SceneId, FeedbackId } from "./domain/ids.js";
 export {
-  asCampaignId, asEntityID, asFactId, asConstraintId, asSceneId
+  asCampaignId, asEntityID, asFactId, asConstraintId, asSceneId, asFeedbackId
 } from "./domain/ids.js";
+export type { FeedbackEntry, FeedbackKind, FeedbackOrigin, FeedbackStatus, ToolCallLogEntry, ToolCallOutcome } from "./domain/feedback.js";
 
 // Resolver
 export type { ResolverThresholds } from "./resolver/thresholds.js";
