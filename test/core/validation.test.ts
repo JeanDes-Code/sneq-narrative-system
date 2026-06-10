@@ -2,11 +2,11 @@ import { describe, it, expect } from "vitest";
 import { validateValue, type ValidationContext } from "../../src/core/validation.js";
 import type { AttributValue } from "../../src/domain/attribute.js";
 import type { Contrainte } from "../../src/domain/potentialite.js";
-import { asContraintId, asFactId } from "../../src/domain/ids.js";
+import { asConstraintId, asFactId } from "../../src/domain/ids.js";
 
 function strict(rule: Contrainte["regle"], note = "x"): Contrainte {
   return {
-    id: asContraintId("c1"),
+    id: asConstraintId("c1"),
     source: { kind: "FAIT_CANONIQUE", factId: asFactId("f1") },
     createdAt: 0, regle: rule, justificationNarrative: note
   };

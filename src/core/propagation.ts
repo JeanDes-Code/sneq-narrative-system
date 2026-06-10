@@ -2,7 +2,7 @@ import type { AttributFige } from "../domain/attribute.js";
 import type { AreteGCN, ReglePropagation } from "../domain/gcn.js";
 import type { CampaignId, EntityID } from "../domain/ids.js";
 import type { Contrainte } from "../domain/potentialite.js";
-import { asContraintId } from "../domain/ids.js";
+import { asConstraintId } from "../domain/ids.js";
 
 export interface PropagationInput {
   fact: AttributFige;
@@ -116,7 +116,7 @@ function deriveTargetAttribute(rule: ReglePropagation, fact: AttributFige): stri
 let contraintCounter = 0;
 function synthesizeContrainte(rule: ReglePropagation, fact: AttributFige, force: number): Contrainte {
   return {
-    id: asContraintId(`prop_${rule.id}_${++contraintCounter}`),
+    id: asConstraintId(`prop_${rule.id}_${++contraintCounter}`),
     source: { kind: "FAIT_CANONIQUE", factId: fact.factId },
     createdAt: Date.now(),
     regle: {
