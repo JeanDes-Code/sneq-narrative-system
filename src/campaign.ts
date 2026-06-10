@@ -11,6 +11,7 @@ import type {
 } from "./hooks/narration-gate.js";
 import type { Logger } from "./logger.js";
 import type { CampaignId, EntityID, FactId, ConstraintId, SceneId } from "./domain/ids.js";
+import type { ToolCallLogEntry } from "./domain/feedback.js";
 import { asEntityID, asConstraintId, asFactId, asSceneId } from "./domain/ids.js";
 import { SneqCampaignNotFoundError } from "./errors.js";
 import type { Entity, EntityType } from "./domain/entity.js";
@@ -236,6 +237,19 @@ export class CampaignContext implements ToolCallContext {
 
   handleToolCall(name: string, args: unknown): Promise<unknown> {
     return dispatchToolCall(name, args, this);
+  }
+
+  /** Telemetry sink for dispatchToolCall. Best-effort turn stamp; never throws (locked: swallow). */
+  async recordToolCall(entry: ToolCallLogEntry): Promise<void> {
+    try {
+      const latest = await this.deps.repo.latestTurn(this.id);
+      await this.deps.repo.appendToolCallLog(this.id, {
+        ...entry,
+        ...(latest ? { turn: latest.turnNumber } : {})
+      });
+    } catch (err) {
+      this.deps.logger.warn("tool-call telemetry write failed", { err: String(err) });
+    }
   }
 
   registerUserPromptHandler(fn: AskUserFn): { dispose(): void } {

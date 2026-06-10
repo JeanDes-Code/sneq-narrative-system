@@ -5,6 +5,8 @@ import type { AttributFige, AttributValue, CategorieAttribut } from "../domain/a
 import type { Observation } from "../domain/observation.js";
 import type { RegleContrainte } from "../domain/potentialite.js";
 import type { ResolutionResult, SuggestionResult } from "../resolver/resolver.js";
+import { classifyOutcome } from "../core/telemetry.js";
+import type { ToolCallLogEntry } from "../domain/feedback.js";
 
 export interface ToolCallContext {
   resolveEntity(opts: { mention: string; type?: EntityType }): Promise<ResolutionResult>;
@@ -18,6 +20,8 @@ export interface ToolCallContext {
   setScene(input: { locationEntityId: EntityID; presentEntityIds: EntityID[]; description: string }): Promise<{ sceneId: SceneId; turnNumber: number }>;
   advanceTurn(summary?: string): Promise<{ turnNumber: number }>;
   validateNarration(input: { narration: string; type?: EntityType; strict?: boolean }): Promise<import("../hooks/narration-gate.js").ValidationReport>;
+  /** Optional passive-telemetry sink. Implementations MUST be safe to fail: the dispatcher swallows. */
+  recordToolCall?(entry: ToolCallLogEntry): Promise<void>;
 }
 
 export async function dispatchToolCall(name: string, rawArgs: unknown, ctx: ToolCallContext): Promise<unknown> {
@@ -28,6 +32,31 @@ export async function dispatchToolCall(name: string, rawArgs: unknown, ctx: Tool
   const schema = schemas[toolName];
   const args = schema.parse(rawArgs) as Record<string, unknown>;
 
+  const started = Date.now();
+  let result: unknown;
+  let error: unknown;
+  try {
+    result = await runSwitch(toolName, args, ctx);
+    return result;
+  } catch (e) {
+    error = e;
+    throw e;
+  } finally {
+    const { outcome, detail } = classifyOutcome(toolName, result, error);
+    const entry: ToolCallLogEntry = {
+      tool: toolName,
+      outcome,
+      durationMs: Date.now() - started,
+      ...(detail !== undefined ? { detail } : {}),
+      // createdAt is the epoch of the call itself, so createdAt + durationMs = end of call.
+      createdAt: started
+    };
+    // Telemetry must never break a tool call.
+    try { await ctx.recordToolCall?.(entry); } catch { /* implementations log; the dispatcher stays silent */ }
+  }
+}
+
+async function runSwitch(toolName: ToolName, args: Record<string, unknown>, ctx: ToolCallContext): Promise<unknown> {
   switch (toolName) {
     case "sneq__lookup_entity":
       return ctx.resolveEntity({

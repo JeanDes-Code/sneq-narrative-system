@@ -280,6 +280,22 @@ describe("CampaignContext · needsAdjudication", () => {
   });
 });
 
+describe("CampaignContext · tool-call telemetry", () => {
+  it("handleToolCall writes a turn-stamped entry into the repository", async () => {
+    const { config, deps } = makeEmbedRouter([0.5, 0.5, 0.0]);
+    const repository = sqliteRepository({ path: ":memory:", embeddingDim: 3 });
+    const engine = new Engine({ repository, router: config, _routerDeps: deps });
+    const c = await engine.createCampaign({ id: asCampaignId("tel1"), name: "x", embeddingDim: 3 });
+    await c.advanceTurn("first");
+    await c.handleToolCall("sneq__get_entity", { entityId: "ghost" });
+    const agg = await repository.aggregateToolCalls(asCampaignId("tel1"));
+    const got = agg.find(a => a.tool === "sneq__get_entity");
+    expect(got?.calls).toBe(1);
+    expect(got?.outcomes).toEqual({ EMPTY: 1 });
+    await engine.close();
+  });
+});
+
 describe("CampaignContext · scene context reaches the judge", () => {
   it("passes the current scene description as sceneDescription", async () => {
     const seen: string[] = [];

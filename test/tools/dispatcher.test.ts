@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { dispatchToolCall, type ToolCallContext } from "../../src/tools/dispatcher.js";
 import { Engine } from "../../src/engine.js";
+import type { ToolCallLogEntry } from "../../src/domain/feedback.js";
 
 function stubCtx(): ToolCallContext {
   return {
@@ -62,6 +63,40 @@ describe("dispatchToolCall", () => {
     const r = await dispatchToolCall("sneq__validate_narration", { narration: "Mira" }, ctx);
     expect(seen).toEqual({ narration: "Mira" });
     expect(r).toEqual({ ok: true, extractedNames: [], issues: [] });
+  });
+});
+
+describe("dispatchToolCall · passive telemetry", () => {
+  it("records one classified entry per successful call", async () => {
+    const recorded: ToolCallLogEntry[] = [];
+    const ctx = { ...stubCtx(), recordToolCall: async (e: ToolCallLogEntry) => { recorded.push(e); } };
+    await dispatchToolCall("sneq__get_entity", { entityId: "ghost" }, ctx);
+    expect(recorded).toHaveLength(1);
+    expect(recorded[0]).toMatchObject({ tool: "sneq__get_entity", outcome: "EMPTY" });
+    expect(typeof recorded[0]!.durationMs).toBe("number");
+    expect(typeof recorded[0]!.createdAt).toBe("number");
+  });
+
+  it("records ERROR (error name only) and still rethrows when the tool throws", async () => {
+    const recorded: ToolCallLogEntry[] = [];
+    const ctx = {
+      ...stubCtx(),
+      getEntity: async () => { const e = new Error("boom with narrative content"); e.name = "RepoDown"; throw e; },
+      recordToolCall: async (e: ToolCallLogEntry) => { recorded.push(e); }
+    };
+    await expect(dispatchToolCall("sneq__get_entity", { entityId: "x" }, ctx)).rejects.toThrow("boom");
+    expect(recorded[0]).toMatchObject({ tool: "sneq__get_entity", outcome: "ERROR", detail: "RepoDown" });
+  });
+
+  it("SWALLOW: a recordToolCall that throws does NOT fail the underlying tool call", async () => {
+    const ctx = { ...stubCtx(), recordToolCall: async () => { throw new Error("telemetry db gone"); } };
+    const r = await dispatchToolCall("sneq__advance_turn", {}, ctx);
+    expect((r as { turnNumber: number }).turnNumber).toBe(42);
+  });
+
+  it("a ctx without recordToolCall works unchanged (optional member)", async () => {
+    const r = await dispatchToolCall("sneq__advance_turn", {}, stubCtx());
+    expect((r as { turnNumber: number }).turnNumber).toBe(42);
   });
 });
 
