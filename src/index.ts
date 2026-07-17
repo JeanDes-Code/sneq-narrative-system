@@ -37,7 +37,12 @@ export type {
 
 // Distributed-store atomic strategy (framework-free)
 export type {
+  AtomicCommand,
   AtomicWriteStrategy,
+  ConfirmEntityMatchCommand,
+  ConfirmEntityMatchResult,
+  ConfirmEntityMatchDecisionInput,
+  ConfirmEntityMatchDecision,
   RegisterFactCommand,
   RegisterFactResult,
   SetSceneCommand,
@@ -51,7 +56,12 @@ export type {
   SetSceneDecisionInput,
   SetSceneDecision,
 } from "./atomic/types.js";
-export { decideAdvanceTurn, decideRegisterFact, decideSetScene } from "./atomic/decisions.js";
+export {
+  decideAdvanceTurn,
+  decideConfirmEntityMatch,
+  decideRegisterFact,
+  decideSetScene,
+} from "./atomic/decisions.js";
 
 // Domain
 export type { Entity, EntityType, Alias, AliasSource } from "./domain/entity.js";

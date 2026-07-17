@@ -30,13 +30,18 @@
 - [Alias](interfaces/Alias.md)
 - [AreteGCN](interfaces/AreteGCN.md)
 - [AskUserArgs](interfaces/AskUserArgs.md)
+- [AtomicCommand](interfaces/AtomicCommand.md)
 - [AtomicWriteStrategy](interfaces/AtomicWriteStrategy.md)
 - [AttributFige](interfaces/AttributFige.md)
 - [Avertissement](interfaces/Avertissement.md)
 - [CampaignMeta](interfaces/CampaignMeta.md)
 - [ChatRequest](interfaces/ChatRequest.md)
 - [ChatResponse](interfaces/ChatResponse.md)
+- [ConfirmEntityMatchCommand](interfaces/ConfirmEntityMatchCommand.md)
+- [ConfirmEntityMatchDecision](interfaces/ConfirmEntityMatchDecision.md)
+- [ConfirmEntityMatchDecisionInput](interfaces/ConfirmEntityMatchDecisionInput.md)
 - [ConfirmEntityMatchInput](interfaces/ConfirmEntityMatchInput.md)
+- [ConfirmEntityMatchResult](interfaces/ConfirmEntityMatchResult.md)
 - [ContexteGeneratif](interfaces/ContexteGeneratif.md)
 - [Contrainte](interfaces/Contrainte.md)
 - [ContraintePropagee](interfaces/ContraintePropagee.md)
@@ -144,6 +149,7 @@
 - [asSceneId](functions/asSceneId.md)
 - [createDefaultDeps](functions/createDefaultDeps.md)
 - [decideAdvanceTurn](functions/decideAdvanceTurn.md)
+- [decideConfirmEntityMatch](functions/decideConfirmEntityMatch.md)
 - [decideRegisterFact](functions/decideRegisterFact.md)
 - [decideSetScene](functions/decideSetScene.md)
 - [defaultRouterConfig](functions/defaultRouterConfig.md)
@@ -2503,6 +2509,10 @@ Full pipeline: extract → resolve → llm → assemble.
 
 # Interface: AdvanceTurnCommand
 
+## Extends
+
+- [`AtomicCommand`](AtomicCommand.md)
+
 ## Extended by
 
 - [`AdvanceTurnDecisionInput`](AdvanceTurnDecisionInput.md)
@@ -2518,6 +2528,18 @@ Full pipeline: extract → resolve → llm → assemble.
 ### createdAt
 
 > **createdAt**: `number`
+
+***
+
+### operationId
+
+> **operationId**: `string`
+
+Stable token for atomically deduplicating retries of one logical write.
+
+#### Inherited from
+
+[`AtomicCommand`](AtomicCommand.md).[`operationId`](AtomicCommand.md#operationid)
 
 ***
 
@@ -2576,6 +2598,18 @@ Full pipeline: extract → resolve → llm → assemble.
 ### latestTurn
 
 > **latestTurn**: [`Turn`](Turn.md) \| `null`
+
+***
+
+### operationId
+
+> **operationId**: `string`
+
+Stable token for atomically deduplicating retries of one logical write.
+
+#### Inherited from
+
+[`AdvanceTurnCommand`](AdvanceTurnCommand.md).[`operationId`](AdvanceTurnCommand.md#operationid)
 
 ***
 
@@ -2707,6 +2741,29 @@ Full pipeline: extract → resolve → llm → assemble.
 
 ***
 
+[sneq-engine API](../README.md) / AtomicCommand
+
+# Interface: AtomicCommand
+
+## Extended by
+
+- [`ConfirmEntityMatchCommand`](ConfirmEntityMatchCommand.md)
+- [`RegisterFactCommand`](RegisterFactCommand.md)
+- [`SetSceneCommand`](SetSceneCommand.md)
+- [`AdvanceTurnCommand`](AdvanceTurnCommand.md)
+
+## Properties
+
+### operationId
+
+> **operationId**: `string`
+
+Stable token for atomically deduplicating retries of one logical write.
+
+[**sneq-engine API**](../README.md)
+
+***
+
 [sneq-engine API](../README.md) / AtomicWriteStrategy
 
 # Interface: AtomicWriteStrategy
@@ -2726,6 +2783,22 @@ Full pipeline: extract → resolve → llm → assemble.
 #### Returns
 
 `Promise`\<[`AdvanceTurnResult`](AdvanceTurnResult.md)\>
+
+***
+
+### confirmEntityMatch()
+
+> **confirmEntityMatch**(`command`): `Promise`\<[`ConfirmEntityMatchResult`](ConfirmEntityMatchResult.md)\>
+
+#### Parameters
+
+##### command
+
+[`ConfirmEntityMatchCommand`](ConfirmEntityMatchCommand.md)
+
+#### Returns
+
+`Promise`\<[`ConfirmEntityMatchResult`](ConfirmEntityMatchResult.md)\>
 
 ***
 
@@ -2975,6 +3048,164 @@ Full pipeline: extract → resolve → llm → assemble.
 
 ***
 
+[sneq-engine API](../README.md) / ConfirmEntityMatchCommand
+
+# Interface: ConfirmEntityMatchCommand
+
+## Extends
+
+- [`AtomicCommand`](AtomicCommand.md)
+
+## Extended by
+
+- [`ConfirmEntityMatchDecisionInput`](ConfirmEntityMatchDecisionInput.md)
+
+## Properties
+
+### campaignId
+
+> **campaignId**: [`CampaignId`](../type-aliases/CampaignId.md)
+
+***
+
+### entityId
+
+> **entityId**: [`EntityID`](../type-aliases/EntityID.md)
+
+***
+
+### mention
+
+> **mention**: `string`
+
+***
+
+### observedAt
+
+> **observedAt**: `number`
+
+***
+
+### operationId
+
+> **operationId**: `string`
+
+Stable token for atomically deduplicating retries of one logical write.
+
+#### Inherited from
+
+[`AtomicCommand`](AtomicCommand.md).[`operationId`](AtomicCommand.md#operationid)
+
+***
+
+### type
+
+> **type**: [`EntityType`](../type-aliases/EntityType.md)
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / ConfirmEntityMatchDecision
+
+# Interface: ConfirmEntityMatchDecision
+
+## Properties
+
+### entity
+
+> **entity**: [`Entity`](Entity.md)
+
+***
+
+### result
+
+> **result**: [`ConfirmEntityMatchResult`](ConfirmEntityMatchResult.md)
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / ConfirmEntityMatchDecisionInput
+
+# Interface: ConfirmEntityMatchDecisionInput
+
+## Extends
+
+- [`ConfirmEntityMatchCommand`](ConfirmEntityMatchCommand.md)
+
+## Properties
+
+### campaignId
+
+> **campaignId**: [`CampaignId`](../type-aliases/CampaignId.md)
+
+#### Inherited from
+
+[`ConfirmEntityMatchCommand`](ConfirmEntityMatchCommand.md).[`campaignId`](ConfirmEntityMatchCommand.md#campaignid)
+
+***
+
+### entity
+
+> **entity**: [`Entity`](Entity.md) \| `null`
+
+***
+
+### entityId
+
+> **entityId**: [`EntityID`](../type-aliases/EntityID.md)
+
+#### Inherited from
+
+[`ConfirmEntityMatchCommand`](ConfirmEntityMatchCommand.md).[`entityId`](ConfirmEntityMatchCommand.md#entityid)
+
+***
+
+### mention
+
+> **mention**: `string`
+
+#### Inherited from
+
+[`ConfirmEntityMatchCommand`](ConfirmEntityMatchCommand.md).[`mention`](ConfirmEntityMatchCommand.md#mention)
+
+***
+
+### observedAt
+
+> **observedAt**: `number`
+
+#### Inherited from
+
+[`ConfirmEntityMatchCommand`](ConfirmEntityMatchCommand.md).[`observedAt`](ConfirmEntityMatchCommand.md#observedat)
+
+***
+
+### operationId
+
+> **operationId**: `string`
+
+Stable token for atomically deduplicating retries of one logical write.
+
+#### Inherited from
+
+[`ConfirmEntityMatchCommand`](ConfirmEntityMatchCommand.md).[`operationId`](ConfirmEntityMatchCommand.md#operationid)
+
+***
+
+### type
+
+> **type**: [`EntityType`](../type-aliases/EntityType.md)
+
+#### Inherited from
+
+[`ConfirmEntityMatchCommand`](ConfirmEntityMatchCommand.md).[`type`](ConfirmEntityMatchCommand.md#type)
+
+[**sneq-engine API**](../README.md)
+
+***
+
 [sneq-engine API](../README.md) / ConfirmEntityMatchInput
 
 # Interface: ConfirmEntityMatchInput
@@ -2996,6 +3227,26 @@ Full pipeline: extract → resolve → llm → assemble.
 ### type
 
 > **type**: [`EntityType`](../type-aliases/EntityType.md)
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / ConfirmEntityMatchResult
+
+# Interface: ConfirmEntityMatchResult
+
+## Properties
+
+### aliasAdded
+
+> **aliasAdded**: `boolean`
+
+***
+
+### entityId
+
+> **entityId**: [`EntityID`](../type-aliases/EntityID.md)
 
 [**sneq-engine API**](../README.md)
 
@@ -4064,6 +4315,10 @@ Output dimension of the embedding model. Embeddings refs only; lets the Router
 
 # Interface: RegisterFactCommand
 
+## Extends
+
+- [`AtomicCommand`](AtomicCommand.md)
+
 ## Extended by
 
 - [`RegisterFactDecisionInput`](RegisterFactDecisionInput.md)
@@ -4103,6 +4358,18 @@ Output dimension of the embedding model. Embeddings refs only; lets the Router
 ### observation
 
 > **observation**: [`Observation`](Observation.md)
+
+***
+
+### operationId
+
+> **operationId**: `string`
+
+Stable token for atomically deduplicating retries of one logical write.
+
+#### Inherited from
+
+[`AtomicCommand`](AtomicCommand.md).[`operationId`](AtomicCommand.md#operationid)
 
 ***
 
@@ -4213,6 +4480,18 @@ Output dimension of the embedding model. Embeddings refs only; lets the Router
 #### Inherited from
 
 [`RegisterFactCommand`](RegisterFactCommand.md).[`observation`](RegisterFactCommand.md#observation)
+
+***
+
+### operationId
+
+> **operationId**: `string`
+
+Stable token for atomically deduplicating retries of one logical write.
+
+#### Inherited from
+
+[`RegisterFactCommand`](RegisterFactCommand.md).[`operationId`](RegisterFactCommand.md#operationid)
 
 ***
 
@@ -5080,6 +5359,10 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 # Interface: SetSceneCommand
 
+## Extends
+
+- [`AtomicCommand`](AtomicCommand.md)
+
 ## Extended by
 
 - [`SetSceneDecisionInput`](SetSceneDecisionInput.md)
@@ -5107,6 +5390,18 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 ### locationEntityId
 
 > **locationEntityId**: [`EntityID`](../type-aliases/EntityID.md)
+
+***
+
+### operationId
+
+> **operationId**: `string`
+
+Stable token for atomically deduplicating retries of one logical write.
+
+#### Inherited from
+
+[`AtomicCommand`](AtomicCommand.md).[`operationId`](AtomicCommand.md#operationid)
 
 ***
 
@@ -5197,6 +5492,18 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 #### Inherited from
 
 [`SetSceneCommand`](SetSceneCommand.md).[`locationEntityId`](SetSceneCommand.md#locationentityid)
+
+***
+
+### operationId
+
+> **operationId**: `string`
+
+Stable token for atomically deduplicating retries of one logical write.
+
+#### Inherited from
+
+[`SetSceneCommand`](SetSceneCommand.md).[`operationId`](SetSceneCommand.md#operationid)
 
 ***
 
@@ -6217,6 +6524,26 @@ Repository surface usable by distributed stores; atomic writes are injected sepa
 ## Returns
 
 [`AdvanceTurnDecision`](../interfaces/AdvanceTurnDecision.md)
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / decideConfirmEntityMatch
+
+# Function: decideConfirmEntityMatch()
+
+> **decideConfirmEntityMatch**(`input`): [`ConfirmEntityMatchDecision`](../interfaces/ConfirmEntityMatchDecision.md)
+
+## Parameters
+
+### input
+
+[`ConfirmEntityMatchDecisionInput`](../interfaces/ConfirmEntityMatchDecisionInput.md)
+
+## Returns
+
+[`ConfirmEntityMatchDecision`](../interfaces/ConfirmEntityMatchDecision.md)
 
 [**sneq-engine API**](../README.md)
 

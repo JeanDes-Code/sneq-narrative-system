@@ -142,9 +142,14 @@ const engine = new Engine({
 engine.routerClient() === sharedRouter; // true — the host and canon share one Router
 ```
 
-The strategy owns the atomic execution of `registerFact`, `setScene`, and `advanceTurn`. Pure
-command decisions are available from `sneq-engine/atomic` so an adapter can run SNEQ's rules inside
-its store transaction without importing a framework into the engine.
+The strategy owns the atomic execution of `registerFact`, `setScene`, `advanceTurn`, and entity
+confirmation. Pure command decisions are available from `sneq-engine/atomic` so an adapter can run
+SNEQ's rules inside its store transaction without importing a framework into the engine.
+
+Every command carries an `operationId` generated once per logical engine call. A distributed strategy
+must atomically deduplicate retries of that ID and return the original result; this covers a committed
+store mutation whose transport response was lost. The local repository-backed strategy remains an
+in-process `Repository.transaction(fn)` implementation.
 
 For asynchronous web adjudication, `mentionEntity()` still returns `needsAdjudication`. A later
 request can confirm the selected existing entity and persist the mention as a player-observed alias:

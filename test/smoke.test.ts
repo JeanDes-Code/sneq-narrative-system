@@ -4,6 +4,7 @@ import { describe, it, expect } from "vitest";
 import {
   SNEQ_ENGINE_VERSION,
   decideAdvanceTurn,
+  decideConfirmEntityMatch,
   decideRegisterFact,
   decideSetScene,
 } from "../src/index.js";
@@ -21,6 +22,7 @@ describe("smoke", () => {
     expect(decideRegisterFact).toBeTypeOf("function");
     expect(decideSetScene).toBeTypeOf("function");
     expect(decideAdvanceTurn).toBeTypeOf("function");
+    expect(decideConfirmEntityMatch).toBeTypeOf("function");
   });
 
   it("publishes the framework-free atomic subpath", () => {

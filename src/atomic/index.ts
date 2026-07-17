@@ -1,2 +1,7 @@
 export type * from "./types.js";
-export { decideAdvanceTurn, decideRegisterFact, decideSetScene } from "./decisions.js";
+export {
+  decideAdvanceTurn,
+  decideConfirmEntityMatch,
+  decideRegisterFact,
+  decideSetScene,
+} from "./decisions.js";
