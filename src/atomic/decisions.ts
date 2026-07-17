@@ -1,6 +1,9 @@
+import { normalizeAlias } from "../resolver/normalize.js";
 import type {
   AdvanceTurnDecision,
   AdvanceTurnDecisionInput,
+  ConfirmEntityMatchDecision,
+  ConfirmEntityMatchDecisionInput,
   RegisterFactDecision,
   RegisterFactDecisionInput,
   SetSceneDecision,
@@ -58,5 +61,38 @@ export function decideAdvanceTurn(input: AdvanceTurnDecisionInput): AdvanceTurnD
       sceneId: input.latestTurn?.sceneId ?? null,
       createdAt: input.createdAt,
     },
+  };
+}
+
+export function decideConfirmEntityMatch(
+  input: ConfirmEntityMatchDecisionInput,
+): ConfirmEntityMatchDecision {
+  const entity = input.entity;
+  if (!entity) {
+    throw new Error(
+      `entity "${String(input.entityId)}" not found in campaign "${String(input.campaignId)}"`,
+    );
+  }
+  if (entity.type !== input.type) {
+    throw new Error(`entity type mismatch: expected ${input.type}, got ${entity.type}`);
+  }
+
+  const normalized = normalizeAlias(input.mention);
+  const exists = normalizeAlias(entity.name) === normalized
+    || entity.aliases.some((alias) => normalizeAlias(alias.text) === normalized);
+  if (exists) {
+    return { entity, result: { entityId: entity.id, aliasAdded: false } };
+  }
+
+  return {
+    entity: {
+      ...entity,
+      aliases: [...entity.aliases, {
+        text: input.mention,
+        source: { kind: "PLAYER" },
+        observedAt: input.observedAt,
+      }],
+    },
+    result: { entityId: entity.id, aliasAdded: true },
   };
 }

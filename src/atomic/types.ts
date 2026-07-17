@@ -1,8 +1,14 @@
 import type { AttributFige, AttributValue, CategorieAttribut } from "../domain/attribute.js";
+import type { Entity, EntityType } from "../domain/entity.js";
 import type { CampaignId, EntityID, FactId, SceneId } from "../domain/ids.js";
 import type { Observation } from "../domain/observation.js";
 import type { Scene } from "../domain/scene.js";
 import type { Turn } from "../domain/turn.js";
+
+export interface AtomicCommand {
+  /** Stable token for atomically deduplicating retries of one logical write. */
+  operationId: string;
+}
 
 export interface RegisterFactCommand {
   campaignId: CampaignId;
@@ -41,6 +47,28 @@ export interface AdvanceTurnCommand {
 
 export interface AdvanceTurnResult {
   turnNumber: number;
+}
+
+export interface ConfirmEntityMatchCommand extends AtomicCommand {
+  campaignId: CampaignId;
+  mention: string;
+  entityId: EntityID;
+  type: EntityType;
+  observedAt: number;
+}
+
+export interface ConfirmEntityMatchResult {
+  entityId: EntityID;
+  aliasAdded: boolean;
+}
+
+export interface ConfirmEntityMatchDecisionInput extends ConfirmEntityMatchCommand {
+  entity: Entity | null;
+}
+
+export interface ConfirmEntityMatchDecision {
+  entity: Entity;
+  result: ConfirmEntityMatchResult;
 }
 
 export interface AtomicWriteStrategy {

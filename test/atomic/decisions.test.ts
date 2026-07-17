@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { decideAdvanceTurn, decideRegisterFact, decideSetScene } from "../../src/atomic/decisions.js";
+import {
+  decideAdvanceTurn,
+  decideConfirmEntityMatch,
+  decideRegisterFact,
+  decideSetScene,
+} from "../../src/atomic/decisions.js";
 import type { AttributFige } from "../../src/domain/attribute.js";
+import type { Entity } from "../../src/domain/entity.js";
 import { asCampaignId, asEntityID, asFactId, asSceneId } from "../../src/domain/ids.js";
 
 const campaignId = asCampaignId("c1");
@@ -22,6 +28,23 @@ function existing(value: string): AttributFige {
     category: "SOCIAL",
     observation,
     turn: 1,
+  };
+}
+
+function entity(overrides: Partial<Entity> = {}): Entity {
+  return {
+    campaignId,
+    id: entityId,
+    type: "PERSONNAGE",
+    name: "Roric",
+    description: "Capitaine de la garde",
+    nomConnu: true,
+    aliases: [],
+    tags: [],
+    createdAt: 1,
+    embedding: null,
+    embeddingRefreshedAt: null,
+    ...overrides,
   };
 }
 
@@ -84,5 +107,76 @@ describe("atomic decisions", () => {
     });
 
     expect(result.turn).toMatchObject({ turnNumber: 1, sceneId: null, summary: "Ouverture" });
+  });
+
+  it("rejects confirmation for an unknown entity", () => {
+    expect(() => decideConfirmEntityMatch({
+      operationId: "op-confirm-missing",
+      campaignId,
+      entityId,
+      mention: "le capitaine",
+      type: "PERSONNAGE",
+      observedAt: 20,
+      entity: null,
+    })).toThrow(/not found in campaign/i);
+  });
+
+  it("rejects confirmation when the entity type differs", () => {
+    expect(() => decideConfirmEntityMatch({
+      operationId: "op-confirm-type",
+      campaignId,
+      entityId,
+      mention: "la ville",
+      type: "LIEU",
+      observedAt: 20,
+      entity: entity(),
+    })).toThrow(/type mismatch/i);
+  });
+
+  it("returns an idempotent result for normalized canonical names and aliases", () => {
+    const canonical = decideConfirmEntityMatch({
+      operationId: "op-confirm-name",
+      campaignId,
+      entityId,
+      mention: "roric",
+      type: "PERSONNAGE",
+      observedAt: 20,
+      entity: entity(),
+    });
+    const alias = decideConfirmEntityMatch({
+      operationId: "op-confirm-alias",
+      campaignId,
+      entityId,
+      mention: "le capitaine",
+      type: "PERSONNAGE",
+      observedAt: 21,
+      entity: entity({
+        aliases: [{ text: "Le Capitaine", source: { kind: "PLAYER" }, observedAt: 10 }],
+      }),
+    });
+
+    expect(canonical.result).toEqual({ entityId, aliasAdded: false });
+    expect(alias.result).toEqual({ entityId, aliasAdded: false });
+  });
+
+  it("returns a new entity value without mutating the input", () => {
+    const original = entity();
+    const decision = decideConfirmEntityMatch({
+      operationId: "op-confirm-add",
+      campaignId,
+      entityId,
+      mention: "le capitaine",
+      type: "PERSONNAGE",
+      observedAt: 20,
+      entity: original,
+    });
+
+    expect(decision.result).toEqual({ entityId, aliasAdded: true });
+    expect(decision.entity.aliases).toContainEqual({
+      text: "le capitaine",
+      source: { kind: "PLAYER" },
+      observedAt: 20,
+    });
+    expect(original.aliases).toEqual([]);
   });
 });
