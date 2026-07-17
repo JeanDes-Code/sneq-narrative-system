@@ -15,7 +15,6 @@ import type { CampaignId, EntityID, FactId, ConstraintId, SceneId } from "./doma
 import { asEntityID, asConstraintId, asFactId, asSceneId } from "./domain/ids.js";
 import { SneqCampaignNotFoundError } from "./errors.js";
 import type { Entity, EntityType } from "./domain/entity.js";
-import { normalizeAlias } from "./resolver/normalize.js";
 import type { AttributFige, AttributValue, CategorieAttribut } from "./domain/attribute.js";
 import type { Observation } from "./domain/observation.js";
 import type { RegleContrainte } from "./domain/potentialite.js";
@@ -65,6 +64,10 @@ export interface RegisterFactInput {
   observation: Observation;
 }
 
+function createOperationId(): string {
+  return `op_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
 export class CampaignContext implements ToolCallContext {
   readonly id: CampaignId;
   private campaignVerified = false;
@@ -99,28 +102,14 @@ export class CampaignContext implements ToolCallContext {
 
   async confirmEntityMatch(input: ConfirmEntityMatchInput): Promise<{ entityId: EntityID; aliasAdded: boolean }> {
     await this.ensureCampaign();
-    const entity = await this.deps.repo.getEntity(this.id, input.entityId);
-    if (!entity) {
-      throw new Error(`entity "${String(input.entityId)}" not found in campaign "${String(this.id)}"`);
-    }
-    if (entity.type !== input.type) {
-      throw new Error(`entity type mismatch: expected ${input.type}, got ${entity.type}`);
-    }
-
-    const normalized = normalizeAlias(input.mention);
-    const exists = normalizeAlias(entity.name) === normalized
-      || entity.aliases.some((alias) => normalizeAlias(alias.text) === normalized);
-    if (exists) return { entityId: entity.id, aliasAdded: false };
-
-    await this.deps.repo.upsertEntity({
-      ...entity,
-      aliases: [...entity.aliases, {
-        text: input.mention,
-        source: { kind: "PLAYER" },
-        observedAt: Date.now(),
-      }],
+    return this.deps.writeStrategy.confirmEntityMatch({
+      operationId: createOperationId(),
+      campaignId: this.id,
+      mention: input.mention,
+      entityId: input.entityId,
+      type: input.type,
+      observedAt: Date.now(),
     });
-    return { entityId: entity.id, aliasAdded: true };
   }
 
   async getRelevantFacts(entityId: EntityID, opts?: { attributeKeys?: string[]; depth?: number }): Promise<AttributFige[]> {
@@ -194,6 +183,7 @@ export class CampaignContext implements ToolCallContext {
   async registerFact(input: RegisterFactInput): Promise<{ factId: FactId | null; contradictions: AttributFige[] }> {
     await this.ensureCampaign();
     return this.deps.writeStrategy.registerFact({
+      operationId: createOperationId(),
       campaignId: this.id,
       factId: asFactId(`f_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`),
       entityId: input.entityId,
@@ -233,6 +223,7 @@ export class CampaignContext implements ToolCallContext {
   async setScene(input: { locationEntityId: EntityID; presentEntityIds: EntityID[]; description: string }): Promise<{ sceneId: SceneId; turnNumber: number }> {
     await this.ensureCampaign();
     const result = await this.deps.writeStrategy.setScene({
+      operationId: createOperationId(),
       campaignId: this.id,
       sceneId: asSceneId(`s_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`),
       locationEntityId: input.locationEntityId,
@@ -247,6 +238,7 @@ export class CampaignContext implements ToolCallContext {
   async advanceTurn(summary?: string): Promise<{ turnNumber: number }> {
     await this.ensureCampaign();
     const result = await this.deps.writeStrategy.advanceTurn({
+      operationId: createOperationId(),
       campaignId: this.id,
       ...(summary !== undefined ? { summary } : {}),
       createdAt: Date.now(),

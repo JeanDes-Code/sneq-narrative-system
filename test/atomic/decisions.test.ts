@@ -51,6 +51,7 @@ function entity(overrides: Partial<Entity> = {}): Entity {
 describe("atomic decisions", () => {
   it("rejects a contradictory fact without producing a write", () => {
     const result = decideRegisterFact({
+      operationId: "op-register",
       campaignId,
       factId: asFactId("new"),
       entityId,
@@ -67,6 +68,7 @@ describe("atomic decisions", () => {
 
   it("builds a fact at the latest turn when compatible", () => {
     const result = decideRegisterFact({
+      operationId: "op-register",
       campaignId,
       factId: asFactId("new"),
       entityId,
@@ -84,6 +86,7 @@ describe("atomic decisions", () => {
 
   it("builds scene and next turn atomically", () => {
     const result = decideSetScene({
+      operationId: "op-scene",
       campaignId,
       sceneId: asSceneId("s2"),
       locationEntityId: entityId,
@@ -100,6 +103,7 @@ describe("atomic decisions", () => {
 
   it("advances from zero and preserves the previous scene", () => {
     const result = decideAdvanceTurn({
+      operationId: "op-turn",
       campaignId,
       latestTurn: null,
       summary: "Ouverture",

@@ -68,7 +68,12 @@ describe("atomic write strategy selection", () => {
     const transaction = vi.spyOn(repository, "transaction");
 
     const strategy = repositoryAtomicWriteStrategy(repository);
-    await expect(strategy.advanceTurn({ campaignId, summary: "one", createdAt: 1 }))
+    await expect(strategy.advanceTurn({
+      operationId: "op-legacy-turn",
+      campaignId,
+      summary: "one",
+      createdAt: 1,
+    }))
       .resolves.toEqual({ turnNumber: 1 });
 
     expect(transaction).toHaveBeenCalledOnce();
@@ -188,6 +193,11 @@ describe("atomic write strategy selection", () => {
       description: "La forge",
     });
     await campaign.advanceTurn("suite");
+    await campaign.confirmEntityMatch({
+      mention: "the captain",
+      entityId,
+      type: "PERSONNAGE",
+    });
 
     expect(strategy.registerFact).toHaveBeenCalledWith(expect.objectContaining({
       campaignId,
@@ -202,5 +212,24 @@ describe("atomic write strategy selection", () => {
       campaignId,
       summary: "suite",
     }));
+    expect(strategy.confirmEntityMatch).toHaveBeenCalledWith(expect.objectContaining({
+      campaignId,
+      entityId,
+      mention: "the captain",
+      type: "PERSONNAGE",
+      observedAt: expect.any(Number),
+    }));
+
+    for (const method of [
+      strategy.registerFact,
+      strategy.setScene,
+      strategy.advanceTurn,
+      strategy.confirmEntityMatch,
+    ]) {
+      expect(method).toHaveBeenCalledWith(expect.objectContaining({
+        operationId: expect.stringMatching(/^op_/),
+        campaignId,
+      }));
+    }
   });
 });

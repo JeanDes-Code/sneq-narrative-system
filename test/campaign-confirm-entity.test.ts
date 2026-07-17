@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
+import type { ConfirmEntityMatchCommand } from "../src/atomic/types.js";
 import { Engine } from "../src/engine.js";
 import { asCampaignId, asEntityID } from "../src/domain/ids.js";
 import { InMemoryRepository } from "../src/repository/memory/index.js";
@@ -30,6 +31,52 @@ function makeEngine() {
 }
 
 describe("CampaignContext.confirmEntityMatch", () => {
+  it("delegates asynchronous confirmation to the injected atomic strategy", async () => {
+    const repository = new InMemoryRepository({ embeddingDim: 0 });
+    const confirmEntityMatch = vi.fn(async (command: ConfirmEntityMatchCommand) => ({
+      entityId: command.entityId,
+      aliasAdded: true,
+    }));
+    const engine = new Engine({
+      repository,
+      router: {
+        tiers: {
+          heavy: { primary: ref, fallbacks: [] },
+          light: { primary: ref, fallbacks: [] },
+        },
+      },
+      _routerDeps: { resolveProvider: () => provider },
+      writeStrategy: {
+        registerFact: async () => ({ factId: null, contradictions: [] }),
+        setScene: async () => ({ sceneId: "s1" as never, turnNumber: 1 }),
+        advanceTurn: async () => ({ turnNumber: 1 }),
+        confirmEntityMatch,
+      },
+    });
+    const campaign = await engine.createCampaign({
+      id: asCampaignId("delegated"),
+      name: "Test",
+      embeddingDim: 0,
+    });
+    const entityId = asEntityID("external-entity");
+
+    await expect(campaign.confirmEntityMatch({
+      mention: "the captain",
+      entityId,
+      type: "PERSONNAGE",
+    })).resolves.toEqual({ entityId, aliasAdded: true });
+
+    expect(confirmEntityMatch).toHaveBeenCalledWith(expect.objectContaining({
+      operationId: expect.stringMatching(/^op_/),
+      campaignId: asCampaignId("delegated"),
+      entityId,
+      mention: "the captain",
+      type: "PERSONNAGE",
+      observedAt: expect.any(Number),
+    }));
+    await engine.close();
+  });
+
   it("adds the adjudicated mention as a PLAYER alias", async () => {
     const engine = makeEngine();
     const campaign = await engine.createCampaign({ id: asCampaignId("c1"), name: "Test", embeddingDim: 0 });

@@ -10,7 +10,7 @@ export interface AtomicCommand {
   operationId: string;
 }
 
-export interface RegisterFactCommand {
+export interface RegisterFactCommand extends AtomicCommand {
   campaignId: CampaignId;
   factId: FactId;
   entityId: EntityID;
@@ -25,7 +25,7 @@ export interface RegisterFactResult {
   contradictions: AttributFige[];
 }
 
-export interface SetSceneCommand {
+export interface SetSceneCommand extends AtomicCommand {
   campaignId: CampaignId;
   sceneId: SceneId;
   locationEntityId: EntityID;
@@ -39,7 +39,7 @@ export interface SetSceneResult {
   turnNumber: number;
 }
 
-export interface AdvanceTurnCommand {
+export interface AdvanceTurnCommand extends AtomicCommand {
   campaignId: CampaignId;
   summary?: string;
   createdAt: number;
