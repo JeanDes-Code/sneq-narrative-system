@@ -32,8 +32,26 @@ export {
 // Repository (interface + types). Reference SQLite adapter is also exposed,
 // but lazy-loadable via sneq-engine/sqlite for consumers who don't want better-sqlite3.
 export type {
-  Repository, CampaignMeta, FactQuery, VectorSearchOpts, EntityWithScore
+  Repository, RepositoryAccess, CampaignMeta, FactQuery, VectorSearchOpts, EntityWithScore
 } from "./repository/interface.js";
+
+// Distributed-store atomic strategy (framework-free)
+export type {
+  AtomicWriteStrategy,
+  RegisterFactCommand,
+  RegisterFactResult,
+  SetSceneCommand,
+  SetSceneResult,
+  AdvanceTurnCommand,
+  AdvanceTurnResult,
+  AdvanceTurnDecisionInput,
+  AdvanceTurnDecision,
+  RegisterFactDecisionInput,
+  RegisterFactDecision,
+  SetSceneDecisionInput,
+  SetSceneDecision,
+} from "./atomic/types.js";
+export { decideAdvanceTurn, decideRegisterFact, decideSetScene } from "./atomic/decisions.js";
 
 // Domain
 export type { Entity, EntityType, Alias, AliasSource } from "./domain/entity.js";

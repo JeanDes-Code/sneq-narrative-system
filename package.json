@@ -35,6 +35,10 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./atomic": {
+      "types": "./dist/atomic/index.d.ts",
+      "default": "./dist/atomic/index.js"
+    },
     "./sqlite": {
       "types": "./dist/repository/sqlite/index.d.ts",
       "default": "./dist/repository/sqlite/index.js"

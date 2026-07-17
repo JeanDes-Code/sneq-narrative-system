@@ -110,6 +110,56 @@ if (r.match) {
 }
 ```
 
+## Distributed stores — opt-in atomic writes
+
+Local repositories keep the historical API unchanged:
+
+```ts
+new Engine({
+  repository: sqliteRepository({ path: "./canon.db" }),
+  router: routerConfig,
+});
+```
+
+A distributed store cannot transport `Repository.transaction(fn)` atomically across several HTTP
+calls. Supply a `RepositoryAccess` plus an explicit `AtomicWriteStrategy` instead:
+
+```ts
+import { Engine, Router } from "sneq-engine";
+import type { AtomicWriteStrategy, RepositoryAccess } from "sneq-engine";
+
+const sharedRouter = new Router(routerConfig, routerDeps);
+const repository: RepositoryAccess = distributedRepository;
+const writeStrategy: AtomicWriteStrategy = distributedAtomicWrites;
+
+const engine = new Engine({
+  repository,
+  writeStrategy,
+  router: routerConfig,
+  routerInstance: sharedRouter,
+});
+
+engine.routerClient() === sharedRouter; // true — the host and canon share one Router
+```
+
+The strategy owns the atomic execution of `registerFact`, `setScene`, and `advanceTurn`. Pure
+command decisions are available from `sneq-engine/atomic` so an adapter can run SNEQ's rules inside
+its store transaction without importing a framework into the engine.
+
+For asynchronous web adjudication, `mentionEntity()` still returns `needsAdjudication`. A later
+request can confirm the selected existing entity and persist the mention as a player-observed alias:
+
+```ts
+await campaign.confirmEntityMatch({
+  mention: "the captain",
+  entityId: selectedEntityId,
+  type: "PERSONNAGE",
+});
+```
+
+This complements the synchronous `UserPromptRegistry`; it does not replace it. File-backed agents
+such as Hermes can continue using their current prompt handler and repository configuration.
+
 ## CLI usage (out-of-process consumers)
 
 For agents that can't (or don't want to) embed the TypeScript library — Hermes-Agent

@@ -23,14 +23,20 @@
 
 ## Interfaces
 
+- [AdvanceTurnCommand](interfaces/AdvanceTurnCommand.md)
+- [AdvanceTurnDecision](interfaces/AdvanceTurnDecision.md)
+- [AdvanceTurnDecisionInput](interfaces/AdvanceTurnDecisionInput.md)
+- [AdvanceTurnResult](interfaces/AdvanceTurnResult.md)
 - [Alias](interfaces/Alias.md)
 - [AreteGCN](interfaces/AreteGCN.md)
 - [AskUserArgs](interfaces/AskUserArgs.md)
+- [AtomicWriteStrategy](interfaces/AtomicWriteStrategy.md)
 - [AttributFige](interfaces/AttributFige.md)
 - [Avertissement](interfaces/Avertissement.md)
 - [CampaignMeta](interfaces/CampaignMeta.md)
 - [ChatRequest](interfaces/ChatRequest.md)
 - [ChatResponse](interfaces/ChatResponse.md)
+- [ConfirmEntityMatchInput](interfaces/ConfirmEntityMatchInput.md)
 - [ContexteGeneratif](interfaces/ContexteGeneratif.md)
 - [Contrainte](interfaces/Contrainte.md)
 - [ContraintePropagee](interfaces/ContraintePropagee.md)
@@ -59,7 +65,11 @@
 - [Provider](interfaces/Provider.md)
 - [ProviderChain](interfaces/ProviderChain.md)
 - [ProviderRef](interfaces/ProviderRef.md)
+- [RegisterFactCommand](interfaces/RegisterFactCommand.md)
+- [RegisterFactDecision](interfaces/RegisterFactDecision.md)
+- [RegisterFactDecisionInput](interfaces/RegisterFactDecisionInput.md)
 - [RegisterFactInput](interfaces/RegisterFactInput.md)
+- [RegisterFactResult](interfaces/RegisterFactResult.md)
 - [ReglePropagation](interfaces/ReglePropagation.md)
 - [Repository](interfaces/Repository.md)
 - [ResolutionResult](interfaces/ResolutionResult.md)
@@ -70,6 +80,10 @@
 - [RouterDeps](interfaces/RouterDeps.md)
 - [RouterTiers](interfaces/RouterTiers.md)
 - [Scene](interfaces/Scene.md)
+- [SetSceneCommand](interfaces/SetSceneCommand.md)
+- [SetSceneDecision](interfaces/SetSceneDecision.md)
+- [SetSceneDecisionInput](interfaces/SetSceneDecisionInput.md)
+- [SetSceneResult](interfaces/SetSceneResult.md)
 - [SuggestionResult](interfaces/SuggestionResult.md)
 - [Tendance](interfaces/Tendance.md)
 - [ToolCallContext](interfaces/ToolCallContext.md)
@@ -102,6 +116,7 @@
 - [ProviderErrorCode](type-aliases/ProviderErrorCode.md)
 - [ProviderKind](type-aliases/ProviderKind.md)
 - [RegleContrainte](type-aliases/RegleContrainte.md)
+- [RepositoryAccess](type-aliases/RepositoryAccess.md)
 - [SceneId](type-aliases/SceneId.md)
 - [Tier](type-aliases/Tier.md)
 - [ToolName](type-aliases/ToolName.md)
@@ -128,6 +143,9 @@
 - [asFactId](functions/asFactId.md)
 - [asSceneId](functions/asSceneId.md)
 - [createDefaultDeps](functions/createDefaultDeps.md)
+- [decideAdvanceTurn](functions/decideAdvanceTurn.md)
+- [decideRegisterFact](functions/decideRegisterFact.md)
+- [decideSetScene](functions/decideSetScene.md)
 - [defaultRouterConfig](functions/defaultRouterConfig.md)
 - [dispatchToolCall](functions/dispatchToolCall.md)
 - [geminiTools](functions/geminiTools.md)
@@ -261,6 +279,22 @@
 #### Implementation of
 
 [`ToolCallContext`](../interfaces/ToolCallContext.md).[`collapseAttribute`](../interfaces/ToolCallContext.md#collapseattribute)
+
+***
+
+### confirmEntityMatch()
+
+> **confirmEntityMatch**(`input`): `Promise`\<\{ `aliasAdded`: `boolean`; `entityId`: [`EntityID`](../type-aliases/EntityID.md); \}\>
+
+#### Parameters
+
+##### input
+
+[`ConfirmEntityMatchInput`](../interfaces/ConfirmEntityMatchInput.md)
+
+#### Returns
+
+`Promise`\<\{ `aliasAdded`: `boolean`; `entityId`: [`EntityID`](../type-aliases/EntityID.md); \}\>
 
 ***
 
@@ -729,6 +763,16 @@
 #### Returns
 
 `Promise`\<[`CampaignMeta`](../interfaces/CampaignMeta.md)[]\>
+
+***
+
+### routerClient()
+
+> **routerClient**(): [`Router`](Router.md)
+
+#### Returns
+
+[`Router`](Router.md)
 
 ***
 
@@ -2455,6 +2499,112 @@ Full pipeline: extract → resolve → llm → assemble.
 
 ***
 
+[sneq-engine API](../README.md) / AdvanceTurnCommand
+
+# Interface: AdvanceTurnCommand
+
+## Extended by
+
+- [`AdvanceTurnDecisionInput`](AdvanceTurnDecisionInput.md)
+
+## Properties
+
+### campaignId
+
+> **campaignId**: [`CampaignId`](../type-aliases/CampaignId.md)
+
+***
+
+### createdAt
+
+> **createdAt**: `number`
+
+***
+
+### summary?
+
+> `optional` **summary?**: `string`
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / AdvanceTurnDecision
+
+# Interface: AdvanceTurnDecision
+
+## Properties
+
+### turn
+
+> **turn**: [`Turn`](Turn.md)
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / AdvanceTurnDecisionInput
+
+# Interface: AdvanceTurnDecisionInput
+
+## Extends
+
+- [`AdvanceTurnCommand`](AdvanceTurnCommand.md)
+
+## Properties
+
+### campaignId
+
+> **campaignId**: [`CampaignId`](../type-aliases/CampaignId.md)
+
+#### Inherited from
+
+[`AdvanceTurnCommand`](AdvanceTurnCommand.md).[`campaignId`](AdvanceTurnCommand.md#campaignid)
+
+***
+
+### createdAt
+
+> **createdAt**: `number`
+
+#### Inherited from
+
+[`AdvanceTurnCommand`](AdvanceTurnCommand.md).[`createdAt`](AdvanceTurnCommand.md#createdat)
+
+***
+
+### latestTurn
+
+> **latestTurn**: [`Turn`](Turn.md) \| `null`
+
+***
+
+### summary?
+
+> `optional` **summary?**: `string`
+
+#### Inherited from
+
+[`AdvanceTurnCommand`](AdvanceTurnCommand.md).[`summary`](AdvanceTurnCommand.md#summary)
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / AdvanceTurnResult
+
+# Interface: AdvanceTurnResult
+
+## Properties
+
+### turnNumber
+
+> **turnNumber**: `number`
+
+[**sneq-engine API**](../README.md)
+
+***
+
 [sneq-engine API](../README.md) / Alias
 
 # Interface: Alias
@@ -2552,6 +2702,62 @@ Full pipeline: extract → resolve → llm → assemble.
 ### mention
 
 > **mention**: `string`
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / AtomicWriteStrategy
+
+# Interface: AtomicWriteStrategy
+
+## Methods
+
+### advanceTurn()
+
+> **advanceTurn**(`command`): `Promise`\<[`AdvanceTurnResult`](AdvanceTurnResult.md)\>
+
+#### Parameters
+
+##### command
+
+[`AdvanceTurnCommand`](AdvanceTurnCommand.md)
+
+#### Returns
+
+`Promise`\<[`AdvanceTurnResult`](AdvanceTurnResult.md)\>
+
+***
+
+### registerFact()
+
+> **registerFact**(`command`): `Promise`\<[`RegisterFactResult`](RegisterFactResult.md)\>
+
+#### Parameters
+
+##### command
+
+[`RegisterFactCommand`](RegisterFactCommand.md)
+
+#### Returns
+
+`Promise`\<[`RegisterFactResult`](RegisterFactResult.md)\>
+
+***
+
+### setScene()
+
+> **setScene**(`command`): `Promise`\<[`SetSceneResult`](SetSceneResult.md)\>
+
+#### Parameters
+
+##### command
+
+[`SetSceneCommand`](SetSceneCommand.md)
+
+#### Returns
+
+`Promise`\<[`SetSceneResult`](SetSceneResult.md)\>
 
 [**sneq-engine API**](../README.md)
 
@@ -2769,6 +2975,32 @@ Full pipeline: extract → resolve → llm → assemble.
 
 ***
 
+[sneq-engine API](../README.md) / ConfirmEntityMatchInput
+
+# Interface: ConfirmEntityMatchInput
+
+## Properties
+
+### entityId
+
+> **entityId**: [`EntityID`](../type-aliases/EntityID.md)
+
+***
+
+### mention
+
+> **mention**: `string`
+
+***
+
+### type
+
+> **type**: [`EntityType`](../type-aliases/EntityType.md)
+
+[**sneq-engine API**](../README.md)
+
+***
+
 [sneq-engine API](../README.md) / ContexteGeneratif
 
 # Interface: ContexteGeneratif
@@ -2977,7 +3209,7 @@ Optional override for router provider resolution (useful in tests).
 
 ### repository
 
-> **repository**: [`Repository`](Repository.md)
+> **repository**: [`Repository`](Repository.md) \| [`RepositoryAccess`](../type-aliases/RepositoryAccess.md)
 
 ***
 
@@ -2990,6 +3222,22 @@ Optional override for router provider resolution (useful in tests).
 ### router
 
 > **router**: [`RouterConfig`](RouterConfig.md)
+
+***
+
+### routerInstance?
+
+> `optional` **routerInstance?**: [`Router`](../classes/Router.md)
+
+Optional prebuilt Router shared with another consumer such as a GM brain.
+
+***
+
+### writeStrategy?
+
+> `optional` **writeStrategy?**: [`AtomicWriteStrategy`](AtomicWriteStrategy.md)
+
+Explicit write strategy for repositories without transaction(callback).
 
 [**sneq-engine API**](../README.md)
 
@@ -3271,7 +3519,7 @@ Create even when resolution is ambiguous (after the caller adjudicated).
 
 ### repo
 
-> **repo**: [`Repository`](Repository.md)
+> **repo**: [`RepositoryAccess`](../type-aliases/RepositoryAccess.md)
 
 ***
 
@@ -3812,6 +4060,174 @@ Output dimension of the embedding model. Embeddings refs only; lets the Router
 
 ***
 
+[sneq-engine API](../README.md) / RegisterFactCommand
+
+# Interface: RegisterFactCommand
+
+## Extended by
+
+- [`RegisterFactDecisionInput`](RegisterFactDecisionInput.md)
+
+## Properties
+
+### attributeKey
+
+> **attributeKey**: `string`
+
+***
+
+### campaignId
+
+> **campaignId**: [`CampaignId`](../type-aliases/CampaignId.md)
+
+***
+
+### category
+
+> **category**: [`CategorieAttribut`](../type-aliases/CategorieAttribut.md)
+
+***
+
+### entityId
+
+> **entityId**: [`EntityID`](../type-aliases/EntityID.md)
+
+***
+
+### factId
+
+> **factId**: [`FactId`](../type-aliases/FactId.md)
+
+***
+
+### observation
+
+> **observation**: [`Observation`](Observation.md)
+
+***
+
+### value
+
+> **value**: [`AttributValue`](../type-aliases/AttributValue.md)
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / RegisterFactDecision
+
+# Interface: RegisterFactDecision
+
+## Properties
+
+### contradictions
+
+> **contradictions**: [`AttributFige`](AttributFige.md)[]
+
+***
+
+### fact
+
+> **fact**: [`AttributFige`](AttributFige.md) & `object` \| `null`
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / RegisterFactDecisionInput
+
+# Interface: RegisterFactDecisionInput
+
+## Extends
+
+- [`RegisterFactCommand`](RegisterFactCommand.md)
+
+## Properties
+
+### attributeKey
+
+> **attributeKey**: `string`
+
+#### Inherited from
+
+[`RegisterFactCommand`](RegisterFactCommand.md).[`attributeKey`](RegisterFactCommand.md#attributekey)
+
+***
+
+### campaignId
+
+> **campaignId**: [`CampaignId`](../type-aliases/CampaignId.md)
+
+#### Inherited from
+
+[`RegisterFactCommand`](RegisterFactCommand.md).[`campaignId`](RegisterFactCommand.md#campaignid)
+
+***
+
+### category
+
+> **category**: [`CategorieAttribut`](../type-aliases/CategorieAttribut.md)
+
+#### Inherited from
+
+[`RegisterFactCommand`](RegisterFactCommand.md).[`category`](RegisterFactCommand.md#category)
+
+***
+
+### entityId
+
+> **entityId**: [`EntityID`](../type-aliases/EntityID.md)
+
+#### Inherited from
+
+[`RegisterFactCommand`](RegisterFactCommand.md).[`entityId`](RegisterFactCommand.md#entityid)
+
+***
+
+### existing
+
+> **existing**: [`AttributFige`](AttributFige.md)[]
+
+***
+
+### factId
+
+> **factId**: [`FactId`](../type-aliases/FactId.md)
+
+#### Inherited from
+
+[`RegisterFactCommand`](RegisterFactCommand.md).[`factId`](RegisterFactCommand.md#factid)
+
+***
+
+### latestTurnNumber
+
+> **latestTurnNumber**: `number`
+
+***
+
+### observation
+
+> **observation**: [`Observation`](Observation.md)
+
+#### Inherited from
+
+[`RegisterFactCommand`](RegisterFactCommand.md).[`observation`](RegisterFactCommand.md#observation)
+
+***
+
+### value
+
+> **value**: [`AttributValue`](../type-aliases/AttributValue.md)
+
+#### Inherited from
+
+[`RegisterFactCommand`](RegisterFactCommand.md).[`value`](RegisterFactCommand.md#value)
+
+[**sneq-engine API**](../README.md)
+
+***
+
 [sneq-engine API](../README.md) / RegisterFactInput
 
 # Interface: RegisterFactInput
@@ -3845,6 +4261,26 @@ Output dimension of the embedding model. Embeddings refs only; lets the Router
 ### value
 
 > **value**: [`AttributValue`](../type-aliases/AttributValue.md)
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / RegisterFactResult
+
+# Interface: RegisterFactResult
+
+## Properties
+
+### contradictions
+
+> **contradictions**: [`AttributFige`](AttributFige.md)[]
+
+***
+
+### factId
+
+> **factId**: [`FactId`](../type-aliases/FactId.md) \| `null`
 
 [**sneq-engine API**](../README.md)
 
@@ -4380,6 +4816,12 @@ Return up to `k` entities for the campaign, ordered by `embeddingRefreshedAt` de
 
 > `optional` **reasoning?**: `string`
 
+***
+
+### unavailableReason?
+
+> `optional` **unavailableReason?**: `"embeddings"` \| `"vector-search"`
+
 [**sneq-engine API**](../README.md)
 
 ***
@@ -4629,6 +5071,172 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 ### presentEntityIds
 
 > **presentEntityIds**: [`EntityID`](../type-aliases/EntityID.md)[]
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / SetSceneCommand
+
+# Interface: SetSceneCommand
+
+## Extended by
+
+- [`SetSceneDecisionInput`](SetSceneDecisionInput.md)
+
+## Properties
+
+### campaignId
+
+> **campaignId**: [`CampaignId`](../type-aliases/CampaignId.md)
+
+***
+
+### createdAt
+
+> **createdAt**: `number`
+
+***
+
+### description
+
+> **description**: `string`
+
+***
+
+### locationEntityId
+
+> **locationEntityId**: [`EntityID`](../type-aliases/EntityID.md)
+
+***
+
+### presentEntityIds
+
+> **presentEntityIds**: [`EntityID`](../type-aliases/EntityID.md)[]
+
+***
+
+### sceneId
+
+> **sceneId**: [`SceneId`](../type-aliases/SceneId.md)
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / SetSceneDecision
+
+# Interface: SetSceneDecision
+
+## Properties
+
+### scene
+
+> **scene**: [`Scene`](Scene.md)
+
+***
+
+### turn
+
+> **turn**: [`Turn`](Turn.md)
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / SetSceneDecisionInput
+
+# Interface: SetSceneDecisionInput
+
+## Extends
+
+- [`SetSceneCommand`](SetSceneCommand.md)
+
+## Properties
+
+### campaignId
+
+> **campaignId**: [`CampaignId`](../type-aliases/CampaignId.md)
+
+#### Inherited from
+
+[`SetSceneCommand`](SetSceneCommand.md).[`campaignId`](SetSceneCommand.md#campaignid)
+
+***
+
+### createdAt
+
+> **createdAt**: `number`
+
+#### Inherited from
+
+[`SetSceneCommand`](SetSceneCommand.md).[`createdAt`](SetSceneCommand.md#createdat)
+
+***
+
+### description
+
+> **description**: `string`
+
+#### Inherited from
+
+[`SetSceneCommand`](SetSceneCommand.md).[`description`](SetSceneCommand.md#description)
+
+***
+
+### latestTurnNumber
+
+> **latestTurnNumber**: `number`
+
+***
+
+### locationEntityId
+
+> **locationEntityId**: [`EntityID`](../type-aliases/EntityID.md)
+
+#### Inherited from
+
+[`SetSceneCommand`](SetSceneCommand.md).[`locationEntityId`](SetSceneCommand.md#locationentityid)
+
+***
+
+### presentEntityIds
+
+> **presentEntityIds**: [`EntityID`](../type-aliases/EntityID.md)[]
+
+#### Inherited from
+
+[`SetSceneCommand`](SetSceneCommand.md).[`presentEntityIds`](SetSceneCommand.md#presententityids)
+
+***
+
+### sceneId
+
+> **sceneId**: [`SceneId`](../type-aliases/SceneId.md)
+
+#### Inherited from
+
+[`SetSceneCommand`](SetSceneCommand.md).[`sceneId`](SetSceneCommand.md#sceneid)
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / SetSceneResult
+
+# Interface: SetSceneResult
+
+## Properties
+
+### sceneId
+
+> **sceneId**: [`SceneId`](../type-aliases/SceneId.md)
+
+***
+
+### turnNumber
+
+> **turnNumber**: `number`
 
 [**sneq-engine API**](../README.md)
 
@@ -5343,7 +5951,7 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 # Type Alias: MentionResult
 
-> **MentionResult** = \{ `entityId`: [`EntityID`](EntityID.md); `isNew`: `boolean`; `needsAdjudication?`: `false`; `resolvedTo?`: [`EntityID`](EntityID.md); \} \| \{ `candidates`: `object`[]; `entityId`: `null`; `isNew`: `false`; `needsAdjudication`: `true`; \}
+> **MentionResult** = \{ `entityId`: [`EntityID`](EntityID.md); `isNew`: `boolean`; `needsAdjudication?`: `false`; `resolvedTo?`: [`EntityID`](EntityID.md); \} \| \{ `candidates`: `object`[]; `entityId`: `null`; `isNew`: `false`; `needsAdjudication`: `true`; `reason?`: `"ambiguous"` \| `"unavailable"`; \}
 
 [**sneq-engine API**](../README.md)
 
@@ -5394,6 +6002,18 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 # Type Alias: RegleContrainte
 
 > **RegleContrainte** = \{ `type`: `"DOIT_ETRE"`; `valeurs`: [`AttributValue`](AttributValue.md)[]; \} \| \{ `type`: `"NE_PEUT_PAS_ETRE"`; `valeurs`: [`AttributValue`](AttributValue.md)[]; \} \| \{ `condition`: `string`; `consequence`: `string`; `type`: `"IMPLIQUE"`; \} \| \{ `autreAttribut`: `string`; `autreEntite`: [`EntityID`](EntityID.md); `type`: `"CORRELE_AVEC"`; \} \| \{ `max?`: `number`; `min?`: `number`; `type`: `"RANGE_NUMERIQUE"`; \} \| \{ `pattern`: `string`; `type`: `"REGEX"`; \}
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / RepositoryAccess
+
+# Type Alias: RepositoryAccess
+
+> **RepositoryAccess** = `Omit`\<[`Repository`](../interfaces/Repository.md), `"transaction"`\>
+
+Repository surface usable by distributed stores; atomic writes are injected separately.
 
 [**sneq-engine API**](../README.md)
 
@@ -5577,6 +6197,66 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 ## Returns
 
 [`RouterDeps`](../interfaces/RouterDeps.md)
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / decideAdvanceTurn
+
+# Function: decideAdvanceTurn()
+
+> **decideAdvanceTurn**(`input`): [`AdvanceTurnDecision`](../interfaces/AdvanceTurnDecision.md)
+
+## Parameters
+
+### input
+
+[`AdvanceTurnDecisionInput`](../interfaces/AdvanceTurnDecisionInput.md)
+
+## Returns
+
+[`AdvanceTurnDecision`](../interfaces/AdvanceTurnDecision.md)
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / decideRegisterFact
+
+# Function: decideRegisterFact()
+
+> **decideRegisterFact**(`input`): [`RegisterFactDecision`](../interfaces/RegisterFactDecision.md)
+
+## Parameters
+
+### input
+
+[`RegisterFactDecisionInput`](../interfaces/RegisterFactDecisionInput.md)
+
+## Returns
+
+[`RegisterFactDecision`](../interfaces/RegisterFactDecision.md)
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / decideSetScene
+
+# Function: decideSetScene()
+
+> **decideSetScene**(`input`): [`SetSceneDecision`](../interfaces/SetSceneDecision.md)
+
+## Parameters
+
+### input
+
+[`SetSceneDecisionInput`](../interfaces/SetSceneDecisionInput.md)
+
+## Returns
+
+[`SetSceneDecision`](../interfaces/SetSceneDecision.md)
 
 [**sneq-engine API**](../README.md)
 
