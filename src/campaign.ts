@@ -15,6 +15,7 @@ import type { CampaignId, EntityID, FactId, ConstraintId, SceneId } from "./doma
 import { asEntityID, asConstraintId, asFactId, asSceneId } from "./domain/ids.js";
 import { SneqCampaignNotFoundError } from "./errors.js";
 import type { Entity, EntityType } from "./domain/entity.js";
+import { normalizeAlias } from "./resolver/normalize.js";
 import type { AttributFige, AttributValue, CategorieAttribut } from "./domain/attribute.js";
 import type { Observation } from "./domain/observation.js";
 import type { RegleContrainte } from "./domain/potentialite.js";
@@ -42,6 +43,12 @@ export interface MentionInput {
   description: string;
   /** Create even when resolution is ambiguous (after the caller adjudicated). */
   force?: boolean;
+}
+
+export interface ConfirmEntityMatchInput {
+  mention: string;
+  entityId: EntityID;
+  type: EntityType;
 }
 
 export type MentionResult =
@@ -87,6 +94,32 @@ export class CampaignContext implements ToolCallContext {
 
   getEntity(entityId: EntityID): Promise<Entity | null> {
     return this.deps.repo.getEntity(this.id, entityId);
+  }
+
+  async confirmEntityMatch(input: ConfirmEntityMatchInput): Promise<{ entityId: EntityID; aliasAdded: boolean }> {
+    await this.ensureCampaign();
+    const entity = await this.deps.repo.getEntity(this.id, input.entityId);
+    if (!entity) {
+      throw new Error(`entity "${String(input.entityId)}" not found in campaign "${String(this.id)}"`);
+    }
+    if (entity.type !== input.type) {
+      throw new Error(`entity type mismatch: expected ${input.type}, got ${entity.type}`);
+    }
+
+    const normalized = normalizeAlias(input.mention);
+    const exists = normalizeAlias(entity.name) === normalized
+      || entity.aliases.some((alias) => normalizeAlias(alias.text) === normalized);
+    if (exists) return { entityId: entity.id, aliasAdded: false };
+
+    await this.deps.repo.upsertEntity({
+      ...entity,
+      aliases: [...entity.aliases, {
+        text: input.mention,
+        source: { kind: "PLAYER" },
+        observedAt: Date.now(),
+      }],
+    });
+    return { entityId: entity.id, aliasAdded: true };
   }
 
   async getRelevantFacts(entityId: EntityID, opts?: { attributeKeys?: string[]; depth?: number }): Promise<AttributFige[]> {

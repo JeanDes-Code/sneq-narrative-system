@@ -2,7 +2,13 @@ export const SNEQ_ENGINE_VERSION = "0.1.0";
 
 // Engine + CampaignContext
 export { Engine, type NewCampaignInput } from "./engine.js";
-export { CampaignContext, type MentionInput, type MentionResult, type RegisterFactInput } from "./campaign.js";
+export {
+  CampaignContext,
+  type ConfirmEntityMatchInput,
+  type MentionInput,
+  type MentionResult,
+  type RegisterFactInput,
+} from "./campaign.js";
 
 // Config + loading
 export { type EngineConfig, loadConfigFromFile } from "./config.js";
