@@ -32,7 +32,32 @@ function injectedStrategy(): AtomicWriteStrategy {
     registerFact: vi.fn(async () => ({ factId: null, contradictions: [] })),
     setScene: vi.fn(async () => ({ sceneId: "s1" as never, turnNumber: 1 })),
     advanceTurn: vi.fn(async () => ({ turnNumber: 1 })),
+    confirmEntityMatch: vi.fn(async (command) => ({
+      entityId: command.entityId,
+      aliasAdded: true,
+    })),
   };
+}
+
+async function seedEntity(
+  repository: InMemoryRepository,
+  campaignId: ReturnType<typeof asCampaignId>,
+) {
+  const entityId = asEntityID("captain");
+  await repository.upsertEntity({
+    campaignId,
+    id: entityId,
+    type: "PERSONNAGE",
+    name: "Roric",
+    description: "Capitaine",
+    nomConnu: true,
+    aliases: [],
+    tags: [],
+    createdAt: 0,
+    embedding: null,
+    embeddingRefreshedAt: null,
+  });
+  return entityId;
 }
 
 describe("atomic write strategy selection", () => {
@@ -48,6 +73,67 @@ describe("atomic write strategy selection", () => {
 
     expect(transaction).toHaveBeenCalledOnce();
     expect(await repository.latestTurn(campaignId)).toMatchObject({ turnNumber: 1, summary: "one" });
+  });
+
+  it("confirms an entity match inside Repository.transaction", async () => {
+    const campaignId = asCampaignId("confirm-transaction");
+    const repository = new InMemoryRepository({ embeddingDim: 0 });
+    await repository.createCampaign({
+      id: campaignId,
+      name: "Confirm",
+      createdAt: 0,
+      embeddingDim: 0,
+    });
+    const entityId = await seedEntity(repository, campaignId);
+    const transaction = vi.spyOn(repository, "transaction");
+    const strategy = repositoryAtomicWriteStrategy(repository);
+
+    await expect(strategy.confirmEntityMatch({
+      operationId: "op-confirm",
+      campaignId,
+      entityId,
+      mention: "le capitaine",
+      type: "PERSONNAGE",
+      observedAt: 10,
+    })).resolves.toEqual({ entityId, aliasAdded: true });
+
+    expect(transaction).toHaveBeenCalledOnce();
+  });
+
+  it("preserves both aliases when confirmations run concurrently", async () => {
+    const campaignId = asCampaignId("confirm-concurrent");
+    const repository = new InMemoryRepository({ embeddingDim: 0 });
+    await repository.createCampaign({
+      id: campaignId,
+      name: "Concurrent",
+      createdAt: 0,
+      embeddingDim: 0,
+    });
+    const entityId = await seedEntity(repository, campaignId);
+    const strategy = repositoryAtomicWriteStrategy(repository);
+
+    await Promise.all([
+      strategy.confirmEntityMatch({
+        operationId: "op-confirm-captain",
+        campaignId,
+        entityId,
+        mention: "the captain",
+        type: "PERSONNAGE",
+        observedAt: 10,
+      }),
+      strategy.confirmEntityMatch({
+        operationId: "op-confirm-commander",
+        campaignId,
+        entityId,
+        mention: "guard commander",
+        type: "PERSONNAGE",
+        observedAt: 11,
+      }),
+    ]);
+
+    expect((await repository.getEntity(campaignId, entityId))?.aliases
+      .map((alias) => alias.text)
+      .sort()).toEqual(["guard commander", "the captain"]);
   });
 
   it("rejects a repository without transaction when no strategy is supplied", () => {

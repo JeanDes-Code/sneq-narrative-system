@@ -1,5 +1,10 @@
 import type { Repository } from "../repository/interface.js";
-import { decideAdvanceTurn, decideRegisterFact, decideSetScene } from "./decisions.js";
+import {
+  decideAdvanceTurn,
+  decideConfirmEntityMatch,
+  decideRegisterFact,
+  decideSetScene,
+} from "./decisions.js";
 import type { AtomicWriteStrategy } from "./types.js";
 
 export function repositoryAtomicWriteStrategy(repo: Repository): AtomicWriteStrategy {
@@ -39,6 +44,14 @@ export function repositoryAtomicWriteStrategy(repo: Repository): AtomicWriteStra
       const decision = decideAdvanceTurn({ ...command, latestTurn: latest });
       await tx.appendTurn(decision.turn);
       return { turnNumber: decision.turn.turnNumber };
+    }),
+    confirmEntityMatch: (command) => repo.transaction(async (tx) => {
+      const entity = await tx.getEntity(command.campaignId, command.entityId);
+      const decision = decideConfirmEntityMatch({ ...command, entity });
+      if (decision.result.aliasAdded) {
+        await tx.upsertEntity(decision.entity);
+      }
+      return decision.result;
     }),
   };
 }

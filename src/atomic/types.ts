@@ -75,6 +75,7 @@ export interface AtomicWriteStrategy {
   registerFact(command: RegisterFactCommand): Promise<RegisterFactResult>;
   setScene(command: SetSceneCommand): Promise<SetSceneResult>;
   advanceTurn(command: AdvanceTurnCommand): Promise<AdvanceTurnResult>;
+  confirmEntityMatch(command: ConfirmEntityMatchCommand): Promise<ConfirmEntityMatchResult>;
 }
 
 export interface RegisterFactDecisionInput extends RegisterFactCommand {
