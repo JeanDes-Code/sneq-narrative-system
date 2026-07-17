@@ -1,4 +1,5 @@
-import type { Repository } from "./repository/interface.js";
+import type { AtomicWriteStrategy } from "./atomic/types.js";
+import type { RepositoryAccess } from "./repository/interface.js";
 import type { Router } from "./router/router.js";
 import type { Resolver, ResolutionResult, SuggestionResult, Embedder } from "./resolver/resolver.js";
 import type { UserPromptRegistry, AskUserFn } from "./hooks/user-prompt.js";
@@ -22,9 +23,10 @@ import { dispatchToolCall, type ToolCallContext } from "./tools/dispatcher.js";
 
 export interface CampaignContextDeps {
   campaignId: CampaignId;
-  repo: Repository;
+  repo: RepositoryAccess;
   router: Router;
   resolver: Resolver;
+  writeStrategy: AtomicWriteStrategy;
   /** null = keyless mode (no embeddings tier): entities are stored without vectors. */
   embedder: Embedder | null;
   userPrompt: UserPromptRegistry;
@@ -142,27 +144,14 @@ export class CampaignContext implements ToolCallContext {
 
   async registerFact(input: RegisterFactInput): Promise<{ factId: FactId | null; contradictions: AttributFige[] }> {
     await this.ensureCampaign();
-    // Transactional: the contradiction check and the append must see the same
-    // state — two concurrent writers could otherwise both pass the check.
-    return this.deps.repo.transaction(async (tx) => {
-      const existing = await tx.queryFacts(this.id, {
-        entityId: input.entityId,
-        attributeKey: input.attributeKey
-      });
-      const contradictions = existing.filter(e => JSON.stringify(e.value) !== JSON.stringify(input.value));
-      if (contradictions.length > 0) {
-        return { factId: null, contradictions };
-      }
-      const factId = asFactId(`f_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
-      const latest = await tx.latestTurn(this.id);
-      const fact: AttributFige & { campaignId: CampaignId } = {
-        factId, entityId: input.entityId, key: input.attributeKey,
-        value: input.value, category: input.category, observation: input.observation,
-        turn: latest?.turnNumber ?? 0,
-        campaignId: this.id
-      };
-      await tx.appendFact(fact);
-      return { factId, contradictions: [] as AttributFige[] };
+    return this.deps.writeStrategy.registerFact({
+      campaignId: this.id,
+      factId: asFactId(`f_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`),
+      entityId: input.entityId,
+      attributeKey: input.attributeKey,
+      value: input.value,
+      category: input.category,
+      observation: input.observation,
     });
   }
 
@@ -194,24 +183,13 @@ export class CampaignContext implements ToolCallContext {
 
   async setScene(input: { locationEntityId: EntityID; presentEntityIds: EntityID[]; description: string }): Promise<{ sceneId: SceneId; turnNumber: number }> {
     await this.ensureCampaign();
-    const result = await this.deps.repo.transaction(async (tx) => {
-      const sceneId = asSceneId(`s_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
-      const last = await tx.latestTurn(this.id);
-      const turnNumber = (last?.turnNumber ?? 0) + 1;
-      await tx.upsertScene({
-        campaignId: this.id, id: sceneId,
-        locationId: input.locationEntityId,
-        presentEntityIds: input.presentEntityIds,
-        description: input.description,
-        createdAtTurn: turnNumber
-      });
-      await tx.appendTurn({
-        campaignId: this.id, turnNumber,
-        summary: null,
-        sceneId,
-        createdAt: Date.now()
-      });
-      return { sceneId, turnNumber };
+    const result = await this.deps.writeStrategy.setScene({
+      campaignId: this.id,
+      sceneId: asSceneId(`s_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`),
+      locationEntityId: input.locationEntityId,
+      presentEntityIds: input.presentEntityIds,
+      description: input.description,
+      createdAt: Date.now(),
     });
     this.deps.preGen.emit({ campaignId: this.id, triggerKind: "ENTRY_TO_SCENE", hint: {} });
     return result;
@@ -219,16 +197,10 @@ export class CampaignContext implements ToolCallContext {
 
   async advanceTurn(summary?: string): Promise<{ turnNumber: number }> {
     await this.ensureCampaign();
-    const result = await this.deps.repo.transaction(async (tx) => {
-      const last = await tx.latestTurn(this.id);
-      const turnNumber = (last?.turnNumber ?? 0) + 1;
-      await tx.appendTurn({
-        campaignId: this.id, turnNumber,
-        summary: summary ?? null,
-        sceneId: last?.sceneId ?? null,
-        createdAt: Date.now()
-      });
-      return { turnNumber };
+    const result = await this.deps.writeStrategy.advanceTurn({
+      campaignId: this.id,
+      ...(summary !== undefined ? { summary } : {}),
+      createdAt: Date.now(),
     });
     this.deps.preGen.emit({ campaignId: this.id, triggerKind: "TURN_ADVANCED", hint: {} });
     return result;

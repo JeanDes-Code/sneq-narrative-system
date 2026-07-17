@@ -1,4 +1,4 @@
-import type { Repository } from "../repository/interface.js";
+import type { RepositoryAccess } from "../repository/interface.js";
 import type { Router } from "../router/router.js";
 import type { UserPromptRegistry } from "../hooks/user-prompt.js";
 import type { Entity, EntityType } from "../domain/entity.js";
@@ -12,7 +12,7 @@ export interface Embedder {
 }
 
 export interface ResolverDeps {
-  repo: Repository;
+  repo: RepositoryAccess;
   router: Router;
   /** null = degraded alias-only mode (no embeddings provider configured). */
   embedder: Embedder | null;

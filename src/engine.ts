@@ -1,5 +1,7 @@
+import { repositoryAtomicWriteStrategy } from "./atomic/repository-strategy.js";
+import type { AtomicWriteStrategy } from "./atomic/types.js";
 import type { EngineConfig } from "./config.js";
-import type { Repository, CampaignMeta } from "./repository/interface.js";
+import type { Repository, RepositoryAccess, CampaignMeta } from "./repository/interface.js";
 import { Router, createDefaultDeps } from "./router/router.js";
 import { Resolver, type Embedder } from "./resolver/resolver.js";
 import { UserPromptRegistry } from "./hooks/user-prompt.js";
@@ -21,8 +23,9 @@ export interface NewCampaignInput {
 }
 
 export class Engine {
-  private readonly repo: Repository;
+  private readonly repo: RepositoryAccess;
   private readonly router: Router;
+  private readonly writes: AtomicWriteStrategy;
   private readonly resolver: Resolver;
   private readonly userPrompt = new UserPromptRegistry();
   private readonly preGen = new PreGenerationRegistry();
@@ -34,7 +37,16 @@ export class Engine {
 
   constructor(cfg: EngineConfig) {
     this.repo = cfg.repository;
-    this.router = new Router(cfg.router, cfg._routerDeps ?? createDefaultDeps());
+    this.router = cfg.routerInstance ?? new Router(cfg.router, cfg._routerDeps ?? createDefaultDeps());
+    if (cfg.writeStrategy) {
+      this.writes = cfg.writeStrategy;
+    } else {
+      const candidate = cfg.repository as Partial<Repository>;
+      if (typeof candidate.transaction !== "function") {
+        throw new Error("repository without transaction requires EngineConfig.writeStrategy");
+      }
+      this.writes = repositoryAtomicWriteStrategy(candidate as Repository);
+    }
     this.logger = cfg.logger ?? noopLogger;
     this.preGen.setErrorHandler(err => this.logger.warn("pregen-hook error", { err: String(err) }));
     // No embeddings tier configured → keyless / alias-only mode: the resolver
@@ -59,7 +71,7 @@ export class Engine {
     if (cached) return cached;
     const ctx = new CampaignContext({
       campaignId: id, repo: this.repo, router: this.router, resolver: this.resolver,
-      embedder: this.embedder,
+      writeStrategy: this.writes, embedder: this.embedder,
       userPrompt: this.userPrompt, preGen: this.preGen,
       narrationGate: this.narrationGate, logger: this.logger
     });
@@ -87,6 +99,10 @@ export class Engine {
 
   async close(): Promise<void> {
     return this.repo.close();
+  }
+
+  routerClient(): Router {
+    return this.router;
   }
 
   static defaultRouterConfig() { return defaultRouterConfig(); }
