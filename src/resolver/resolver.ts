@@ -34,6 +34,7 @@ export interface ResolutionResult {
   layerUsed: "alias" | "vector" | "judge" | "user-prompt" | "none";
   reasoning?: string;
   notFoundReason?: "no-match" | "below-threshold" | "ambiguous";
+  unavailableReason?: "embeddings" | "vector-search";
 }
 
 export interface SuggestionResult {
@@ -55,7 +56,8 @@ export class Resolver {
         partial.layerUsed,
         partial.candidates,
         partial.confidence,
-        this.t.tauLow
+        this.t.tauLow,
+        partial.unavailableReason,
       );
       return reason === undefined ? partial : { ...partial, notFoundReason: reason };
     };
@@ -77,11 +79,33 @@ export class Resolver {
     if (!this.deps.embedder) {
       return make({ match: null, confidence: 0, candidates: [], layerUsed: "none" });
     }
-    const vec = await this.deps.embedder.embed(mention);
+    let vec: Float32Array;
+    try {
+      vec = await this.deps.embedder.embed(mention);
+    } catch {
+      return make({
+        match: null,
+        confidence: 0,
+        candidates: [],
+        layerUsed: "none",
+        unavailableReason: "embeddings",
+      });
+    }
     const opts2: import("../repository/interface.js").VectorSearchOpts = type
       ? { topK: this.t.topK, filterType: type }
       : { topK: this.t.topK };
-    const hits = await this.deps.repo.searchEntitiesByVector(campaignId, vec, opts2);
+    let hits: import("../repository/interface.js").EntityWithScore[];
+    try {
+      hits = await this.deps.repo.searchEntitiesByVector(campaignId, vec, opts2);
+    } catch {
+      return make({
+        match: null,
+        confidence: 0,
+        candidates: [],
+        layerUsed: "none",
+        unavailableReason: "vector-search",
+      });
+    }
     if (hits.length === 0) {
       return make({ match: null, confidence: 0, candidates: [], layerUsed: "none" });
     }
@@ -152,9 +176,11 @@ function deriveNotFoundReason(
   layerUsed: ResolutionResult["layerUsed"],
   candidates: Entity[],
   confidence: number,
-  tauLow: number
+  tauLow: number,
+  unavailableReason?: ResolutionResult["unavailableReason"],
 ): ResolutionResult["notFoundReason"] {
   if (match !== null) return undefined;
+  if (unavailableReason !== undefined) return "ambiguous";
   if (layerUsed === "none" || candidates.length === 0) return "no-match";
   if (layerUsed === "vector" && confidence < tauLow) return "below-threshold";
   return "ambiguous";

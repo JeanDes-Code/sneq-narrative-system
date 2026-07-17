@@ -54,6 +54,7 @@ export interface ConfirmEntityMatchInput {
 export type MentionResult =
   | { entityId: EntityID; isNew: boolean; resolvedTo?: EntityID; needsAdjudication?: false }
   | { entityId: null; isNew: false; needsAdjudication: true;
+      reason?: "ambiguous" | "unavailable";
       candidates: Array<{ entityId: EntityID; name: string; type: EntityType }> };
 
 export interface RegisterFactInput {
@@ -147,12 +148,22 @@ export class CampaignContext implements ToolCallContext {
     if (resolution.match) {
       return { entityId: resolution.match.id, isNew: false, resolvedTo: resolution.match.id };
     }
+    if (!input.force && resolution.unavailableReason) {
+      return {
+        entityId: null,
+        isNew: false,
+        needsAdjudication: true,
+        reason: "unavailable",
+        candidates: [],
+      };
+    }
     // Ambiguous with live candidates: creating here would fork canon on a coin
     // flip — exactly what the engine exists to prevent. The caller adjudicates
     // (pick a candidate's entityId, or re-call with force:true).
     if (!input.force && resolution.notFoundReason === "ambiguous" && resolution.candidates.length > 0) {
       return {
         entityId: null, isNew: false, needsAdjudication: true,
+        reason: "ambiguous",
         candidates: resolution.candidates.slice(0, 5).map(c => ({ entityId: c.id, name: c.name, type: c.type }))
       };
     }
@@ -160,8 +171,13 @@ export class CampaignContext implements ToolCallContext {
     let embedding: Float32Array | null = null;
     let embeddingRefreshedAt: number | null = null;
     if (this.deps.embedder) {
-      embedding = await this.deps.embedder.embed(`${input.canonicalName}. ${input.description}`);
-      embeddingRefreshedAt = Date.now();
+      try {
+        embedding = await this.deps.embedder.embed(`${input.canonicalName}. ${input.description}`);
+        embeddingRefreshedAt = Date.now();
+      } catch {
+        embedding = null;
+        embeddingRefreshedAt = null;
+      }
     }
     const entity: Entity = {
       campaignId: this.id, id, type: input.type, name: input.canonicalName,

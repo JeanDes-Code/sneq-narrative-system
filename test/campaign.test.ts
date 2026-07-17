@@ -280,6 +280,85 @@ describe("CampaignContext · needsAdjudication", () => {
   });
 });
 
+describe("CampaignContext · embedding failures", () => {
+  it("does not create when entity resolution is unavailable", async () => {
+    const embeddingRef: ProviderRef = { provider: "custom", apiKeyEnv: "_NOOP", model: "emb" };
+    const provider: Provider = {
+      ref: embeddingRef,
+      async chat() { throw new Error("judge unused"); },
+      async embed() { throw new Error("embedding down"); },
+    };
+    const repository = sqliteRepository({ path: ":memory:", embeddingDim: 3 });
+    const engine = new Engine({
+      repository,
+      router: {
+        tiers: {
+          heavy: { primary: embeddingRef, fallbacks: [] },
+          light: { primary: embeddingRef, fallbacks: [] },
+          embeddings: { primary: embeddingRef, fallbacks: [] },
+        },
+      },
+      _routerDeps: { resolveProvider: () => provider },
+    });
+    const c = await engine.createCampaign({ id: asCampaignId("emb-down"), name: "x", embeddingDim: 3 });
+
+    const result = await c.mentionEntity({
+      canonicalName: "Le capitaine",
+      type: "PERSONNAGE",
+      description: "Inconnu",
+    });
+
+    expect(result).toMatchObject({
+      entityId: null,
+      isNew: false,
+      needsAdjudication: true,
+      reason: "unavailable",
+      candidates: [],
+    });
+    expect(await repository.findEntitiesByAlias(asCampaignId("emb-down"), "capitaine", "PERSONNAGE"))
+      .toEqual([]);
+    await engine.close();
+  });
+
+  it("creates without a vector when resolution proved no-match before embedding refresh fails", async () => {
+    let embeddingCalls = 0;
+    const embeddingRef: ProviderRef = { provider: "custom", apiKeyEnv: "_NOOP", model: "emb" };
+    const provider: Provider = {
+      ref: embeddingRef,
+      async chat() { throw new Error("judge unused"); },
+      async embed() {
+        embeddingCalls += 1;
+        if (embeddingCalls === 1) {
+          return { vectors: [new Float32Array([1, 0, 0])], dim: 3, modelUsed: "emb", providerUsed: "custom" };
+        }
+        throw new Error("embedding refresh down");
+      },
+    };
+    const engine = new Engine({
+      repository: sqliteRepository({ path: ":memory:", embeddingDim: 3 }),
+      router: {
+        tiers: {
+          heavy: { primary: embeddingRef, fallbacks: [] },
+          light: { primary: embeddingRef, fallbacks: [] },
+          embeddings: { primary: embeddingRef, fallbacks: [] },
+        },
+      },
+      _routerDeps: { resolveProvider: () => provider },
+    });
+    const c = await engine.createCampaign({ id: asCampaignId("emb-refresh"), name: "x", embeddingDim: 3 });
+
+    const result = await c.mentionEntity({
+      canonicalName: "Aldric",
+      type: "PERSONNAGE",
+      description: "Forgeron",
+    });
+
+    expect(result.isNew).toBe(true);
+    expect((await c.getEntity(result.entityId!))?.embedding).toBeNull();
+    await engine.close();
+  });
+});
+
 describe("CampaignContext · scene context reaches the judge", () => {
   it("passes the current scene description as sceneDescription", async () => {
     const seen: string[] = [];
