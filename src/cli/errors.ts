@@ -10,7 +10,6 @@ export type ErrorCode =
   | "PROVIDER_ERROR"
   | "REPOSITORY_ERROR"
   | "UNKNOWN_COMMAND"
-  | "NOT_IMPLEMENTED"
   | "INTERNAL_ERROR";
 
 export class CliError extends Error {

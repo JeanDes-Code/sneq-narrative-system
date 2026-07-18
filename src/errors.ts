@@ -27,6 +27,25 @@ export class SneqCampaignNotFoundError extends Error {
   }
 }
 
+export type CampaignContextInvalidationReason = "deleting" | "deleted" | "engine-closed";
+
+export class SneqCampaignContextInvalidatedError extends Error {
+  constructor(
+    public readonly campaignId: string,
+    public readonly reason: CampaignContextInvalidationReason,
+  ) {
+    super(`campaign context "${campaignId}" is invalid (${reason})`);
+    this.name = "SneqCampaignContextInvalidatedError";
+  }
+}
+
+export class SneqConcurrentEntityCreationError extends Error {
+  constructor(public readonly campaignId: string, public readonly attempts: number) {
+    super(`entity canon changed during ${attempts} creation attempts for campaign "${campaignId}"; retry the logical call`);
+    this.name = "SneqConcurrentEntityCreationError";
+  }
+}
+
 export class SneqProviderError extends Error {
   constructor(public readonly tier: Tier, public readonly exhausted: boolean, message: string) {
     super(message);

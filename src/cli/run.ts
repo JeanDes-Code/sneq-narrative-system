@@ -124,11 +124,8 @@ async function dispatch(inv: ParsedInvocation, deps: FullRunDeps): Promise<numbe
       deps.stdout.write(JSON.stringify(report) + "\n");
       return strict && !report.ok ? 1 : 0;
     }
-    case "collapse-attribute":
-      throw new CliError("NOT_IMPLEMENTED",
-        "collapse-attribute is not wired in V2 — compose your own LLM call (heavy tier) + validateValue + register-fact. The tool is no longer advertised to LLM agents either.");
     default: {
-      // 9 remaining tool commands: kebab-case → sneq__snake_case
+      // 9 tool commands: kebab-case → sneq__snake_case
       const toolName = `sneq__${inv.command.replaceAll("-", "_")}`;
       const finalArgs = await assembleToolArgs(inv, deps, args);
       const campaign = deps.engine.campaign(campaignId);

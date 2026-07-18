@@ -1,7 +1,8 @@
 import type { AttributFige, AttributValue, CategorieAttribut } from "../domain/attribute.js";
 import type { Entity, EntityType } from "../domain/entity.js";
-import type { CampaignId, EntityID, FactId, SceneId } from "../domain/ids.js";
+import type { CampaignId, ConstraintId, EntityID, FactId, SceneId } from "../domain/ids.js";
 import type { Observation } from "../domain/observation.js";
+import type { Potentialite, RegleContrainte } from "../domain/potentialite.js";
 import type { Scene } from "../domain/scene.js";
 import type { Turn } from "../domain/turn.js";
 
@@ -71,8 +72,63 @@ export interface ConfirmEntityMatchDecision {
   result: ConfirmEntityMatchResult;
 }
 
+export interface AddConstraintCommand extends AtomicCommand {
+  campaignId: CampaignId;
+  constraintId: ConstraintId;
+  entityId: EntityID;
+  attributeKey: string;
+  rule: RegleContrainte;
+  justification: string;
+  createdAt: number;
+}
+
+export interface AddConstraintResult {
+  constraintId: ConstraintId;
+}
+
+export interface AddConstraintDecisionInput extends AddConstraintCommand {
+  existing: Potentialite | null;
+}
+
+export interface AddConstraintDecision {
+  potentialite: Potentialite;
+  result: AddConstraintResult;
+}
+
+export interface EntityCandidateSummary {
+  entityId: EntityID;
+  name: string;
+  type: EntityType;
+}
+
+export interface CreateEntityCommand extends AtomicCommand {
+  campaignId: CampaignId;
+  expectedEntityRevision: number;
+  candidate: Entity;
+  identityKeys: string[];
+  force: boolean;
+}
+
+export type CreateEntityResult =
+  | { status: "stale" }
+  | { status: "created"; entityId: EntityID; isNew: true }
+  | { status: "existing"; entityId: EntityID; isNew: false; resolvedTo: EntityID }
+  | { status: "conflict"; candidates: EntityCandidateSummary[] };
+
+export interface CreateEntityDecisionInput extends CreateEntityCommand {
+  currentEntityRevision: number;
+  exactMatches: Entity[];
+}
+
+export interface CreateEntityDecision {
+  entity: Entity | null;
+  result: CreateEntityResult;
+}
+
 export interface AtomicWriteStrategy {
   registerFact(command: RegisterFactCommand): Promise<RegisterFactResult>;
+  addConstraint(command: AddConstraintCommand): Promise<AddConstraintResult>;
+  createEntity(command: CreateEntityCommand): Promise<CreateEntityResult>;
   setScene(command: SetSceneCommand): Promise<SetSceneResult>;
   advanceTurn(command: AdvanceTurnCommand): Promise<AdvanceTurnResult>;
   confirmEntityMatch(command: ConfirmEntityMatchCommand): Promise<ConfirmEntityMatchResult>;

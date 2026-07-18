@@ -15,6 +15,12 @@ describe("parseArgv", () => {
     expect(r.rawCommand).toBe("bogus-cmd");
   });
 
+  it("treats collapse-attribute as an unknown removed command", () => {
+    const result = parseArgv(["collapse-attribute"]);
+    expect(result.command).toBe("unknown");
+    expect(result.rawCommand).toBe("collapse-attribute");
+  });
+
   it("treats --help as a help invocation with no command", () => {
     const r = parseArgv(["--help"]);
     expect(r.command).toBe("help");

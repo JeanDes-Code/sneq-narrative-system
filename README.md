@@ -142,14 +142,22 @@ const engine = new Engine({
 engine.routerClient() === sharedRouter; // true — the host and canon share one Router
 ```
 
-The strategy owns the atomic execution of `registerFact`, `setScene`, `advanceTurn`, and entity
-confirmation. Pure command decisions are available from `sneq-engine/atomic` so an adapter can run
+The strategy owns the atomic execution of `registerFact`, `setScene`, `advanceTurn`, entity
+confirmation, constraint append (`addConstraint`), and canonical entity creation (`createEntity`).
+Pure command decisions are available from `sneq-engine/atomic` so an adapter can run
 SNEQ's rules inside its store transaction without importing a framework into the engine.
 
 Every command carries an `operationId` generated once per logical engine call. A distributed strategy
 must atomically deduplicate retries of that ID and return the original result; this covers a committed
 store mutation whose transport response was lost. The local repository-backed strategy remains an
 in-process `Repository.transaction(fn)` implementation.
+
+Canonical creation is optimistic: `mentionEntity()` reads a per-campaign `entityRevision`, resolves and
+embeds outside any transaction, then asks the strategy to `createEntity` only if the revision is
+unchanged. If canon moved under it the create returns `stale` and the engine re-resolves against the
+newer world before retrying (bounded, then `SneqConcurrentEntityCreationError`). A distributed strategy
+must **not** record a non-terminal `stale` result in its idempotency store — only terminal
+create/existing/conflict results are deduplicated.
 
 For asynchronous web adjudication, `mentionEntity()` still returns `needsAdjudication`. A later
 request can confirm the selected existing entity and persist the mention as a player-observed alias:
@@ -199,7 +207,7 @@ sneq-engine validate-narration --db ./campaign.db --campaign forge-de-valmure \
   --args '{"narration":"Mira rejoint Aldric à Valmure.","strict":true}'
 ```
 
-- 15 commands: the 10 tool dispatcher entries (`lookup-entity`, `get-entity`, `get-relevant-facts`, `suggest-existing`, `mention-entity`, `register-fact`, `add-constraint`, `collapse-attribute`, `set-scene`, `advance-turn`) plus three conveniences (`init-campaign`, `get-scene`, `campaign-exists`), one defensive validation command (`validate-narration`), and one orchestration command (`prepare-turn`). `collapse-attribute` exits 1 with `NOT_IMPLEMENTED` (not wired in V2).
+- 14 commands: the 9 tool dispatcher entries (`lookup-entity`, `get-entity`, `get-relevant-facts`, `suggest-existing`, `mention-entity`, `register-fact`, `add-constraint`, `set-scene`, `advance-turn`) plus three conveniences (`init-campaign`, `get-scene`, `campaign-exists`), one defensive validation command (`validate-narration`), and one orchestration command (`prepare-turn`).
 - Exit codes: `0` on success, `1` on user/validation errors, `2` on internal errors.
 - Errors emit `{"error":"…","code":"…","details":…}` on stdout — never on stderr.
 - Provider keys (`ANTHROPIC_API_KEY`, `MISTRAL_API_KEY`, etc.) are read from env.
@@ -215,8 +223,7 @@ sneq-engine validate-narration --db ./campaign.db --campaign forge-de-valmure \
 ```ts
 import { Engine } from "sneq-engine";
 
-// Get the tool schemas in the shape your model wants (10 advertised tools —
-// collapse_attribute is excluded until it is actually wired):
+// Get the tool schemas in the shape your model wants (10 advertised tools):
 const anthropicTools = Engine.tools.anthropic;
 const openaiTools    = Engine.tools.openai;
 const geminiTools    = Engine.tools.gemini;
@@ -267,7 +274,7 @@ consumer│   Engine (facade)               │
 
 V2 is intentionally minimal. The following are out-of-scope for this version and tracked for follow-ups:
 
-- **`collapseAttribute` throws** — full attribute-collapse-with-validation-and-regeneration is deferred, and the tool is **no longer advertised to LLMs** (`ADVERTISED_TOOL_NAMES`). Consumers compose `Router.chat` + `validateValue` + `registerFact` themselves (both are exported).
+- **Attribute collapse (generate-then-commit)** — there is no `collapse` tool or method. Consumers compose it from exported primitives: `Router.chat` (heavy tier) + `validateValue` + `registerFact`.
 - **Pre-generation cache** — the v1 spec's elaborate predictor/cache for real-time RPGs. `PreGenerationHook` interface exists with a no-op default; the full implementation is a future version.
 - **Convex / Postgres repository adapters** — SQLite, in-memory, and JSON-file ship; the `Repository` contract test suite (`test/repository/contract.ts`) is the specification for new adapters.
 - **One DB per campaign is the blessed layout** — the sqlite-vec prefilter degrades on shared multi-campaign databases with many entities; the CLI examples already follow this.

@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import Database from "better-sqlite3";
 import type BetterSqlite3 from "better-sqlite3";
 import type {
@@ -12,8 +13,9 @@ import type { Turn } from "../../domain/turn.js";
 import type { CampaignId, EntityID, FactId } from "../../domain/ids.js";
 import { asCampaignId, asFactId } from "../../domain/ids.js";
 import { runMigrations } from "./migrations.js";
-import { loadVec, ensureVecTable, upsertVec, searchVec, deleteVecForCampaign } from "./vec.js";
+import { loadVec, ensureVecTable, upsertVec, searchVec, deleteVecForCampaign, deleteVecForEntity } from "./vec.js";
 import { normalizeAlias, normalizeText } from "../../resolver/normalize.js";
+import { SneqCampaignNotFoundError } from "../../errors.js";
 import {
   entityToRow, rowToEntity, type EntityRow,
   figedToRow, rowToFiged, type FigedRow,
@@ -33,7 +35,10 @@ export interface SqliteRepositoryOptions {
 export class SqliteRepository implements Repository {
   private readonly db: BetterSqlite3.Database;
   private dim: number | null;
+  private txDepth = 0;
   private txChain: Promise<unknown> = Promise.resolve();
+  /** Set only while this instance's own transaction callback is on the async call stack. */
+  private readonly inTransaction = new AsyncLocalStorage<boolean>();
 
   constructor(opts: SqliteRepositoryOptions) {
     this.db = new Database(opts.path, { readonly: opts.readonly ?? false });
@@ -53,6 +58,17 @@ export class SqliteRepository implements Repository {
     }
   }
 
+  private assertCampaignExists(campaignId: CampaignId): void {
+    const row = this.db.prepare(`SELECT 1 FROM campaigns WHERE id = ?`).get(campaignId);
+    if (!row) throw new SneqCampaignNotFoundError(campaignId);
+  }
+
+  private enqueue<T>(fn: () => Promise<T>): Promise<T> {
+    const result = this.txChain.then(fn);
+    this.txChain = result.catch(() => undefined);
+    return result;
+  }
+
   async listCampaigns(): Promise<CampaignMeta[]> {
     const rows = this.db.prepare(
       `SELECT id, name, created_at, embedding_dim FROM campaigns`
@@ -63,6 +79,12 @@ export class SqliteRepository implements Repository {
   }
 
   async createCampaign(meta: CampaignMeta): Promise<void> {
+    // "create" means create: an INSERT OR REPLACE here would reset entity_revision
+    // to 0 while leaving entities/aliases/vectors in place, letting a stale-revision
+    // creator commit a duplicate. Recreation must go through deleteCampaign first.
+    if (this.db.prepare(`SELECT 1 FROM campaigns WHERE id = ?`).get(meta.id)) {
+      throw new Error(`campaign "${meta.id}" already exists`);
+    }
     if (this.dim === null) {
       this.dim = meta.embeddingDim;
       if (this.dim > 0) {
@@ -75,11 +97,11 @@ export class SqliteRepository implements Repository {
       throw new Error(`Campaign embeddingDim=${meta.embeddingDim} != Repository dim=${this.dim} (one repository = one dimension)`);
     }
     this.db.prepare(
-      `INSERT OR REPLACE INTO campaigns (id, name, created_at, embedding_dim) VALUES (?, ?, ?, ?)`
+      `INSERT INTO campaigns (id, name, created_at, embedding_dim, entity_revision) VALUES (?, ?, ?, ?, 0)`
     ).run(meta.id, meta.name, meta.createdAt, meta.embeddingDim);
   }
 
-  async deleteCampaign(id: CampaignId): Promise<void> {
+  private deleteCampaignNow(id: CampaignId): void {
     const tx = this.db.transaction(() => {
       for (const t of ["entities", "aliases_norm", "figed", "potentialites", "nodes", "edges", "turns", "scenes"]) {
         this.db.prepare(`DELETE FROM ${t} WHERE campaign_id = ?`).run(id);
@@ -90,7 +112,26 @@ export class SqliteRepository implements Repository {
     tx();
   }
 
+  async deleteCampaign(id: CampaignId): Promise<void> {
+    // Invoked through a transaction handle we already hold the txChain slot;
+    // enqueue()-ing would deadlock against the transaction awaiting us. Run inline
+    // (better-sqlite3 nests it as a SAVEPOINT within the open BEGIN). A merely
+    // concurrent standalone call is on a different async context and still enqueues,
+    // so it stays ordered after the running transaction.
+    if (this.inTransaction.getStore()) { this.deleteCampaignNow(id); return; }
+    return this.enqueue(async () => { this.deleteCampaignNow(id); });
+  }
+
+  async entityRevision(campaignId: CampaignId): Promise<number> {
+    const row = this.db.prepare(
+      `SELECT entity_revision FROM campaigns WHERE id = ?`,
+    ).get(campaignId) as { entity_revision: number } | undefined;
+    if (!row) throw new SneqCampaignNotFoundError(campaignId);
+    return row.entity_revision;
+  }
+
   async upsertEntity(e: Entity): Promise<void> {
+    this.assertCampaignExists(e.campaignId);
     const r = entityToRow(e);
     const tx = this.db.transaction(() => {
       this.db.prepare(`
@@ -122,7 +163,15 @@ export class SqliteRepository implements Repository {
           throw new Error(`embedding dim mismatch for entity "${e.id}": got ${e.embedding!.length}, repository stores ${this.dim}. Did the embedding model change? Keep one model per database.`);
         }
         upsertVec(this.db, e.campaignId, e.id, e.embedding!);
+      } else if (this.dim !== null && this.dim > 0) {
+        // Clearing an entity's embedding must drop its old vector; otherwise a
+        // stale row keeps resolving mentions to an entity that reports no embedding.
+        deleteVecForEntity(this.db, e.campaignId, e.id);
       }
+
+      this.db.prepare(
+        `UPDATE campaigns SET entity_revision = entity_revision + 1 WHERE id = ?`,
+      ).run(e.campaignId);
     });
     tx();
   }
@@ -183,6 +232,7 @@ export class SqliteRepository implements Repository {
   }
 
   async appendFact(f: AttributFige & { campaignId: CampaignId }): Promise<{ factId: FactId }> {
+    this.assertCampaignExists(f.campaignId);
     const row = figedToRow(f);
     this.db.prepare(`
       INSERT OR REPLACE INTO figed
@@ -214,6 +264,7 @@ export class SqliteRepository implements Repository {
   }
 
   async upsertPotentialite(campaignId: CampaignId, p: Potentialite): Promise<void> {
+    this.assertCampaignExists(campaignId);
     const r = potentialiteToRow(p, campaignId);
     this.db.prepare(`
       INSERT OR REPLACE INTO potentialites
@@ -236,6 +287,7 @@ export class SqliteRepository implements Repository {
   }
 
   async upsertNode(campaignId: CampaignId, n: NoeudGCN): Promise<void> {
+    this.assertCampaignExists(campaignId);
     const r = nodeToRow(n, campaignId);
     this.db.prepare(`
       INSERT OR REPLACE INTO nodes
@@ -245,6 +297,7 @@ export class SqliteRepository implements Repository {
   }
 
   async upsertEdge(campaignId: CampaignId, a: AreteGCN): Promise<void> {
+    this.assertCampaignExists(campaignId);
     const r = edgeToRow(a, campaignId);
     this.db.prepare(`
       INSERT OR REPLACE INTO edges
@@ -253,7 +306,7 @@ export class SqliteRepository implements Repository {
     `).run(r);
   }
 
-  async neighbors(campaignId: CampaignId, entityId: EntityID, _depth: number): Promise<Array<{ node: NoeudGCN; edge: AreteGCN }>> {
+  async neighbors(campaignId: CampaignId, entityId: EntityID): Promise<Array<{ node: NoeudGCN; edge: AreteGCN }>> {
     const edgeRows = this.db.prepare(`
       SELECT * FROM edges WHERE campaign_id = ? AND (source = ? OR cible = ?)
     `).all(campaignId, entityId, entityId) as EdgeRow[];
@@ -271,6 +324,7 @@ export class SqliteRepository implements Repository {
   }
 
   async appendTurn(t: Turn): Promise<void> {
+    this.assertCampaignExists(t.campaignId);
     this.db.prepare(`
       INSERT OR REPLACE INTO turns (campaign_id, turn_number, summary, scene_id, created_at)
       VALUES (?, ?, ?, ?, ?)
@@ -293,6 +347,7 @@ export class SqliteRepository implements Repository {
   }
 
   async upsertScene(s: Scene): Promise<void> {
+    this.assertCampaignExists(s.campaignId);
     this.db.prepare(`
       INSERT OR REPLACE INTO scenes (campaign_id, id, location_id, present_entity_ids, description, created_at_turn)
       VALUES (?, ?, ?, ?, ?, ?)
@@ -322,24 +377,29 @@ export class SqliteRepository implements Repository {
   // better-sqlite3's .transaction() wrapper is sync-only and would commit before fn resolves.
   // A promise-chain mutex (txChain) serializes concurrent callers to prevent
   // "cannot start a transaction within a transaction" errors.
+  // BEGIN IMMEDIATE acquires the write lock up front so a second process waits
+  // (up to busy_timeout) instead of failing with SQLITE_BUSY when it tries to
+  // upgrade a stale deferred read — the optimistic revision check then reads the
+  // latest committed state and converges via a "stale" retry rather than throwing.
   async transaction<T>(fn: (tx: Repository) => Promise<T>): Promise<T> {
-    const result = this.txChain.then(async () => {
-      this.db.exec("BEGIN");
+    return this.enqueue(async () => {
+      this.db.exec("BEGIN IMMEDIATE");
+      this.txDepth++;
       try {
-        const r = await fn(this);
+        const result = await this.inTransaction.run(true, () => fn(this));
         this.db.exec("COMMIT");
-        return r;
-      } catch (e) {
+        return result;
+      } catch (error) {
         this.db.exec("ROLLBACK");
-        throw e;
+        throw error;
+      } finally {
+        this.txDepth--;
       }
     });
-    // Chain advances even if the inner promise rejects
-    this.txChain = result.catch(() => undefined);
-    return result;
   }
 
   async close(): Promise<void> {
+    await this.txChain;
     this.db.close();
   }
 }

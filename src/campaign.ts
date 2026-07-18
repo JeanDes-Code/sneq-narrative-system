@@ -1,5 +1,5 @@
 import { repositoryAtomicWriteStrategy } from "./atomic/repository-strategy.js";
-import type { AtomicWriteStrategy } from "./atomic/types.js";
+import type { AtomicWriteStrategy, CreateEntityResult } from "./atomic/types.js";
 import type { Repository, RepositoryAccess } from "./repository/interface.js";
 import type { Router } from "./router/router.js";
 import type { Resolver, ResolutionResult, SuggestionResult, Embedder } from "./resolver/resolver.js";
@@ -14,8 +14,10 @@ import type {
 import type { Logger } from "./logger.js";
 import type { CampaignId, EntityID, FactId, ConstraintId, SceneId } from "./domain/ids.js";
 import { asEntityID, asConstraintId, asFactId, asSceneId } from "./domain/ids.js";
-import { SneqCampaignNotFoundError } from "./errors.js";
+import { CampaignLifecycle } from "./campaign-lifecycle.js";
+import { SneqCampaignNotFoundError, SneqConcurrentEntityCreationError } from "./errors.js";
 import type { Entity, EntityType } from "./domain/entity.js";
+import { normalizeAlias } from "./resolver/normalize.js";
 import type { AttributFige, AttributValue, CategorieAttribut } from "./domain/attribute.js";
 import type { Observation } from "./domain/observation.js";
 import type { RegleContrainte } from "./domain/potentialite.js";
@@ -34,6 +36,7 @@ export interface CampaignContextDeps {
   preGen: PreGenerationRegistry;
   narrationGate: NarrationGateRegistry;
   logger: Logger;
+  lifecycle?: CampaignLifecycle;
 }
 
 export interface MentionInput {
@@ -69,13 +72,16 @@ function createOperationId(): string {
   return `op_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+const MAX_ENTITY_CREATION_ATTEMPTS = 3;
+
 export class CampaignContext implements ToolCallContext {
   readonly id: CampaignId;
-  private campaignVerified = false;
+  private readonly lifecycle: CampaignLifecycle;
   private readonly writeStrategy: AtomicWriteStrategy;
 
   constructor(private readonly deps: CampaignContextDeps) {
     this.id = deps.campaignId;
+    this.lifecycle = deps.lifecycle ?? new CampaignLifecycle(deps.campaignId);
     if (deps.writeStrategy) {
       this.writeStrategy = deps.writeStrategy;
       return;
@@ -88,15 +94,17 @@ export class CampaignContext implements ToolCallContext {
     this.writeStrategy = repositoryAtomicWriteStrategy(candidate as Repository);
   }
 
-  /** Library-path guard against phantom-campaign writes (the CLI pre-checks; in-process callers didn't). */
-  private async ensureCampaign(): Promise<void> {
-    if (this.campaignVerified) return;
+  private async ensureUsable(): Promise<void> {
+    this.lifecycle.assertUsable();
+    if (!this.lifecycle.needsVerification()) return;
     const all = await this.deps.repo.listCampaigns();
+    this.lifecycle.assertUsable();
     if (!all.some(c => c.id === this.id)) throw new SneqCampaignNotFoundError(this.id);
-    this.campaignVerified = true;
+    this.lifecycle.markVerified();
   }
 
   async resolveEntity(opts: { mention: string; type?: EntityType }): Promise<ResolutionResult> {
+    await this.ensureUsable();
     const scene = await this.deps.repo.currentScene(this.id);
     return this.deps.resolver.resolveEntity({
       campaignId: this.id,
@@ -106,16 +114,18 @@ export class CampaignContext implements ToolCallContext {
     });
   }
 
-  suggestExisting(mention: string, type: EntityType): Promise<SuggestionResult> {
+  async suggestExisting(mention: string, type: EntityType): Promise<SuggestionResult> {
+    await this.ensureUsable();
     return this.deps.resolver.suggestExisting({ campaignId: this.id, mention, type });
   }
 
-  getEntity(entityId: EntityID): Promise<Entity | null> {
+  async getEntity(entityId: EntityID): Promise<Entity | null> {
+    await this.ensureUsable();
     return this.deps.repo.getEntity(this.id, entityId);
   }
 
   async confirmEntityMatch(input: ConfirmEntityMatchInput): Promise<{ entityId: EntityID; aliasAdded: boolean }> {
-    await this.ensureCampaign();
+    await this.ensureUsable();
     return this.writeStrategy.confirmEntityMatch({
       operationId: createOperationId(),
       campaignId: this.id,
@@ -126,12 +136,13 @@ export class CampaignContext implements ToolCallContext {
     });
   }
 
-  async getRelevantFacts(entityId: EntityID, opts?: { attributeKeys?: string[]; depth?: number }): Promise<AttributFige[]> {
+  async getRelevantFacts(entityId: EntityID, opts?: { attributeKeys?: string[]; depth?: 0 | 1 }): Promise<AttributFige[]> {
+    await this.ensureUsable();
     const own = await this.deps.repo.getFigedAttributes(this.id, entityId);
     const filtered = opts?.attributeKeys ? own.filter(f => opts.attributeKeys!.includes(f.key)) : own;
     if (!opts?.depth || opts.depth <= 0) return filtered;
 
-    const neighbors = await this.deps.repo.neighbors(this.id, entityId, 1);
+    const neighbors = await this.deps.repo.neighbors(this.id, entityId);
     const extras: AttributFige[] = [];
     for (const n of neighbors) {
       const fs = await this.deps.repo.getFigedAttributes(this.id, n.node.entityId);
@@ -140,62 +151,122 @@ export class CampaignContext implements ToolCallContext {
     return [...filtered, ...extras];
   }
 
-  async currentScene(): Promise<Scene | null> { return this.deps.repo.currentScene(this.id); }
+  async currentScene(): Promise<Scene | null> {
+    await this.ensureUsable();
+    return this.deps.repo.currentScene(this.id);
+  }
 
   async mentionEntity(input: MentionInput): Promise<MentionResult> {
-    await this.ensureCampaign();
-    const resolution = await this.resolveEntity({
-      mention: input.canonicalName,
-      type: input.type
-    });
-    if (resolution.match) {
-      return { entityId: resolution.match.id, isNew: false, resolvedTo: resolution.match.id };
-    }
-    if (!input.force && resolution.unavailableReason) {
+    await this.ensureUsable();
+    const operationId = createOperationId();
+    const createdAt = Date.now();
+    const entityId = asEntityID(
+      `${input.type.toLowerCase()}_${createdAt}_${Math.random().toString(36).slice(2, 8)}`,
+    );
+    const aliasObservedAt = createdAt;
+    let embeddingComputed = false;
+    let embedding: Float32Array | null = null;
+    let embeddingRefreshedAt: number | null = null;
+
+    for (let attempt = 1; attempt <= MAX_ENTITY_CREATION_ATTEMPTS; attempt++) {
+      const expectedEntityRevision = await this.deps.repo.entityRevision(this.id);
+      const resolution = await this.resolveEntity({
+        mention: input.canonicalName,
+        type: input.type,
+      });
+
+      if (resolution.match) {
+        return { entityId: resolution.match.id, isNew: false, resolvedTo: resolution.match.id };
+      }
+      if (!input.force && resolution.unavailableReason) {
+        return {
+          entityId: null,
+          isNew: false,
+          needsAdjudication: true,
+          reason: "unavailable",
+          candidates: [],
+        };
+      }
+      if (!input.force && resolution.notFoundReason === "ambiguous" && resolution.candidates.length > 0) {
+        return {
+          entityId: null,
+          isNew: false,
+          needsAdjudication: true,
+          reason: "ambiguous",
+          candidates: resolution.candidates.slice(0, 5).map((candidate) => ({
+            entityId: candidate.id,
+            name: candidate.name,
+            type: candidate.type,
+          })),
+        };
+      }
+
+      if (!embeddingComputed) {
+        embeddingComputed = true;
+        if (this.deps.embedder) {
+          try {
+            embedding = await this.deps.embedder.embed(`${input.canonicalName}. ${input.description}`);
+            embeddingRefreshedAt = Date.now();
+          } catch {
+            embedding = null;
+            embeddingRefreshedAt = null;
+          }
+        }
+      }
+
+      const candidate: Entity = {
+        campaignId: this.id,
+        id: entityId,
+        type: input.type,
+        name: input.canonicalName,
+        description: input.description,
+        nomConnu: true,
+        aliases: (input.aliases ?? []).map((text) => ({
+          text,
+          source: { kind: "GM_NARRATION" as const },
+          observedAt: aliasObservedAt,
+        })),
+        tags: [],
+        createdAt,
+        embedding,
+        embeddingRefreshedAt,
+      };
+      const identityKeys = [...new Set(
+        [candidate.name, ...candidate.aliases.map((alias) => alias.text)].map(normalizeAlias),
+      )];
+      // Embedding/resolution above can await for a long time, during which this
+      // campaign may have been deleted (and the id possibly recreated as a fresh
+      // campaign). Re-assert the retained context's lifecycle so a stale context
+      // cannot commit an entity into a campaign it no longer represents.
+      this.lifecycle.assertUsable();
+      const result: CreateEntityResult = await this.writeStrategy.createEntity({
+        operationId,
+        campaignId: this.id,
+        expectedEntityRevision,
+        candidate,
+        identityKeys,
+        force: input.force === true,
+      });
+
+      if (result.status === "stale") continue;
+      if (result.status === "created") return { entityId: result.entityId, isNew: true };
+      if (result.status === "existing") {
+        return { entityId: result.entityId, isNew: false, resolvedTo: result.resolvedTo };
+      }
       return {
         entityId: null,
         isNew: false,
         needsAdjudication: true,
-        reason: "unavailable",
-        candidates: [],
-      };
-    }
-    // Ambiguous with live candidates: creating here would fork canon on a coin
-    // flip — exactly what the engine exists to prevent. The caller adjudicates
-    // (pick a candidate's entityId, or re-call with force:true).
-    if (!input.force && resolution.notFoundReason === "ambiguous" && resolution.candidates.length > 0) {
-      return {
-        entityId: null, isNew: false, needsAdjudication: true,
         reason: "ambiguous",
-        candidates: resolution.candidates.slice(0, 5).map(c => ({ entityId: c.id, name: c.name, type: c.type }))
+        candidates: result.candidates,
       };
     }
-    const id = asEntityID(`${input.type.toLowerCase()}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
-    let embedding: Float32Array | null = null;
-    let embeddingRefreshedAt: number | null = null;
-    if (this.deps.embedder) {
-      try {
-        embedding = await this.deps.embedder.embed(`${input.canonicalName}. ${input.description}`);
-        embeddingRefreshedAt = Date.now();
-      } catch {
-        embedding = null;
-        embeddingRefreshedAt = null;
-      }
-    }
-    const entity: Entity = {
-      campaignId: this.id, id, type: input.type, name: input.canonicalName,
-      description: input.description,
-      nomConnu: true,
-      aliases: (input.aliases ?? []).map(text => ({ text, source: { kind: "GM_NARRATION" as const }, observedAt: Date.now() })),
-      tags: [], createdAt: Date.now(),
-      embedding, embeddingRefreshedAt
-    };
-    await this.deps.repo.upsertEntity(entity);
-    return { entityId: id, isNew: true };
+
+    throw new SneqConcurrentEntityCreationError(this.id, MAX_ENTITY_CREATION_ATTEMPTS);
   }
 
   async registerFact(input: RegisterFactInput): Promise<{ factId: FactId | null; contradictions: AttributFige[] }> {
-    await this.ensureCampaign();
+    await this.ensureUsable();
     return this.writeStrategy.registerFact({
       operationId: createOperationId(),
       campaignId: this.id,
@@ -209,33 +280,22 @@ export class CampaignContext implements ToolCallContext {
   }
 
   async addConstraint(input: { entityId: EntityID; attributeKey: string; rule: RegleContrainte; justification: string }): Promise<{ constraintId: ConstraintId }> {
-    await this.ensureCampaign();
-    const existing = await this.deps.repo.getPotentialite(this.id, input.entityId, input.attributeKey);
-    const id = asConstraintId(`c_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
-    const newContrainte = {
-      id,
-      source: { kind: "INFERENCE_IA" as const, confidence: 0.7 },
-      createdAt: Date.now(),
-      regle: input.rule,
-      justificationNarrative: input.justification
-    };
-    const potentialite = existing ?? {
-      entiteId: input.entityId, attribut: input.attributeKey, etat: "INDEFINI" as const,
-      contraintes: [], contexteGeneratif: { categorieAttribut: "PSYCHOLOGIE" as const, tendances: [] }
-    };
-    potentialite.contraintes.push(newContrainte);
-    potentialite.etat = "CONTRAINT";
-    await this.deps.repo.upsertPotentialite(this.id, potentialite);
-    return { constraintId: id };
-  }
-
-  async collapseAttribute(_entityId: EntityID, _attributeKey: string, _opts?: { profondeur?: "MINIMAL"|"STANDARD"|"DETAILLE"; registre?: "NEUTRE"|"DRAMATIQUE"|"HUMORISTIQUE"|"SOMBRE" }): Promise<{ value: AttributValue; reasoning: string; propagation: { entitesImpactees: EntityID[] } }> {
-    // V2 ships a minimal collapse: caller is expected to compose Router.chat + validateValue + registerFact themselves.
-    throw new Error("collapseAttribute: not wired in V2 minimal scope. Use Router.chat directly with the heavy tier, then validateValue + registerFact.");
+    await this.ensureUsable();
+    const createdAt = Date.now();
+    return this.writeStrategy.addConstraint({
+      operationId: createOperationId(),
+      campaignId: this.id,
+      constraintId: asConstraintId(`c_${createdAt}_${Math.random().toString(36).slice(2, 8)}`),
+      entityId: input.entityId,
+      attributeKey: input.attributeKey,
+      rule: input.rule,
+      justification: input.justification,
+      createdAt,
+    });
   }
 
   async setScene(input: { locationEntityId: EntityID; presentEntityIds: EntityID[]; description: string }): Promise<{ sceneId: SceneId; turnNumber: number }> {
-    await this.ensureCampaign();
+    await this.ensureUsable();
     const result = await this.writeStrategy.setScene({
       operationId: createOperationId(),
       campaignId: this.id,
@@ -250,7 +310,7 @@ export class CampaignContext implements ToolCallContext {
   }
 
   async advanceTurn(summary?: string): Promise<{ turnNumber: number }> {
-    await this.ensureCampaign();
+    await this.ensureUsable();
     const result = await this.writeStrategy.advanceTurn({
       operationId: createOperationId(),
       campaignId: this.id,
@@ -262,18 +322,22 @@ export class CampaignContext implements ToolCallContext {
   }
 
   handleToolCall(name: string, args: unknown): Promise<unknown> {
+    this.lifecycle.assertUsable();
     return dispatchToolCall(name, args, this);
   }
 
   registerUserPromptHandler(fn: AskUserFn): { dispose(): void } {
+    this.lifecycle.assertUsable();
     return this.deps.userPrompt.register(fn);
   }
 
   registerPreGenerationHook(hook: PreGenerationHook): { dispose(): void } {
+    this.lifecycle.assertUsable();
     return this.deps.preGen.register(hook);
   }
 
   async validateNarration(input: NarrationGateInput): Promise<ValidationReport> {
+    await this.ensureUsable();
     return this.deps.narrationGate.validate(input, {
       campaignId: this.id,
       resolver: this.deps.resolver,
@@ -283,6 +347,7 @@ export class CampaignContext implements ToolCallContext {
   }
 
   registerNarrationGate(hook: NarrationGateHook): { dispose(): void } {
+    this.lifecycle.assertUsable();
     return this.deps.narrationGate.register(hook);
   }
 
@@ -290,6 +355,7 @@ export class CampaignContext implements ToolCallContext {
     scene: Scene | null;
     presentEntities: { entity: Entity; facts: AttributFige[] }[];
   }> {
+    await this.ensureUsable();
     const scene = await this.deps.repo.currentScene(this.id);
     if (!scene) return { scene: null, presentEntities: [] };
 

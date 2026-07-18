@@ -48,6 +48,12 @@ describe("CampaignContext.confirmEntityMatch", () => {
       _routerDeps: { resolveProvider: () => provider },
       writeStrategy: {
         registerFact: async () => ({ factId: null, contradictions: [] }),
+        addConstraint: async (command) => ({ constraintId: command.constraintId }),
+        createEntity: async (command) => ({
+          status: "created" as const,
+          entityId: command.candidate.id,
+          isNew: true as const,
+        }),
         setScene: async () => ({ sceneId: "s1" as never, turnNumber: 1 }),
         advanceTurn: async () => ({ turnNumber: 1 }),
         confirmEntityMatch,

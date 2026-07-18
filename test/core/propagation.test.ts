@@ -51,6 +51,32 @@ describe("propagation", () => {
     expect(result.contraintesPropagees[0]!.entityId).toBe(asEntityID("B"));
   });
 
+  it("returns structurally equal output for identical input", () => {
+    const input = {
+      fact,
+      campaignId: cid,
+      edges: [edge("A", "B")],
+      rules: [rule],
+      maxDepth: 2,
+      minForce: 0.1,
+      createdAt: 123,
+    };
+
+    expect(propagate(input)).toEqual(propagate(input));
+  });
+
+  it("falls back to the source observation timestamp", () => {
+    const result = propagate({
+      fact,
+      campaignId: cid,
+      edges: [edge("A", "B")],
+      rules: [rule],
+      maxDepth: 2,
+      minForce: 0.1,
+    });
+    expect(result.contraintesPropagees[0]!.contrainte.createdAt).toBe(fact.observation.timestamp);
+  });
+
   it("decays force across hops and stops below minForce", () => {
     const edges = [edge("A", "B", 0.5), edge("B", "C", 0.5), edge("C", "D", 0.5)];
     const result = propagate({ fact, campaignId: cid, edges, rules: [rule], maxDepth: 5, minForce: 0.2 });
@@ -70,5 +96,27 @@ describe("propagation", () => {
     const edges = [edge("A", "B")];
     const result = propagate({ fact, campaignId: cid, edges, rules: [otherRule], maxDepth: 2, minForce: 0.1 });
     expect(result.contraintesPropagees).toHaveLength(0);
+  });
+
+  it("does not propagate to any neighbor at maxDepth zero", () => {
+    const edges = [edge("A", "B")];
+    const result = propagate({ fact, campaignId: cid, edges, rules: [rule], maxDepth: 0, minForce: 0.1 });
+    expect(result.contraintesPropagees).toHaveLength(0);
+    expect(result.entitesImpactees).toEqual([]);
+  });
+
+  it("gives distinct constraint ids to tuples that a delimiter join would collide", () => {
+    const idOf = (factId: string, ruleId: string) =>
+      propagate({
+        fact: { ...fact, factId: asFactId(factId) },
+        campaignId: cid,
+        edges: [edge("A", "B")],
+        rules: [{ ...rule, id: ruleId }],
+        maxDepth: 1,
+        minForce: 0.1,
+      }).contraintesPropagees[0]!.contrainte.id;
+
+    // "f|r" + "x" vs "f" + "r|x" share the same "|"-joined string but are different tuples.
+    expect(idOf("f|r", "x")).not.toBe(idOf("f", "r|x"));
   });
 });

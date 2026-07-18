@@ -1,14 +1,17 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  decideAddConstraint,
   decideAdvanceTurn,
   decideConfirmEntityMatch,
+  decideCreateEntity,
   decideRegisterFact,
   decideSetScene,
 } from "../../src/atomic/decisions.js";
 import type { AttributFige } from "../../src/domain/attribute.js";
 import type { Entity } from "../../src/domain/entity.js";
-import { asCampaignId, asEntityID, asFactId, asSceneId } from "../../src/domain/ids.js";
+import { asCampaignId, asConstraintId, asEntityID, asFactId, asSceneId } from "../../src/domain/ids.js";
+import type { Potentialite } from "../../src/domain/potentialite.js";
 
 const campaignId = asCampaignId("c1");
 const entityId = asEntityID("e1");
@@ -47,6 +50,8 @@ function entity(overrides: Partial<Entity> = {}): Entity {
     ...overrides,
   };
 }
+
+const candidate = entity({ id: asEntityID("candidate"), name: "Captain Roric" });
 
 describe("atomic decisions", () => {
   it("rejects a contradictory fact without producing a write", () => {
@@ -111,6 +116,128 @@ describe("atomic decisions", () => {
     });
 
     expect(result.turn).toMatchObject({ turnNumber: 1, sceneId: null, summary: "Ouverture" });
+  });
+
+  it("creates a constrained potentiality without mutating inputs", () => {
+    const constraintId = asConstraintId("c-new");
+    const result = decideAddConstraint({
+      operationId: "op-constraint",
+      campaignId,
+      constraintId,
+      entityId,
+      attributeKey: "loyalty",
+      rule: { type: "REGEX", pattern: "duke|king" },
+      justification: "political pressure",
+      createdAt: 40,
+      existing: null,
+    });
+
+    expect(result.result).toEqual({ constraintId });
+    expect(result.potentialite).toMatchObject({
+      entiteId: entityId,
+      attribut: "loyalty",
+      etat: "CONTRAINT",
+    });
+    expect(result.potentialite.contraintes).toContainEqual({
+      id: constraintId,
+      source: { kind: "INFERENCE_IA", confidence: 0.7 },
+      createdAt: 40,
+      regle: { type: "REGEX", pattern: "duke|king" },
+      justificationNarrative: "political pressure",
+    });
+  });
+
+  it("appends to a cloned potentiality", () => {
+    const existing: Potentialite = {
+      entiteId: entityId,
+      attribut: "loyalty",
+      etat: "CONTRAINT",
+      contraintes: [{
+        id: asConstraintId("old"),
+        source: { kind: "INFERENCE_IA", confidence: 0.7 },
+        createdAt: 1,
+        regle: { type: "REGEX", pattern: "duke" },
+        justificationNarrative: "old",
+      }],
+      contexteGeneratif: { categorieAttribut: "PSYCHOLOGIE", tendances: [] },
+    };
+    const result = decideAddConstraint({
+      operationId: "op-constraint-2",
+      campaignId,
+      constraintId: asConstraintId("new"),
+      entityId,
+      attributeKey: "loyalty",
+      rule: { type: "REGEX", pattern: "king" },
+      justification: "new",
+      createdAt: 2,
+      existing,
+    });
+
+    expect(result.potentialite.contraintes).toHaveLength(2);
+    expect(existing.contraintes).toHaveLength(1);
+  });
+
+  it("returns stale before considering exact entity matches", () => {
+    expect(decideCreateEntity({
+      operationId: "op-create",
+      campaignId,
+      expectedEntityRevision: 1,
+      candidate,
+      identityKeys: ["captain roric"],
+      force: false,
+      currentEntityRevision: 2,
+      exactMatches: [entity()],
+    }).result).toEqual({ status: "stale" });
+  });
+
+  it("reuses one exact same-type entity match", () => {
+    const existingEntity = entity();
+    const decision = decideCreateEntity({
+      operationId: "op-create",
+      campaignId,
+      expectedEntityRevision: 1,
+      candidate,
+      identityKeys: ["captain roric"],
+      force: true,
+      currentEntityRevision: 1,
+      exactMatches: [existingEntity],
+    });
+
+    expect(decision.entity).toBeNull();
+    expect(decision.result).toEqual({
+      status: "existing",
+      entityId: existingEntity.id,
+      isNew: false,
+      resolvedTo: existingEntity.id,
+    });
+  });
+
+  it("returns conflict for multiple exact matches unless forced", () => {
+    const matches = [entity(), entity({ id: asEntityID("e2"), name: "Other" })];
+    const conflict = decideCreateEntity({
+      operationId: "op-create",
+      campaignId,
+      expectedEntityRevision: 1,
+      candidate,
+      identityKeys: ["captain"],
+      force: false,
+      currentEntityRevision: 1,
+      exactMatches: matches,
+    });
+    expect(conflict.result).toMatchObject({ status: "conflict" });
+
+    const forced = decideCreateEntity({
+      operationId: "op-force",
+      campaignId,
+      expectedEntityRevision: 1,
+      candidate,
+      identityKeys: ["captain"],
+      force: true,
+      currentEntityRevision: 1,
+      exactMatches: matches,
+    });
+    expect(forced.result).toEqual({ status: "created", entityId: candidate.id, isNew: true });
+    expect(forced.entity).toEqual(candidate);
   });
 
   it("rejects confirmation for an unknown entity", () => {

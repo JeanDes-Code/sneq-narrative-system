@@ -11,6 +11,7 @@ export interface PropagationInput {
   rules: ReadonlyArray<ReglePropagation>;
   maxDepth: number;
   minForce: number;
+  createdAt?: number;
 }
 
 export interface ContraintePropagee {
@@ -46,8 +47,13 @@ export function propagate(input: PropagationInput): PropagationResult {
   const queue: QueueItem[] = [];
   const result: ContraintePropagee[] = [];
 
-  for (const e of adjacency.get(fact.entityId) ?? []) {
-    queue.push({ entityId: e.cible, distance: 1, forceAccumulee: e.forcePropagation });
+  // maxDepth is the maximum hop distance; maxDepth < 1 disables propagation
+  // entirely (the source itself is never a target). Seeding distance-1 neighbors
+  // unconditionally would leak hop-1 constraints even when the caller asked for zero.
+  if (maxDepth >= 1) {
+    for (const e of adjacency.get(fact.entityId) ?? []) {
+      queue.push({ entityId: e.cible, distance: 1, forceAccumulee: e.forcePropagation });
+    }
   }
 
   while (queue.length > 0) {
@@ -57,10 +63,18 @@ export function propagate(input: PropagationInput): PropagationResult {
     visited.add(cur.entityId);
 
     for (const rule of applicableRules) {
+      const targetAttribute = deriveTargetAttribute(rule, fact);
       result.push({
         entityId: cur.entityId,
-        attributCible: deriveTargetAttribute(rule, fact),
-        contrainte: synthesizeContrainte(rule, fact, cur.forceAccumulee),
+        attributCible: targetAttribute,
+        contrainte: synthesizeContrainte(
+          input,
+          rule,
+          cur.entityId,
+          targetAttribute,
+          cur.distance,
+          cur.forceAccumulee,
+        ),
         hopDistance: cur.distance,
         forceAccumulee: cur.forceAccumulee
       });
@@ -113,16 +127,49 @@ function deriveTargetAttribute(rule: ReglePropagation, fact: AttributFige): stri
   return fact.key;
 }
 
-let contraintCounter = 0;
-function synthesizeContrainte(rule: ReglePropagation, fact: AttributFige, force: number): Contrainte {
+function stableHash(input: string): string {
+  // Two FNV-1a passes with distinct offset bases give ~64 bits of output, keeping
+  // the accidental-collision probability negligible for realistic constraint counts
+  // (a single 32-bit hash reaches ~50% collision odds around 65k constraints).
+  let h1 = 0x811c9dc5;
+  let h2 = 0xcbf29ce4;
+  for (let index = 0; index < input.length; index++) {
+    const c = input.charCodeAt(index);
+    h1 ^= c;
+    h1 = Math.imul(h1, 0x01000193);
+    h2 ^= c;
+    h2 = Math.imul(h2, 0x85ebca77);
+  }
+  return (h1 >>> 0).toString(36) + (h2 >>> 0).toString(36);
+}
+
+function synthesizeContrainte(
+  input: PropagationInput,
+  rule: ReglePropagation,
+  targetEntityId: EntityID,
+  targetAttribute: string,
+  hopDistance: number,
+  force: number,
+): Contrainte {
+  // JSON.stringify is delimiter-safe: a field containing the old "|" separator
+  // (e.g. factId="f|r" vs rule.id="r|x") can no longer shift the boundary and
+  // collide with a different tuple, because array structure and quoting are preserved.
+  const identity = JSON.stringify([
+    input.campaignId,
+    input.fact.factId,
+    rule.id,
+    targetEntityId,
+    targetAttribute,
+    hopDistance,
+  ]);
   return {
-    id: asConstraintId(`prop_${rule.id}_${++contraintCounter}`),
-    source: { kind: "FAIT_CANONIQUE", factId: fact.factId },
-    createdAt: Date.now(),
+    id: asConstraintId(`prop_${stableHash(identity)}`),
+    source: { kind: "FAIT_CANONIQUE", factId: input.fact.factId },
+    createdAt: input.createdAt ?? input.fact.observation.timestamp,
     regle: {
       type: "CORRELE_AVEC",
-      autreEntite: fact.entityId,
-      autreAttribut: fact.key
+      autreEntite: input.fact.entityId,
+      autreAttribut: input.fact.key
     },
     justificationNarrative: `${rule.nom} (force=${force.toFixed(2)})`
   };

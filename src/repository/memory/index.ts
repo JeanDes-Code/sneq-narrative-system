@@ -7,12 +7,15 @@ import type { Potentialite } from "../../domain/potentialite.js";
 import type { AreteGCN, NoeudGCN } from "../../domain/gcn.js";
 import type { Scene } from "../../domain/scene.js";
 import type { Turn } from "../../domain/turn.js";
+import { AsyncLocalStorage } from "node:async_hooks";
 import type { CampaignId, EntityID, FactId } from "../../domain/ids.js";
 import { asFactId } from "../../domain/ids.js";
 import { normalizeAlias, normalizeText } from "../../resolver/normalize.js";
+import { SneqCampaignNotFoundError } from "../../errors.js";
 
 export interface MemoryState {
   campaigns: Map<string, CampaignMeta>;
+  entityRevisions: Map<string, number>;
   entities: Map<string, Map<string, Entity>>;
   facts: Map<string, Map<string, AttributFige & { campaignId: CampaignId }>>;
   potentialites: Map<string, Map<string, Potentialite>>;
@@ -24,8 +27,8 @@ export interface MemoryState {
 
 export function emptyMemoryState(): MemoryState {
   return {
-    campaigns: new Map(), entities: new Map(), facts: new Map(), potentialites: new Map(),
-    nodes: new Map(), edges: new Map(), turns: new Map(), scenes: new Map()
+    campaigns: new Map(), entityRevisions: new Map(), entities: new Map(), facts: new Map(),
+    potentialites: new Map(), nodes: new Map(), edges: new Map(), turns: new Map(), scenes: new Map()
   };
 }
 
@@ -44,9 +47,23 @@ export class InMemoryRepository implements Repository {
   protected dim: number | null;
   protected txDepth = 0;
   private txChain: Promise<unknown> = Promise.resolve();
+  /** Set only while this instance's own transaction callback is on the async call stack. */
+  private readonly inTransaction = new AsyncLocalStorage<boolean>();
 
   constructor(opts: InMemoryRepositoryOptions = {}) {
     this.dim = opts.embeddingDim ?? null;
+  }
+
+  private assertCampaignExists(campaignId: CampaignId): void {
+    if (!this.state.campaigns.has(campaignId)) {
+      throw new SneqCampaignNotFoundError(campaignId);
+    }
+  }
+
+  private enqueue<T>(fn: () => Promise<T>): Promise<T> {
+    const result = this.txChain.then(fn);
+    this.txChain = result.catch(() => undefined);
+    return result;
   }
 
   // -- campaigns --------------------------------------------------------------
@@ -56,21 +73,44 @@ export class InMemoryRepository implements Repository {
   }
 
   async createCampaign(meta: CampaignMeta): Promise<void> {
+    // "create" means create: recreating an existing campaign would reset its
+    // entity revision to 0 while leaving canon in place, letting a stale-revision
+    // creator commit a duplicate. Recreation must go through deleteCampaign first.
+    if (this.state.campaigns.has(meta.id)) {
+      throw new Error(`campaign "${meta.id}" already exists`);
+    }
     if (this.dim === null) this.dim = meta.embeddingDim;
     else if (meta.embeddingDim !== this.dim) {
       throw new Error(`Campaign embeddingDim=${meta.embeddingDim} != Repository dim=${this.dim} (one repository = one dimension)`);
     }
     this.state.campaigns.set(meta.id, { ...meta });
+    this.state.entityRevisions.set(meta.id, 0);
     await this.mutated();
   }
 
-  async deleteCampaign(id: CampaignId): Promise<void> {
+  private async deleteCampaignNow(id: CampaignId): Promise<void> {
     this.state.campaigns.delete(id);
     for (const bucket of [this.state.entities, this.state.facts, this.state.potentialites,
                           this.state.nodes, this.state.edges, this.state.turns, this.state.scenes]) {
       bucket.delete(id);
     }
+    this.state.entityRevisions.delete(id);
     await this.mutated();
+  }
+
+  async deleteCampaign(id: CampaignId): Promise<void> {
+    // Invoked through a transaction handle (tx.deleteCampaign), we already hold the
+    // txChain slot; enqueue()-ing would wait forever on the transaction that is
+    // waiting for us. Run inline in that case, like every other in-transaction write.
+    // A merely concurrent standalone call is on a different async context and still
+    // enqueues, so it stays ordered after the running transaction.
+    if (this.inTransaction.getStore()) return this.deleteCampaignNow(id);
+    return this.enqueue(() => this.deleteCampaignNow(id));
+  }
+
+  async entityRevision(campaignId: CampaignId): Promise<number> {
+    this.assertCampaignExists(campaignId);
+    return this.state.entityRevisions.get(campaignId) ?? 0;
   }
 
   // -- entities ---------------------------------------------------------------
@@ -82,6 +122,7 @@ export class InMemoryRepository implements Repository {
   }
 
   async upsertEntity(e: Entity): Promise<void> {
+    this.assertCampaignExists(e.campaignId);
     if (e.embedding) {
       if (this.dim === null || this.dim === 0) {
         throw new Error(`entity "${e.id}" has an embedding but this repository has no vector store (embeddingDim=${this.dim ?? "unset"})`);
@@ -91,6 +132,10 @@ export class InMemoryRepository implements Repository {
       }
     }
     this.entitiesOf(e.campaignId).set(e.id, structuredClone(e));
+    this.state.entityRevisions.set(
+      e.campaignId,
+      (this.state.entityRevisions.get(e.campaignId) ?? 0) + 1,
+    );
     await this.mutated();
   }
 
@@ -145,6 +190,7 @@ export class InMemoryRepository implements Repository {
   }
 
   async appendFact(f: AttributFige & { campaignId: CampaignId }): Promise<{ factId: FactId }> {
+    this.assertCampaignExists(f.campaignId);
     this.factsOf(f.campaignId).set(`${f.entityId}|${f.key}`, structuredClone(f));
     await this.mutated();
     return { factId: asFactId(f.factId) };
@@ -172,6 +218,7 @@ export class InMemoryRepository implements Repository {
   // -- potentialites --------------------------------------------------------------
 
   async upsertPotentialite(campaignId: CampaignId, p: Potentialite): Promise<void> {
+    this.assertCampaignExists(campaignId);
     let m = this.state.potentialites.get(campaignId);
     if (!m) { m = new Map(); this.state.potentialites.set(campaignId, m); }
     m.set(`${p.entiteId}|${p.attribut}`, structuredClone(p));
@@ -191,6 +238,7 @@ export class InMemoryRepository implements Repository {
   // -- GCN --------------------------------------------------------------------
 
   async upsertNode(campaignId: CampaignId, n: NoeudGCN): Promise<void> {
+    this.assertCampaignExists(campaignId);
     let m = this.state.nodes.get(campaignId);
     if (!m) { m = new Map(); this.state.nodes.set(campaignId, m); }
     m.set(n.entityId, structuredClone(n));
@@ -198,13 +246,14 @@ export class InMemoryRepository implements Repository {
   }
 
   async upsertEdge(campaignId: CampaignId, a: AreteGCN): Promise<void> {
+    this.assertCampaignExists(campaignId);
     let m = this.state.edges.get(campaignId);
     if (!m) { m = new Map(); this.state.edges.set(campaignId, m); }
     m.set(a.key, structuredClone(a));
     await this.mutated();
   }
 
-  async neighbors(campaignId: CampaignId, entityId: EntityID, _depth: number): Promise<Array<{ node: NoeudGCN; edge: AreteGCN }>> {
+  async neighbors(campaignId: CampaignId, entityId: EntityID): Promise<Array<{ node: NoeudGCN; edge: AreteGCN }>> {
     const out: Array<{ node: NoeudGCN; edge: AreteGCN }> = [];
     for (const edge of this.state.edges.get(campaignId)?.values() ?? []) {
       if (edge.source !== entityId && edge.cible !== entityId) continue;
@@ -218,6 +267,7 @@ export class InMemoryRepository implements Repository {
   // -- turns / scenes -------------------------------------------------------------
 
   async appendTurn(t: Turn): Promise<void> {
+    this.assertCampaignExists(t.campaignId);
     let m = this.state.turns.get(t.campaignId);
     if (!m) { m = new Map(); this.state.turns.set(t.campaignId, m); }
     m.set(t.turnNumber, structuredClone(t));
@@ -231,6 +281,7 @@ export class InMemoryRepository implements Repository {
   }
 
   async upsertScene(s: Scene): Promise<void> {
+    this.assertCampaignExists(s.campaignId);
     let m = this.state.scenes.get(s.campaignId);
     if (!m) { m = new Map(); this.state.scenes.set(s.campaignId, m); }
     m.set(s.id, structuredClone(s));
@@ -250,25 +301,25 @@ export class InMemoryRepository implements Repository {
   // -- transaction ------------------------------------------------------------------
 
   async transaction<T>(fn: (tx: Repository) => Promise<T>): Promise<T> {
-    const result = this.txChain.then(async () => {
+    return this.enqueue(async () => {
       const snapshot = structuredClone(this.state);
       this.txDepth++;
       try {
-        const r = await fn(this);
+        const result = await this.inTransaction.run(true, () => fn(this));
         this.txDepth--;
         await this.mutated();
-        return r;
-      } catch (e) {
-        this.txDepth--;
+        return result;
+      } catch (error) {
+        if (this.txDepth > 0) this.txDepth--;
         this.state = snapshot;
-        throw e;
+        throw error;
       }
     });
-    this.txChain = result.catch(() => undefined);
-    return result;
   }
 
-  async close(): Promise<void> { /* nothing to release */ }
+  async close(): Promise<void> {
+    await this.txChain;
+  }
 
   /** Persistence hook for subclasses (JSON adapter). No-op in memory. */
   protected async mutated(): Promise<void> { /* no-op */ }

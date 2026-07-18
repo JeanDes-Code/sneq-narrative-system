@@ -10,7 +10,6 @@ const COMMAND_DESCRIPTIONS: Record<CommandName, string> = {
   "mention-entity":     "Introduce or re-use a canonical entity",
   "register-fact":      "Append a figed (canonical) attribute to an entity",
   "add-constraint":     "Add a soft or strict constraint to a non-figed attribute",
-  "collapse-attribute": "NOT wired in V2 (exits 1 NOT_IMPLEMENTED); compose chat + validate + register-fact",
   "set-scene":          "Declare the current scene and its present entities",
   "advance-turn":       "Increment the campaign turn counter",
   "validate-narration": "Scan a candidate narration for unresolved proper nouns (hybrid: regex → resolver → light-tier LLM)",

@@ -10,11 +10,10 @@ export interface ToolCallContext {
   resolveEntity(opts: { mention: string; type?: EntityType }): Promise<ResolutionResult>;
   suggestExisting(mention: string, type: EntityType): Promise<SuggestionResult>;
   getEntity(entityId: EntityID): Promise<Entity | null>;
-  getRelevantFacts(entityId: EntityID, opts?: { attributeKeys?: string[]; depth?: number }): Promise<AttributFige[]>;
+  getRelevantFacts(entityId: EntityID, opts?: { attributeKeys?: string[]; depth?: 0 | 1 }): Promise<AttributFige[]>;
   mentionEntity(input: { canonicalName: string; type: EntityType; aliases?: string[]; description: string; force?: boolean }): Promise<import("../campaign.js").MentionResult>;
   registerFact(input: { entityId: EntityID; attributeKey: string; value: AttributValue; category: CategorieAttribut; observation: Observation }): Promise<{ factId: FactId | null; contradictions: AttributFige[] }>;
   addConstraint(input: { entityId: EntityID; attributeKey: string; rule: RegleContrainte; justification: string }): Promise<{ constraintId: ConstraintId }>;
-  collapseAttribute(entityId: EntityID, attributeKey: string, opts?: { profondeur?: "MINIMAL" | "STANDARD" | "DETAILLE"; registre?: "NEUTRE" | "DRAMATIQUE" | "HUMORISTIQUE" | "SOMBRE" }): Promise<{ value: AttributValue; reasoning: string; propagation: { entitesImpactees: EntityID[] } }>;
   setScene(input: { locationEntityId: EntityID; presentEntityIds: EntityID[]; description: string }): Promise<{ sceneId: SceneId; turnNumber: number }>;
   advanceTurn(summary?: string): Promise<{ turnNumber: number }>;
   validateNarration(input: { narration: string; type?: EntityType; strict?: boolean }): Promise<import("../hooks/narration-gate.js").ValidationReport>;
@@ -39,7 +38,7 @@ export async function dispatchToolCall(name: string, rawArgs: unknown, ctx: Tool
     case "sneq__get_relevant_facts":
       return ctx.getRelevantFacts(args["entityId"] as EntityID, {
         ...(args["attributeKeys"] !== undefined ? { attributeKeys: args["attributeKeys"] as string[] } : {}),
-        ...(args["depth"] !== undefined ? { depth: args["depth"] as number } : {})
+        ...(args["depth"] !== undefined ? { depth: args["depth"] as 0 | 1 } : {})
       });
     case "sneq__suggest_existing":
       return ctx.suggestExisting(args["mention"] as string, args["type"] as EntityType);
@@ -65,11 +64,6 @@ export async function dispatchToolCall(name: string, rawArgs: unknown, ctx: Tool
         attributeKey: args["attributeKey"] as string,
         rule: args["rule"] as RegleContrainte,
         justification: args["justification"] as string
-      });
-    case "sneq__collapse_attribute":
-      return ctx.collapseAttribute(args["entityId"] as EntityID, args["attributeKey"] as string, {
-        ...(args["profondeur"] !== undefined ? { profondeur: args["profondeur"] as "MINIMAL" | "STANDARD" | "DETAILLE" } : {}),
-        ...(args["registre"] !== undefined ? { registre: args["registre"] as "NEUTRE" | "DRAMATIQUE" | "HUMORISTIQUE" | "SOMBRE" } : {})
       });
     case "sneq__set_scene":
       return ctx.setScene({

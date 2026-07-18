@@ -29,6 +29,7 @@ describe("JsonFileRepository · persistence", () => {
     expect(got?.description).toBe("smith");
     expect(got?.embedding).toBeInstanceOf(Float32Array);
     expect(Array.from(got!.embedding!)).toEqual([1, 0, 0, 0]);
+    expect(await r2.entityRevision(cid)).toBe(1);
     await expect(r2.createCampaign({ id: asCampaignId("c2"), name: "bad", createdAt: 0, embeddingDim: 9 }))
       .rejects.toThrow(/dim/i);
     await r2.close();

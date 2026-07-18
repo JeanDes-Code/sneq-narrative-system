@@ -25,7 +25,13 @@ export { ProviderHttpError } from "./router/interface.js";
 
 // Errors
 export {
-  SneqValidationError, SneqContradictionError, SneqProviderError, SneqCampaignNotFoundError,
+  SneqValidationError,
+  SneqContradictionError,
+  SneqProviderError,
+  SneqCampaignNotFoundError,
+  SneqCampaignContextInvalidatedError,
+  SneqConcurrentEntityCreationError,
+  type CampaignContextInvalidationReason,
   type ValidationFailureDetail
 } from "./errors.js";
 
@@ -39,6 +45,15 @@ export type {
 export type {
   AtomicCommand,
   AtomicWriteStrategy,
+  AddConstraintCommand,
+  AddConstraintResult,
+  AddConstraintDecisionInput,
+  AddConstraintDecision,
+  CreateEntityCommand,
+  CreateEntityResult,
+  CreateEntityDecisionInput,
+  CreateEntityDecision,
+  EntityCandidateSummary,
   ConfirmEntityMatchCommand,
   ConfirmEntityMatchResult,
   ConfirmEntityMatchDecisionInput,
@@ -57,8 +72,10 @@ export type {
   SetSceneDecision,
 } from "./atomic/types.js";
 export {
+  decideAddConstraint,
   decideAdvanceTurn,
   decideConfirmEntityMatch,
+  decideCreateEntity,
   decideRegisterFact,
   decideSetScene,
 } from "./atomic/decisions.js";

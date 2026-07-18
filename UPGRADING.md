@@ -13,6 +13,27 @@ then run the verification commands at the bottom.
 
 ---
 
+## Unreleased pre-1.0 changes after 0.1.0
+
+These land on top of 0.1.0 and are not yet published. If you track `main`:
+
+- `collapse-attribute`, `sneq__collapse_attribute`, and `CampaignContext.collapseAttribute` were
+  **removed**. They never succeeded in 0.1.0 (they threw / exited 1). The CLI now reports
+  `collapse-attribute` as an unknown command. Compose the equivalent yourself: `Router.chat`
+  (heavy tier) + `validateValue` + `registerFact`.
+- `getRelevantFacts(..., { depth })` now accepts only `0 | 1`; a `depth` of `2`/`3` fails
+  validation. Repository `neighbors(campaignId, entityId)` dropped its unused `depth` argument and
+  is explicitly direct-only.
+- Custom `AtomicWriteStrategy` implementations must add `addConstraint` and `createEntity`, plus the
+  new `entityRevision(campaignId)` repository method and the entity-revision / idempotency semantics
+  documented in the README. A non-terminal `stale` create result must not be recorded in an
+  idempotency store.
+- Stale or closed `CampaignContext` references now throw `SneqCampaignContextInvalidatedError`
+  instead of reaching repository state. Repository adapters reject campaign-scoped writes whose
+  parent campaign does not exist (`SneqCampaignNotFoundError`).
+
+---
+
 ## 1. Out-of-process consumers (the `sneq-engine` CLI — e.g. Hermes-Agent)
 
 ### 1.1 MUST handle — `mention-entity` can refuse to create (anti-fork guard)
@@ -47,7 +68,7 @@ changes vector dimension poisons the vector store on failover. Decision table:
 | `GOOGLE_GENAI_API_KEY` is set, DB created with dim 768 | Nothing — default config works. |
 | Only `MISTRAL_API_KEY` is set (you relied on the fallback) | Provide `--config <file>` with Mistral as the embeddings **primary**, `"embeddingDim": 1024` on its ref. Example below. |
 | Your DB was created with dim 1024 (old CLI default) | Same as above — your vectors are 1024 (Mistral); pin Mistral as primary. The DB keeps working; the dim is remembered. |
-| You don't want embeddings at all | Init new campaigns with `--embedding-dim 0`; resolution becomes alias-only (see 1.4). |
+| You don't want embeddings at all | Init new campaigns with `--embedding-dim 0`; resolution becomes alias-only (see 1.3). |
 
 Mistral-primary config file (`sneq-config.json`, pass via `--config`):
 
@@ -83,13 +104,7 @@ instead of guessing.
 `--embedding-dim 0` is now valid: no vectors, no `sqlite-vec` needed, alias-only
 resolution. In that mode, register aliases eagerly — they are the entire lookup surface.
 
-### 1.4 CHANGED — `collapse-attribute` exits 1 with `NOT_IMPLEMENTED`
-
-It previously crashed with exit 2 / `INTERNAL_ERROR`. It was never functional in V2 and
-is no longer advertised in the LLM tool sets. If you scripted around it, compose the
-equivalent yourself: decide the value, then `register-fact`.
-
-### 1.5 Compatible / additive (no action needed)
+### 1.4 Compatible / additive (no action needed)
 
 - **Database files**: opened DBs are migrated automatically (one additive
   `ALTER TABLE entities ADD COLUMN description`). No export/import, no re-init.
@@ -99,8 +114,7 @@ equivalent yourself: decide the value, then `register-fact`.
 - **Entity payloads** (`get-entity`, `prepare-turn`, candidates) now include a
   `description` field. Additive; ignore it or use it.
 - **`mention-entity` args** accept optional `"force": true` (see 1.1).
-- **Errors got more useful**: provider-exhausted messages now include per-attempt
-  details; new error code `NOT_IMPLEMENTED` exists.
+- **Errors got more useful**: provider-exhausted messages now include per-attempt details.
 - **Latency note**: the router now actually retries (default: 1 retry on
   QUOTA/SERVER/TIMEOUT/NETWORK with exponential backoff), so a failing call can take
   longer before erroring than in 0.0.x. Exit codes and the JSON-on-stdout contract are
@@ -109,7 +123,7 @@ equivalent yourself: decide the value, then `register-fact`.
   flow, degraded mode, collapse removal). If your agent loads it at session start,
   refresh your copy after pulling.
 
-### 1.6 Upgrade procedure (agent-executable)
+### 1.5 Upgrade procedure (agent-executable)
 
 ```bash
 cd <sneq-narrative-system checkout>
@@ -138,7 +152,7 @@ Breaking changes (pre-publish window — nothing on npm consumed 0.0.x):
 | `asContraintId`/`ContraintId` → `asConstraintId`/`ConstraintId` | Rename. |
 | `SqliteRepositoryOptions.embeddingDim` is optional | Omit to adopt the stored dim; `0` = no vectors. |
 | zod peer is v4 | If you import `toolSchemas` (zod objects), you need zod ^4. JSON Schemas (`toolJsonSchemas`) are zod-free. |
-| Advertised tool sets are 10 tools (`ADVERTISED_TOOL_NAMES`) | `collapse_attribute` is excluded; the dispatcher still accepts it (it throws). |
+| Advertised tool sets are 10 tools (`ADVERTISED_TOOL_NAMES`, now equal to `ToolNames`) | `collapse_attribute` is gone from every surface (see the unreleased section above); the dispatcher rejects it as an unknown tool. |
 | Writes throw `SneqCampaignNotFoundError` for never-created campaigns | Create campaigns before writing (you should already). |
 
 New capabilities worth adopting: `sneq-engine/memory` and `sneq-engine/json`
@@ -150,7 +164,7 @@ repositories (zero native deps), keyless mode, `Entity.description`, real retrie
 
 | Check | Command | Expect |
 |---|---|---|
-| Build is current | `pnpm build && sneq-engine --help` | help lists 15 commands |
+| Build is current | `pnpm build && sneq-engine --help` | help lists 14 commands |
 | Existing DB opens without the dim flag | `sneq-engine campaign-exists --db <db> --campaign <id>` | `{"exists":true,…,"embeddingDim":<stored>}` |
 | Migration applied | `sneq-engine get-entity --db <db> --campaign <id> --args '{"entityId":"<known>"}'` | entity JSON (with `description` null/absent for old rows) |
 | Adjudication handled | trigger an ambiguous `mention-entity` in a test campaign | your code branches on `needsAdjudication` instead of using `null` |

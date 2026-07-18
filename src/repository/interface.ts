@@ -34,6 +34,7 @@ export interface Repository {
   listCampaigns(): Promise<CampaignMeta[]>;
   createCampaign(meta: CampaignMeta): Promise<void>;
   deleteCampaign(id: CampaignId): Promise<void>;
+  entityRevision(campaignId: CampaignId): Promise<number>;
 
   // Entities
   upsertEntity(e: Entity): Promise<void>;
@@ -56,7 +57,7 @@ export interface Repository {
   // GCN
   upsertNode(campaignId: CampaignId, n: NoeudGCN): Promise<void>;
   upsertEdge(campaignId: CampaignId, a: AreteGCN): Promise<void>;
-  neighbors(campaignId: CampaignId, entityId: EntityID, depth: number): Promise<Array<{ node: NoeudGCN; edge: AreteGCN }>>;
+  neighbors(campaignId: CampaignId, entityId: EntityID): Promise<Array<{ node: NoeudGCN; edge: AreteGCN }>>;
 
   // Turn / Scene
   appendTurn(t: Turn): Promise<void>;

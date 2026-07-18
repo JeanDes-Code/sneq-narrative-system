@@ -1,6 +1,6 @@
 import type BetterSqlite3 from "better-sqlite3";
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 const MIGRATIONS: Array<{ version: number; sql: string }> = [
   {
@@ -112,6 +112,10 @@ const MIGRATIONS: Array<{ version: number; sql: string }> = [
   {
     version: 2,
     sql: `ALTER TABLE entities ADD COLUMN description TEXT;`
+  },
+  {
+    version: 3,
+    sql: `ALTER TABLE campaigns ADD COLUMN entity_revision INTEGER NOT NULL DEFAULT 0;`
   }
 ];
 
