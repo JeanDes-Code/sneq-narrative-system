@@ -1,5 +1,6 @@
+import { repositoryAtomicWriteStrategy } from "./atomic/repository-strategy.js";
 import type { AtomicWriteStrategy } from "./atomic/types.js";
-import type { RepositoryAccess } from "./repository/interface.js";
+import type { Repository, RepositoryAccess } from "./repository/interface.js";
 import type { Router } from "./router/router.js";
 import type { Resolver, ResolutionResult, SuggestionResult, Embedder } from "./resolver/resolver.js";
 import type { UserPromptRegistry, AskUserFn } from "./hooks/user-prompt.js";
@@ -26,7 +27,7 @@ export interface CampaignContextDeps {
   repo: RepositoryAccess;
   router: Router;
   resolver: Resolver;
-  writeStrategy: AtomicWriteStrategy;
+  writeStrategy?: AtomicWriteStrategy;
   /** null = keyless mode (no embeddings tier): entities are stored without vectors. */
   embedder: Embedder | null;
   userPrompt: UserPromptRegistry;
@@ -71,8 +72,21 @@ function createOperationId(): string {
 export class CampaignContext implements ToolCallContext {
   readonly id: CampaignId;
   private campaignVerified = false;
+  private readonly writeStrategy: AtomicWriteStrategy;
 
-  constructor(private readonly deps: CampaignContextDeps) { this.id = deps.campaignId; }
+  constructor(private readonly deps: CampaignContextDeps) {
+    this.id = deps.campaignId;
+    if (deps.writeStrategy) {
+      this.writeStrategy = deps.writeStrategy;
+      return;
+    }
+
+    const candidate = deps.repo as Partial<Repository>;
+    if (typeof candidate.transaction !== "function") {
+      throw new Error("repository without transaction requires CampaignContextDeps.writeStrategy");
+    }
+    this.writeStrategy = repositoryAtomicWriteStrategy(candidate as Repository);
+  }
 
   /** Library-path guard against phantom-campaign writes (the CLI pre-checks; in-process callers didn't). */
   private async ensureCampaign(): Promise<void> {
@@ -102,7 +116,7 @@ export class CampaignContext implements ToolCallContext {
 
   async confirmEntityMatch(input: ConfirmEntityMatchInput): Promise<{ entityId: EntityID; aliasAdded: boolean }> {
     await this.ensureCampaign();
-    return this.deps.writeStrategy.confirmEntityMatch({
+    return this.writeStrategy.confirmEntityMatch({
       operationId: createOperationId(),
       campaignId: this.id,
       mention: input.mention,
@@ -182,7 +196,7 @@ export class CampaignContext implements ToolCallContext {
 
   async registerFact(input: RegisterFactInput): Promise<{ factId: FactId | null; contradictions: AttributFige[] }> {
     await this.ensureCampaign();
-    return this.deps.writeStrategy.registerFact({
+    return this.writeStrategy.registerFact({
       operationId: createOperationId(),
       campaignId: this.id,
       factId: asFactId(`f_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`),
@@ -222,7 +236,7 @@ export class CampaignContext implements ToolCallContext {
 
   async setScene(input: { locationEntityId: EntityID; presentEntityIds: EntityID[]; description: string }): Promise<{ sceneId: SceneId; turnNumber: number }> {
     await this.ensureCampaign();
-    const result = await this.deps.writeStrategy.setScene({
+    const result = await this.writeStrategy.setScene({
       operationId: createOperationId(),
       campaignId: this.id,
       sceneId: asSceneId(`s_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`),
@@ -237,7 +251,7 @@ export class CampaignContext implements ToolCallContext {
 
   async advanceTurn(summary?: string): Promise<{ turnNumber: number }> {
     await this.ensureCampaign();
-    const result = await this.deps.writeStrategy.advanceTurn({
+    const result = await this.writeStrategy.advanceTurn({
       operationId: createOperationId(),
       campaignId: this.id,
       ...(summary !== undefined ? { summary } : {}),

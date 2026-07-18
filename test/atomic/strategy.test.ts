@@ -2,10 +2,16 @@ import { describe, expect, it, vi } from "vitest";
 
 import { repositoryAtomicWriteStrategy } from "../../src/atomic/repository-strategy.js";
 import type { AtomicWriteStrategy } from "../../src/atomic/types.js";
+import { CampaignContext } from "../../src/campaign.js";
 import { Engine } from "../../src/engine.js";
 import { asCampaignId, asEntityID } from "../../src/domain/ids.js";
+import { NarrationGateRegistry } from "../../src/hooks/narration-gate.js";
+import { PreGenerationRegistry } from "../../src/hooks/pre-generation.js";
+import { UserPromptRegistry } from "../../src/hooks/user-prompt.js";
+import { noopLogger } from "../../src/logger.js";
 import { InMemoryRepository } from "../../src/repository/memory/index.js";
 import type { RepositoryAccess } from "../../src/repository/interface.js";
+import { Resolver } from "../../src/resolver/resolver.js";
 import type { ChatRequest, EmbeddingRequest, Provider, ProviderRef, RouterConfig } from "../../src/router/interface.js";
 import { Router } from "../../src/router/router.js";
 
@@ -77,6 +83,42 @@ describe("atomic write strategy selection", () => {
       .resolves.toEqual({ turnNumber: 1 });
 
     expect(transaction).toHaveBeenCalledOnce();
+    expect(await repository.latestTurn(campaignId)).toMatchObject({ turnNumber: 1, summary: "one" });
+  });
+
+  it("preserves direct CampaignContext construction with a transactional repository", async () => {
+    const campaignId = asCampaignId("direct-context");
+    const repository = new InMemoryRepository({ embeddingDim: 0 });
+    await repository.createCampaign({
+      id: campaignId,
+      name: "Direct",
+      createdAt: 0,
+      embeddingDim: 0,
+    });
+    const router = new Router(routerConfig, routerDeps);
+    const userPrompt = new UserPromptRegistry();
+    const campaign = new CampaignContext({
+      campaignId,
+      repo: repository,
+      router,
+      resolver: new Resolver({
+        repo: repository,
+        router,
+        embedder: null,
+        userPromptRegistry: userPrompt,
+      }),
+      embedder: null,
+      userPrompt,
+      preGen: new PreGenerationRegistry(),
+      narrationGate: new NarrationGateRegistry({
+        async validate() {
+          return { ok: true, extractedNames: [], issues: [] };
+        },
+      }),
+      logger: noopLogger,
+    });
+
+    await expect(campaign.advanceTurn("one")).resolves.toEqual({ turnNumber: 1 });
     expect(await repository.latestTurn(campaignId)).toMatchObject({ turnNumber: 1, summary: "one" });
   });
 

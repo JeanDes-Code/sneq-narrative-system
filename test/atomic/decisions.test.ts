@@ -137,6 +137,30 @@ describe("atomic decisions", () => {
     })).toThrow(/type mismatch/i);
   });
 
+  it("rejects confirmation when the entity belongs to another campaign", () => {
+    expect(() => decideConfirmEntityMatch({
+      operationId: "op-confirm-campaign",
+      campaignId,
+      entityId,
+      mention: "le capitaine",
+      type: "PERSONNAGE",
+      observedAt: 20,
+      entity: entity({ campaignId: asCampaignId("other-campaign") }),
+    })).toThrow(/campaign mismatch/i);
+  });
+
+  it("rejects confirmation when the loaded entity ID differs", () => {
+    expect(() => decideConfirmEntityMatch({
+      operationId: "op-confirm-entity",
+      campaignId,
+      entityId,
+      mention: "le capitaine",
+      type: "PERSONNAGE",
+      observedAt: 20,
+      entity: entity({ id: asEntityID("other-entity") }),
+    })).toThrow(/entity mismatch/i);
+  });
+
   it("returns an idempotent result for normalized canonical names and aliases", () => {
     const canonical = decideConfirmEntityMatch({
       operationId: "op-confirm-name",

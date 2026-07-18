@@ -73,6 +73,14 @@ export function decideConfirmEntityMatch(
       `entity "${String(input.entityId)}" not found in campaign "${String(input.campaignId)}"`,
     );
   }
+  if (entity.campaignId !== input.campaignId) {
+    throw new Error(
+      `entity campaign mismatch: expected ${String(input.campaignId)}, got ${String(entity.campaignId)}`,
+    );
+  }
+  if (entity.id !== input.entityId) {
+    throw new Error(`entity mismatch: expected ${String(input.entityId)}, got ${String(entity.id)}`);
+  }
   if (entity.type !== input.type) {
     throw new Error(`entity type mismatch: expected ${input.type}, got ${entity.type}`);
   }
