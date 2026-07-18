@@ -1,10 +1,8 @@
 import { jsonSchemas } from "./json-schema.js";
 import { toolDescriptions, ToolNames, type ToolName } from "./schemas.js";
 
-/** Tools advertised to LLMs. collapse_attribute is excluded until it is actually
- *  wired (V2 throws) — advertising a tool that always fails trains the model on traps. */
-export const ADVERTISED_TOOL_NAMES: readonly ToolName[] =
-  ToolNames.filter(n => n !== "sneq__collapse_attribute");
+/** Tools advertised to LLMs. Every listed tool is implemented. */
+export const ADVERTISED_TOOL_NAMES: readonly ToolName[] = ToolNames;
 
 export function anthropicTools(): Array<{ name: string; description: string; input_schema: object }> {
   return ADVERTISED_TOOL_NAMES.map(name => ({

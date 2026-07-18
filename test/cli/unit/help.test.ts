@@ -1,12 +1,13 @@
 import { describe, it, expect } from "vitest";
 import { helpText } from "../../../src/cli/help.js";
+import { KNOWN_COMMANDS } from "../../../src/cli/types.js";
 
 describe("helpText", () => {
-  it("lists all 15 commands in the general help", () => {
+  it("lists the fourteen supported commands and omits collapse-attribute", () => {
     const out = helpText();
-    expect(out).toContain("validate-narration");
-    expect(out).toContain("prepare-turn");
-    expect(out).toContain("campaign-exists");
+    expect(KNOWN_COMMANDS).toHaveLength(14);
+    expect(out).not.toContain("collapse-attribute");
+    for (const command of KNOWN_COMMANDS) expect(out).toContain(command);
   });
 
   it("returns command-specific help for validate-narration", () => {

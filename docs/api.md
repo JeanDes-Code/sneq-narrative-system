@@ -14,7 +14,9 @@
 - [Resolver](classes/Resolver.md)
 - [Router](classes/Router.md)
 - [RouterExhaustedError](classes/RouterExhaustedError.md)
+- [SneqCampaignContextInvalidatedError](classes/SneqCampaignContextInvalidatedError.md)
 - [SneqCampaignNotFoundError](classes/SneqCampaignNotFoundError.md)
+- [SneqConcurrentEntityCreationError](classes/SneqConcurrentEntityCreationError.md)
 - [SneqContradictionError](classes/SneqContradictionError.md)
 - [SneqProviderError](classes/SneqProviderError.md)
 - [SneqValidationError](classes/SneqValidationError.md)
@@ -23,6 +25,10 @@
 
 ## Interfaces
 
+- [AddConstraintCommand](interfaces/AddConstraintCommand.md)
+- [AddConstraintDecision](interfaces/AddConstraintDecision.md)
+- [AddConstraintDecisionInput](interfaces/AddConstraintDecisionInput.md)
+- [AddConstraintResult](interfaces/AddConstraintResult.md)
 - [AdvanceTurnCommand](interfaces/AdvanceTurnCommand.md)
 - [AdvanceTurnDecision](interfaces/AdvanceTurnDecision.md)
 - [AdvanceTurnDecisionInput](interfaces/AdvanceTurnDecisionInput.md)
@@ -45,12 +51,16 @@
 - [ContexteGeneratif](interfaces/ContexteGeneratif.md)
 - [Contrainte](interfaces/Contrainte.md)
 - [ContraintePropagee](interfaces/ContraintePropagee.md)
+- [CreateEntityCommand](interfaces/CreateEntityCommand.md)
+- [CreateEntityDecision](interfaces/CreateEntityDecision.md)
+- [CreateEntityDecisionInput](interfaces/CreateEntityDecisionInput.md)
 - [DefaultDepsOptions](interfaces/DefaultDepsOptions.md)
 - [Embedder](interfaces/Embedder.md)
 - [EmbeddingRequest](interfaces/EmbeddingRequest.md)
 - [EmbeddingResponse](interfaces/EmbeddingResponse.md)
 - [EngineConfig](interfaces/EngineConfig.md)
 - [Entity](interfaces/Entity.md)
+- [EntityCandidateSummary](interfaces/EntityCandidateSummary.md)
 - [EntityWithScore](interfaces/EntityWithScore.md)
 - [FactQuery](interfaces/FactQuery.md)
 - [Logger](interfaces/Logger.md)
@@ -106,10 +116,12 @@
 - [AliasSource](type-aliases/AliasSource.md)
 - [AskUserFn](type-aliases/AskUserFn.md)
 - [AttributValue](type-aliases/AttributValue.md)
+- [CampaignContextInvalidationReason](type-aliases/CampaignContextInvalidationReason.md)
 - [CampaignId](type-aliases/CampaignId.md)
 - [CategorieAttribut](type-aliases/CategorieAttribut.md)
 - [ConstraintId](type-aliases/ConstraintId.md)
 - [ContrainteSource](type-aliases/ContrainteSource.md)
+- [CreateEntityResult](type-aliases/CreateEntityResult.md)
 - [EntityID](type-aliases/EntityID.md)
 - [EntityType](type-aliases/EntityType.md)
 - [EtatAttribut](type-aliases/EtatAttribut.md)
@@ -148,8 +160,10 @@
 - [asFactId](functions/asFactId.md)
 - [asSceneId](functions/asSceneId.md)
 - [createDefaultDeps](functions/createDefaultDeps.md)
+- [decideAddConstraint](functions/decideAddConstraint.md)
 - [decideAdvanceTurn](functions/decideAdvanceTurn.md)
 - [decideConfirmEntityMatch](functions/decideConfirmEntityMatch.md)
+- [decideCreateEntity](functions/decideCreateEntity.md)
 - [decideRegisterFact](functions/decideRegisterFact.md)
 - [decideSetScene](functions/decideSetScene.md)
 - [defaultRouterConfig](functions/defaultRouterConfig.md)
@@ -254,40 +268,6 @@
 
 ***
 
-### collapseAttribute()
-
-> **collapseAttribute**(`_entityId`, `_attributeKey`, `_opts?`): `Promise`\<\{ `propagation`: \{ `entitesImpactees`: [`EntityID`](../type-aliases/EntityID.md)[]; \}; `reasoning`: `string`; `value`: [`AttributValue`](../type-aliases/AttributValue.md); \}\>
-
-#### Parameters
-
-##### \_entityId
-
-[`EntityID`](../type-aliases/EntityID.md)
-
-##### \_attributeKey
-
-`string`
-
-##### \_opts?
-
-###### profondeur?
-
-`"MINIMAL"` \| `"STANDARD"` \| `"DETAILLE"`
-
-###### registre?
-
-`"NEUTRE"` \| `"DRAMATIQUE"` \| `"HUMORISTIQUE"` \| `"SOMBRE"`
-
-#### Returns
-
-`Promise`\<\{ `propagation`: \{ `entitesImpactees`: [`EntityID`](../type-aliases/EntityID.md)[]; \}; `reasoning`: `string`; `value`: [`AttributValue`](../type-aliases/AttributValue.md); \}\>
-
-#### Implementation of
-
-[`ToolCallContext`](../interfaces/ToolCallContext.md).[`collapseAttribute`](../interfaces/ToolCallContext.md#collapseattribute)
-
-***
-
 ### confirmEntityMatch()
 
 > **confirmEntityMatch**(`input`): `Promise`\<\{ `aliasAdded`: `boolean`; `entityId`: [`EntityID`](../type-aliases/EntityID.md); \}\>
@@ -352,7 +332,7 @@
 
 ###### depth?
 
-`number`
+`0` \| `1`
 
 #### Returns
 
@@ -648,7 +628,7 @@
 
 #### jsonSchema
 
-> `readonly` **jsonSchema**: `Record`\<`"sneq__lookup_entity"` \| `"sneq__get_entity"` \| `"sneq__get_relevant_facts"` \| `"sneq__suggest_existing"` \| `"sneq__mention_entity"` \| `"sneq__register_fact"` \| `"sneq__add_constraint"` \| `"sneq__collapse_attribute"` \| `"sneq__set_scene"` \| `"sneq__advance_turn"` \| `"sneq__validate_narration"`, `object`\> = `jsonSchemas`
+> `readonly` **jsonSchema**: `Record`\<`"sneq__lookup_entity"` \| `"sneq__get_entity"` \| `"sneq__get_relevant_facts"` \| `"sneq__suggest_existing"` \| `"sneq__mention_entity"` \| `"sneq__register_fact"` \| `"sneq__add_constraint"` \| `"sneq__set_scene"` \| `"sneq__advance_turn"` \| `"sneq__validate_narration"`, `object`\> = `jsonSchemas`
 
 #### openai
 
@@ -666,17 +646,13 @@
 
 > `readonly` **sneq\_\_advance\_turn**: `ZodObject`\<\{ `summary`: `ZodOptional`\<`ZodString`\>; \}, `$strip`\>
 
-##### zod.sneq\_\_collapse\_attribute
-
-> `readonly` **sneq\_\_collapse\_attribute**: `ZodObject`\<\{ `attributeKey`: `ZodString`; `entityId`: `ZodString`; `profondeur`: `ZodOptional`\<`ZodEnum`\<\{ `DETAILLE`: `"DETAILLE"`; `MINIMAL`: `"MINIMAL"`; `STANDARD`: `"STANDARD"`; \}\>\>; `registre`: `ZodOptional`\<`ZodEnum`\<\{ `DRAMATIQUE`: `"DRAMATIQUE"`; `HUMORISTIQUE`: `"HUMORISTIQUE"`; `NEUTRE`: `"NEUTRE"`; `SOMBRE`: `"SOMBRE"`; \}\>\>; \}, `$strip`\>
-
 ##### zod.sneq\_\_get\_entity
 
 > `readonly` **sneq\_\_get\_entity**: `ZodObject`\<\{ `entityId`: `ZodString`; \}, `$strip`\>
 
 ##### zod.sneq\_\_get\_relevant\_facts
 
-> `readonly` **sneq\_\_get\_relevant\_facts**: `ZodObject`\<\{ `attributeKeys`: `ZodOptional`\<`ZodArray`\<`ZodString`\>\>; `depth`: `ZodOptional`\<`ZodNumber`\>; `entityId`: `ZodString`; \}, `$strip`\>
+> `readonly` **sneq\_\_get\_relevant\_facts**: `ZodObject`\<\{ `attributeKeys`: `ZodOptional`\<`ZodArray`\<`ZodString`\>\>; `depth`: `ZodOptional`\<`ZodUnion`\<readonly \[`ZodLiteral`\<`0`\>, `ZodLiteral`\<`1`\>\]\>\>; `entityId`: `ZodString`; \}, `$strip`\>
 
 ##### zod.sneq\_\_lookup\_entity
 
@@ -1512,6 +1488,210 @@ https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 
 ***
 
+[sneq-engine API](../README.md) / SneqCampaignContextInvalidatedError
+
+# Class: SneqCampaignContextInvalidatedError
+
+## Extends
+
+- `Error`
+
+## Constructors
+
+### Constructor
+
+> **new SneqCampaignContextInvalidatedError**(`campaignId`, `reason`): `SneqCampaignContextInvalidatedError`
+
+#### Parameters
+
+##### campaignId
+
+`string`
+
+##### reason
+
+[`CampaignContextInvalidationReason`](../type-aliases/CampaignContextInvalidationReason.md)
+
+#### Returns
+
+`SneqCampaignContextInvalidatedError`
+
+#### Overrides
+
+`Error.constructor`
+
+## Properties
+
+### campaignId
+
+> `readonly` **campaignId**: `string`
+
+***
+
+### cause?
+
+> `optional` **cause?**: `unknown`
+
+#### Inherited from
+
+`Error.cause`
+
+***
+
+### message
+
+> **message**: `string`
+
+#### Inherited from
+
+`Error.message`
+
+***
+
+### name
+
+> **name**: `string`
+
+#### Inherited from
+
+`Error.name`
+
+***
+
+### reason
+
+> `readonly` **reason**: [`CampaignContextInvalidationReason`](../type-aliases/CampaignContextInvalidationReason.md)
+
+***
+
+### stack?
+
+> `optional` **stack?**: `string`
+
+#### Inherited from
+
+`Error.stack`
+
+***
+
+### stackTraceLimit
+
+> `static` **stackTraceLimit**: `number`
+
+The `Error.stackTraceLimit` property specifies the number of stack frames
+collected by a stack trace (whether generated by `new Error().stack` or
+`Error.captureStackTrace(obj)`).
+
+The default value is `10` but may be set to any valid JavaScript number. Changes
+will affect any stack trace captured _after_ the value has been changed.
+
+If set to a non-number value, or set to a negative number, stack traces will
+not capture any frames.
+
+#### Inherited from
+
+`Error.stackTraceLimit`
+
+## Methods
+
+### captureStackTrace()
+
+> `static` **captureStackTrace**(`targetObject`, `constructorOpt?`): `void`
+
+Creates a `.stack` property on `targetObject`, which when accessed returns
+a string representing the location in the code at which
+`Error.captureStackTrace()` was called.
+
+```js
+const myObject = {};
+Error.captureStackTrace(myObject);
+myObject.stack;  // Similar to `new Error().stack`
+```
+
+The first line of the trace will be prefixed with
+`${myObject.name}: ${myObject.message}`.
+
+The optional `constructorOpt` argument accepts a function. If given, all frames
+above `constructorOpt`, including `constructorOpt`, will be omitted from the
+generated stack trace.
+
+The `constructorOpt` argument is useful for hiding implementation
+details of error generation from the user. For instance:
+
+```js
+function a() {
+  b();
+}
+
+function b() {
+  c();
+}
+
+function c() {
+  // Create an error without stack trace to avoid calculating the stack trace twice.
+  const { stackTraceLimit } = Error;
+  Error.stackTraceLimit = 0;
+  const error = new Error();
+  Error.stackTraceLimit = stackTraceLimit;
+
+  // Capture the stack trace above function b
+  Error.captureStackTrace(error, b); // Neither function c, nor b is included in the stack trace
+  throw error;
+}
+
+a();
+```
+
+#### Parameters
+
+##### targetObject
+
+`object`
+
+##### constructorOpt?
+
+`Function`
+
+#### Returns
+
+`void`
+
+#### Inherited from
+
+`Error.captureStackTrace`
+
+***
+
+### prepareStackTrace()
+
+> `static` **prepareStackTrace**(`err`, `stackTraces`): `any`
+
+#### Parameters
+
+##### err
+
+`Error`
+
+##### stackTraces
+
+`CallSite`[]
+
+#### Returns
+
+`any`
+
+#### See
+
+https://v8.dev/docs/stack-trace-api#customizing-stack-traces
+
+#### Inherited from
+
+`Error.prepareStackTrace`
+
+[**sneq-engine API**](../README.md)
+
+***
+
 [sneq-engine API](../README.md) / SneqCampaignNotFoundError
 
 # Class: SneqCampaignNotFoundError
@@ -1541,6 +1721,210 @@ https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 `Error.constructor`
 
 ## Properties
+
+### campaignId
+
+> `readonly` **campaignId**: `string`
+
+***
+
+### cause?
+
+> `optional` **cause?**: `unknown`
+
+#### Inherited from
+
+`Error.cause`
+
+***
+
+### message
+
+> **message**: `string`
+
+#### Inherited from
+
+`Error.message`
+
+***
+
+### name
+
+> **name**: `string`
+
+#### Inherited from
+
+`Error.name`
+
+***
+
+### stack?
+
+> `optional` **stack?**: `string`
+
+#### Inherited from
+
+`Error.stack`
+
+***
+
+### stackTraceLimit
+
+> `static` **stackTraceLimit**: `number`
+
+The `Error.stackTraceLimit` property specifies the number of stack frames
+collected by a stack trace (whether generated by `new Error().stack` or
+`Error.captureStackTrace(obj)`).
+
+The default value is `10` but may be set to any valid JavaScript number. Changes
+will affect any stack trace captured _after_ the value has been changed.
+
+If set to a non-number value, or set to a negative number, stack traces will
+not capture any frames.
+
+#### Inherited from
+
+`Error.stackTraceLimit`
+
+## Methods
+
+### captureStackTrace()
+
+> `static` **captureStackTrace**(`targetObject`, `constructorOpt?`): `void`
+
+Creates a `.stack` property on `targetObject`, which when accessed returns
+a string representing the location in the code at which
+`Error.captureStackTrace()` was called.
+
+```js
+const myObject = {};
+Error.captureStackTrace(myObject);
+myObject.stack;  // Similar to `new Error().stack`
+```
+
+The first line of the trace will be prefixed with
+`${myObject.name}: ${myObject.message}`.
+
+The optional `constructorOpt` argument accepts a function. If given, all frames
+above `constructorOpt`, including `constructorOpt`, will be omitted from the
+generated stack trace.
+
+The `constructorOpt` argument is useful for hiding implementation
+details of error generation from the user. For instance:
+
+```js
+function a() {
+  b();
+}
+
+function b() {
+  c();
+}
+
+function c() {
+  // Create an error without stack trace to avoid calculating the stack trace twice.
+  const { stackTraceLimit } = Error;
+  Error.stackTraceLimit = 0;
+  const error = new Error();
+  Error.stackTraceLimit = stackTraceLimit;
+
+  // Capture the stack trace above function b
+  Error.captureStackTrace(error, b); // Neither function c, nor b is included in the stack trace
+  throw error;
+}
+
+a();
+```
+
+#### Parameters
+
+##### targetObject
+
+`object`
+
+##### constructorOpt?
+
+`Function`
+
+#### Returns
+
+`void`
+
+#### Inherited from
+
+`Error.captureStackTrace`
+
+***
+
+### prepareStackTrace()
+
+> `static` **prepareStackTrace**(`err`, `stackTraces`): `any`
+
+#### Parameters
+
+##### err
+
+`Error`
+
+##### stackTraces
+
+`CallSite`[]
+
+#### Returns
+
+`any`
+
+#### See
+
+https://v8.dev/docs/stack-trace-api#customizing-stack-traces
+
+#### Inherited from
+
+`Error.prepareStackTrace`
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / SneqConcurrentEntityCreationError
+
+# Class: SneqConcurrentEntityCreationError
+
+## Extends
+
+- `Error`
+
+## Constructors
+
+### Constructor
+
+> **new SneqConcurrentEntityCreationError**(`campaignId`, `attempts`): `SneqConcurrentEntityCreationError`
+
+#### Parameters
+
+##### campaignId
+
+`string`
+
+##### attempts
+
+`number`
+
+#### Returns
+
+`SneqConcurrentEntityCreationError`
+
+#### Overrides
+
+`Error.constructor`
+
+## Properties
+
+### attempts
+
+> `readonly` **attempts**: `number`
+
+***
 
 ### campaignId
 
@@ -2505,6 +2889,210 @@ Full pipeline: extract → resolve → llm → assemble.
 
 ***
 
+[sneq-engine API](../README.md) / AddConstraintCommand
+
+# Interface: AddConstraintCommand
+
+## Extends
+
+- [`AtomicCommand`](AtomicCommand.md)
+
+## Extended by
+
+- [`AddConstraintDecisionInput`](AddConstraintDecisionInput.md)
+
+## Properties
+
+### attributeKey
+
+> **attributeKey**: `string`
+
+***
+
+### campaignId
+
+> **campaignId**: [`CampaignId`](../type-aliases/CampaignId.md)
+
+***
+
+### constraintId
+
+> **constraintId**: [`ConstraintId`](../type-aliases/ConstraintId.md)
+
+***
+
+### createdAt
+
+> **createdAt**: `number`
+
+***
+
+### entityId
+
+> **entityId**: [`EntityID`](../type-aliases/EntityID.md)
+
+***
+
+### justification
+
+> **justification**: `string`
+
+***
+
+### operationId
+
+> **operationId**: `string`
+
+Stable token for atomically deduplicating retries of one logical write.
+
+#### Inherited from
+
+[`AtomicCommand`](AtomicCommand.md).[`operationId`](AtomicCommand.md#operationid)
+
+***
+
+### rule
+
+> **rule**: [`RegleContrainte`](../type-aliases/RegleContrainte.md)
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / AddConstraintDecision
+
+# Interface: AddConstraintDecision
+
+## Properties
+
+### potentialite
+
+> **potentialite**: [`Potentialite`](Potentialite.md)
+
+***
+
+### result
+
+> **result**: [`AddConstraintResult`](AddConstraintResult.md)
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / AddConstraintDecisionInput
+
+# Interface: AddConstraintDecisionInput
+
+## Extends
+
+- [`AddConstraintCommand`](AddConstraintCommand.md)
+
+## Properties
+
+### attributeKey
+
+> **attributeKey**: `string`
+
+#### Inherited from
+
+[`AddConstraintCommand`](AddConstraintCommand.md).[`attributeKey`](AddConstraintCommand.md#attributekey)
+
+***
+
+### campaignId
+
+> **campaignId**: [`CampaignId`](../type-aliases/CampaignId.md)
+
+#### Inherited from
+
+[`AddConstraintCommand`](AddConstraintCommand.md).[`campaignId`](AddConstraintCommand.md#campaignid)
+
+***
+
+### constraintId
+
+> **constraintId**: [`ConstraintId`](../type-aliases/ConstraintId.md)
+
+#### Inherited from
+
+[`AddConstraintCommand`](AddConstraintCommand.md).[`constraintId`](AddConstraintCommand.md#constraintid)
+
+***
+
+### createdAt
+
+> **createdAt**: `number`
+
+#### Inherited from
+
+[`AddConstraintCommand`](AddConstraintCommand.md).[`createdAt`](AddConstraintCommand.md#createdat)
+
+***
+
+### entityId
+
+> **entityId**: [`EntityID`](../type-aliases/EntityID.md)
+
+#### Inherited from
+
+[`AddConstraintCommand`](AddConstraintCommand.md).[`entityId`](AddConstraintCommand.md#entityid)
+
+***
+
+### existing
+
+> **existing**: [`Potentialite`](Potentialite.md) \| `null`
+
+***
+
+### justification
+
+> **justification**: `string`
+
+#### Inherited from
+
+[`AddConstraintCommand`](AddConstraintCommand.md).[`justification`](AddConstraintCommand.md#justification)
+
+***
+
+### operationId
+
+> **operationId**: `string`
+
+Stable token for atomically deduplicating retries of one logical write.
+
+#### Inherited from
+
+[`AddConstraintCommand`](AddConstraintCommand.md).[`operationId`](AddConstraintCommand.md#operationid)
+
+***
+
+### rule
+
+> **rule**: [`RegleContrainte`](../type-aliases/RegleContrainte.md)
+
+#### Inherited from
+
+[`AddConstraintCommand`](AddConstraintCommand.md).[`rule`](AddConstraintCommand.md#rule)
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / AddConstraintResult
+
+# Interface: AddConstraintResult
+
+## Properties
+
+### constraintId
+
+> **constraintId**: [`ConstraintId`](../type-aliases/ConstraintId.md)
+
+[**sneq-engine API**](../README.md)
+
+***
+
 [sneq-engine API](../README.md) / AdvanceTurnCommand
 
 # Interface: AdvanceTurnCommand
@@ -2747,6 +3335,8 @@ Stable token for atomically deduplicating retries of one logical write.
 
 ## Extended by
 
+- [`AddConstraintCommand`](AddConstraintCommand.md)
+- [`CreateEntityCommand`](CreateEntityCommand.md)
 - [`ConfirmEntityMatchCommand`](ConfirmEntityMatchCommand.md)
 - [`RegisterFactCommand`](RegisterFactCommand.md)
 - [`SetSceneCommand`](SetSceneCommand.md)
@@ -2769,6 +3359,22 @@ Stable token for atomically deduplicating retries of one logical write.
 # Interface: AtomicWriteStrategy
 
 ## Methods
+
+### addConstraint()
+
+> **addConstraint**(`command`): `Promise`\<[`AddConstraintResult`](AddConstraintResult.md)\>
+
+#### Parameters
+
+##### command
+
+[`AddConstraintCommand`](AddConstraintCommand.md)
+
+#### Returns
+
+`Promise`\<[`AddConstraintResult`](AddConstraintResult.md)\>
+
+***
 
 ### advanceTurn()
 
@@ -2799,6 +3405,22 @@ Stable token for atomically deduplicating retries of one logical write.
 #### Returns
 
 `Promise`\<[`ConfirmEntityMatchResult`](ConfirmEntityMatchResult.md)\>
+
+***
+
+### createEntity()
+
+> **createEntity**(`command`): `Promise`\<[`CreateEntityResult`](../type-aliases/CreateEntityResult.md)\>
+
+#### Parameters
+
+##### command
+
+[`CreateEntityCommand`](CreateEntityCommand.md)
+
+#### Returns
+
+`Promise`\<[`CreateEntityResult`](../type-aliases/CreateEntityResult.md)\>
 
 ***
 
@@ -3348,6 +3970,170 @@ Stable token for atomically deduplicating retries of one logical write.
 
 ***
 
+[sneq-engine API](../README.md) / CreateEntityCommand
+
+# Interface: CreateEntityCommand
+
+## Extends
+
+- [`AtomicCommand`](AtomicCommand.md)
+
+## Extended by
+
+- [`CreateEntityDecisionInput`](CreateEntityDecisionInput.md)
+
+## Properties
+
+### campaignId
+
+> **campaignId**: [`CampaignId`](../type-aliases/CampaignId.md)
+
+***
+
+### candidate
+
+> **candidate**: [`Entity`](Entity.md)
+
+***
+
+### expectedEntityRevision
+
+> **expectedEntityRevision**: `number`
+
+***
+
+### force
+
+> **force**: `boolean`
+
+***
+
+### identityKeys
+
+> **identityKeys**: `string`[]
+
+***
+
+### operationId
+
+> **operationId**: `string`
+
+Stable token for atomically deduplicating retries of one logical write.
+
+#### Inherited from
+
+[`AtomicCommand`](AtomicCommand.md).[`operationId`](AtomicCommand.md#operationid)
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / CreateEntityDecision
+
+# Interface: CreateEntityDecision
+
+## Properties
+
+### entity
+
+> **entity**: [`Entity`](Entity.md) \| `null`
+
+***
+
+### result
+
+> **result**: [`CreateEntityResult`](../type-aliases/CreateEntityResult.md)
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / CreateEntityDecisionInput
+
+# Interface: CreateEntityDecisionInput
+
+## Extends
+
+- [`CreateEntityCommand`](CreateEntityCommand.md)
+
+## Properties
+
+### campaignId
+
+> **campaignId**: [`CampaignId`](../type-aliases/CampaignId.md)
+
+#### Inherited from
+
+[`CreateEntityCommand`](CreateEntityCommand.md).[`campaignId`](CreateEntityCommand.md#campaignid)
+
+***
+
+### candidate
+
+> **candidate**: [`Entity`](Entity.md)
+
+#### Inherited from
+
+[`CreateEntityCommand`](CreateEntityCommand.md).[`candidate`](CreateEntityCommand.md#candidate)
+
+***
+
+### currentEntityRevision
+
+> **currentEntityRevision**: `number`
+
+***
+
+### exactMatches
+
+> **exactMatches**: [`Entity`](Entity.md)[]
+
+***
+
+### expectedEntityRevision
+
+> **expectedEntityRevision**: `number`
+
+#### Inherited from
+
+[`CreateEntityCommand`](CreateEntityCommand.md).[`expectedEntityRevision`](CreateEntityCommand.md#expectedentityrevision)
+
+***
+
+### force
+
+> **force**: `boolean`
+
+#### Inherited from
+
+[`CreateEntityCommand`](CreateEntityCommand.md).[`force`](CreateEntityCommand.md#force)
+
+***
+
+### identityKeys
+
+> **identityKeys**: `string`[]
+
+#### Inherited from
+
+[`CreateEntityCommand`](CreateEntityCommand.md).[`identityKeys`](CreateEntityCommand.md#identitykeys)
+
+***
+
+### operationId
+
+> **operationId**: `string`
+
+Stable token for atomically deduplicating retries of one logical write.
+
+#### Inherited from
+
+[`CreateEntityCommand`](CreateEntityCommand.md).[`operationId`](CreateEntityCommand.md#operationid)
+
+[**sneq-engine API**](../README.md)
+
+***
+
 [sneq-engine API](../README.md) / DefaultDepsOptions
 
 # Interface: DefaultDepsOptions
@@ -3559,6 +4345,32 @@ Human-readable description, persisted at mention time. Feeds the judge prompt an
 ### tags
 
 > **tags**: `string`[]
+
+***
+
+### type
+
+> **type**: [`EntityType`](../type-aliases/EntityType.md)
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / EntityCandidateSummary
+
+# Interface: EntityCandidateSummary
+
+## Properties
+
+### entityId
+
+> **entityId**: [`EntityID`](../type-aliases/EntityID.md)
+
+***
+
+### name
+
+> **name**: `string`
 
 ***
 
@@ -4105,6 +4917,12 @@ Create even when resolution is ambiguous (after the caller adjudicated).
 ### campaignId
 
 > **campaignId**: [`CampaignId`](../type-aliases/CampaignId.md)
+
+***
+
+### createdAt?
+
+> `optional` **createdAt?**: `number`
 
 ***
 
@@ -4711,6 +5529,22 @@ Stable token for atomically deduplicating retries of one logical write.
 
 ***
 
+### entityRevision()
+
+> **entityRevision**(`campaignId`): `Promise`\<`number`\>
+
+#### Parameters
+
+##### campaignId
+
+[`CampaignId`](../type-aliases/CampaignId.md)
+
+#### Returns
+
+`Promise`\<`number`\>
+
+***
+
 ### findEntitiesByAlias()
 
 > **findEntitiesByAlias**(`campaignId`, `aliasNormalized`, `type?`): `Promise`\<[`Entity`](Entity.md)[]\>
@@ -4827,7 +5661,7 @@ Stable token for atomically deduplicating retries of one logical write.
 
 ### neighbors()
 
-> **neighbors**(`campaignId`, `entityId`, `depth`): `Promise`\<`object`[]\>
+> **neighbors**(`campaignId`, `entityId`): `Promise`\<`object`[]\>
 
 #### Parameters
 
@@ -4838,10 +5672,6 @@ Stable token for atomically deduplicating retries of one logical write.
 ##### entityId
 
 [`EntityID`](../type-aliases/EntityID.md)
-
-##### depth
-
-`number`
 
 #### Returns
 
@@ -5641,36 +6471,6 @@ Stable token for atomically deduplicating retries of one logical write.
 
 ***
 
-### collapseAttribute()
-
-> **collapseAttribute**(`entityId`, `attributeKey`, `opts?`): `Promise`\<\{ `propagation`: \{ `entitesImpactees`: [`EntityID`](../type-aliases/EntityID.md)[]; \}; `reasoning`: `string`; `value`: [`AttributValue`](../type-aliases/AttributValue.md); \}\>
-
-#### Parameters
-
-##### entityId
-
-[`EntityID`](../type-aliases/EntityID.md)
-
-##### attributeKey
-
-`string`
-
-##### opts?
-
-###### profondeur?
-
-`"MINIMAL"` \| `"STANDARD"` \| `"DETAILLE"`
-
-###### registre?
-
-`"NEUTRE"` \| `"DRAMATIQUE"` \| `"HUMORISTIQUE"` \| `"SOMBRE"`
-
-#### Returns
-
-`Promise`\<\{ `propagation`: \{ `entitesImpactees`: [`EntityID`](../type-aliases/EntityID.md)[]; \}; `reasoning`: `string`; `value`: [`AttributValue`](../type-aliases/AttributValue.md); \}\>
-
-***
-
 ### getEntity()
 
 > **getEntity**(`entityId`): `Promise`\<[`Entity`](Entity.md) \| `null`\>
@@ -5705,7 +6505,7 @@ Stable token for atomically deduplicating retries of one logical write.
 
 ###### depth?
 
-`number`
+`0` \| `1`
 
 #### Returns
 
@@ -6140,6 +6940,16 @@ Stable token for atomically deduplicating retries of one logical write.
 
 ***
 
+[sneq-engine API](../README.md) / CampaignContextInvalidationReason
+
+# Type Alias: CampaignContextInvalidationReason
+
+> **CampaignContextInvalidationReason** = `"deleting"` \| `"deleted"` \| `"engine-closed"`
+
+[**sneq-engine API**](../README.md)
+
+***
+
 [sneq-engine API](../README.md) / CampaignId
 
 # Type Alias: CampaignId
@@ -6187,6 +6997,16 @@ Stable token for atomically deduplicating retries of one logical write.
 # Type Alias: ContrainteSource
 
 > **ContrainteSource** = \{ `factId`: [`FactId`](FactId.md); `kind`: `"FAIT_CANONIQUE"`; \} \| \{ `edgeKey`: `string`; `kind`: `"RELATION"`; \} \| \{ `kind`: `"REGLE_MONDE"`; `ruleId`: `string`; \} \| \{ `confidence`: `number`; `kind`: `"INFERENCE_IA"`; \}
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / CreateEntityResult
+
+# Type Alias: CreateEntityResult
+
+> **CreateEntityResult** = \{ `status`: `"stale"`; \} \| \{ `entityId`: [`EntityID`](EntityID.md); `isNew`: `true`; `status`: `"created"`; \} \| \{ `entityId`: [`EntityID`](EntityID.md); `isNew`: `false`; `resolvedTo`: [`EntityID`](EntityID.md); `status`: `"existing"`; \} \| \{ `candidates`: [`EntityCandidateSummary`](../interfaces/EntityCandidateSummary.md)[]; `status`: `"conflict"`; \}
 
 [**sneq-engine API**](../README.md)
 
@@ -6509,6 +7329,26 @@ Repository surface usable by distributed stores; atomic writes are injected sepa
 
 ***
 
+[sneq-engine API](../README.md) / decideAddConstraint
+
+# Function: decideAddConstraint()
+
+> **decideAddConstraint**(`input`): [`AddConstraintDecision`](../interfaces/AddConstraintDecision.md)
+
+## Parameters
+
+### input
+
+[`AddConstraintDecisionInput`](../interfaces/AddConstraintDecisionInput.md)
+
+## Returns
+
+[`AddConstraintDecision`](../interfaces/AddConstraintDecision.md)
+
+[**sneq-engine API**](../README.md)
+
+***
+
 [sneq-engine API](../README.md) / decideAdvanceTurn
 
 # Function: decideAdvanceTurn()
@@ -6544,6 +7384,26 @@ Repository surface usable by distributed stores; atomic writes are injected sepa
 ## Returns
 
 [`ConfirmEntityMatchDecision`](../interfaces/ConfirmEntityMatchDecision.md)
+
+[**sneq-engine API**](../README.md)
+
+***
+
+[sneq-engine API](../README.md) / decideCreateEntity
+
+# Function: decideCreateEntity()
+
+> **decideCreateEntity**(`input`): [`CreateEntityDecision`](../interfaces/CreateEntityDecision.md)
+
+## Parameters
+
+### input
+
+[`CreateEntityDecisionInput`](../interfaces/CreateEntityDecisionInput.md)
+
+## Returns
+
+[`CreateEntityDecision`](../interfaces/CreateEntityDecision.md)
 
 [**sneq-engine API**](../README.md)
 
@@ -6752,10 +7612,9 @@ Repository surface usable by distributed stores; atomic writes are injected sepa
 
 # Variable: ADVERTISED\_TOOL\_NAMES
 
-> `const` **ADVERTISED\_TOOL\_NAMES**: readonly [`ToolName`](../type-aliases/ToolName.md)[]
+> `const` **ADVERTISED\_TOOL\_NAMES**: readonly [`ToolName`](../type-aliases/ToolName.md)[] = `ToolNames`
 
-Tools advertised to LLMs. collapse_attribute is excluded until it is actually
- wired (V2 throws) — advertising a tool that always fails trains the model on traps.
+Tools advertised to LLMs. Every listed tool is implemented.
 
 [**sneq-engine API**](../README.md)
 
@@ -6775,7 +7634,7 @@ Tools advertised to LLMs. collapse_attribute is excluded until it is actually
 
 # Variable: ToolNames
 
-> `const` **ToolNames**: readonly \[`"sneq__lookup_entity"`, `"sneq__get_entity"`, `"sneq__get_relevant_facts"`, `"sneq__suggest_existing"`, `"sneq__mention_entity"`, `"sneq__register_fact"`, `"sneq__add_constraint"`, `"sneq__collapse_attribute"`, `"sneq__set_scene"`, `"sneq__advance_turn"`, `"sneq__validate_narration"`\]
+> `const` **ToolNames**: readonly \[`"sneq__lookup_entity"`, `"sneq__get_entity"`, `"sneq__get_relevant_facts"`, `"sneq__suggest_existing"`, `"sneq__mention_entity"`, `"sneq__register_fact"`, `"sneq__add_constraint"`, `"sneq__set_scene"`, `"sneq__advance_turn"`, `"sneq__validate_narration"`\]
 
 [**sneq-engine API**](../README.md)
 
@@ -6851,17 +7710,13 @@ custom hook still gets the built-in behavior.
 
 > `readonly` **sneq\_\_advance\_turn**: `ZodObject`\<\{ `summary`: `ZodOptional`\<`ZodString`\>; \}, `$strip`\>
 
-### sneq\_\_collapse\_attribute
-
-> `readonly` **sneq\_\_collapse\_attribute**: `ZodObject`\<\{ `attributeKey`: `ZodString`; `entityId`: `ZodString`; `profondeur`: `ZodOptional`\<`ZodEnum`\<\{ `DETAILLE`: `"DETAILLE"`; `MINIMAL`: `"MINIMAL"`; `STANDARD`: `"STANDARD"`; \}\>\>; `registre`: `ZodOptional`\<`ZodEnum`\<\{ `DRAMATIQUE`: `"DRAMATIQUE"`; `HUMORISTIQUE`: `"HUMORISTIQUE"`; `NEUTRE`: `"NEUTRE"`; `SOMBRE`: `"SOMBRE"`; \}\>\>; \}, `$strip`\>
-
 ### sneq\_\_get\_entity
 
 > `readonly` **sneq\_\_get\_entity**: `ZodObject`\<\{ `entityId`: `ZodString`; \}, `$strip`\>
 
 ### sneq\_\_get\_relevant\_facts
 
-> `readonly` **sneq\_\_get\_relevant\_facts**: `ZodObject`\<\{ `attributeKeys`: `ZodOptional`\<`ZodArray`\<`ZodString`\>\>; `depth`: `ZodOptional`\<`ZodNumber`\>; `entityId`: `ZodString`; \}, `$strip`\>
+> `readonly` **sneq\_\_get\_relevant\_facts**: `ZodObject`\<\{ `attributeKeys`: `ZodOptional`\<`ZodArray`\<`ZodString`\>\>; `depth`: `ZodOptional`\<`ZodUnion`\<readonly \[`ZodLiteral`\<`0`\>, `ZodLiteral`\<`1`\>\]\>\>; `entityId`: `ZodString`; \}, `$strip`\>
 
 ### sneq\_\_lookup\_entity
 

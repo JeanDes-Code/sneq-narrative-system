@@ -67,3 +67,7 @@ export function searchVec(db: BetterSqlite3.Database, campaignId: string, vec: F
 export function deleteVecForCampaign(db: BetterSqlite3.Database, campaignId: string): void {
   db.prepare(`DELETE FROM entity_vec WHERE entity_id LIKE ?`).run(`${campaignId}|%`);
 }
+
+export function deleteVecForEntity(db: BetterSqlite3.Database, campaignId: string, entityId: string): void {
+  db.prepare(`DELETE FROM entity_vec WHERE entity_id = ?`).run(vecKey(campaignId, entityId));
+}

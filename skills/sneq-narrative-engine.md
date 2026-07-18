@@ -43,7 +43,7 @@ The full Zod / JSON Schema definitions are in `docs/api.md` of the `sneq-engine`
 
 - **`sneq__get_entity({ entityId })`** — Pull the full record (canonical attributes + aliases). Use to remind yourself what's been committed about an NPC before describing them again.
 
-- **`sneq__get_relevant_facts({ entityId, attributeKeys?, depth? })`** — Narrower: get canonical facts about an entity, optionally across the graph at small depth (1-2). Use to keep narration consistent with prior reveals.
+- **`sneq__get_relevant_facts({ entityId, attributeKeys?, depth? })`** — Get canonical facts for the entity. Omit `depth` or pass `0` for own facts; pass `1` to include direct-neighbor facts. Deeper traversal is not part of the V2 contract.
 
 ### Register tools (call after narrating)
 
@@ -72,10 +72,7 @@ The engine is wired up by the host application (TTRPG app, Hermes runtime), not 
 - **`needsAdjudication` from mention_entity:** also normal — pick a candidate's entityId or re-call with `force: true` (see above). Never ignore it.
 - **Degraded (no-embeddings) campaigns:** when the host runs without an embeddings provider (`embeddingDim: 0`), resolution is alias-only. Prefer exact established names and register aliases eagerly — they are the whole lookup surface.
 - **Provider exhausted:** the engine throws if every model in a tier's fallback chain has failed. Surface this to the user as a system issue.
-
-## V2 scope note
-
-`sneq__collapse_attribute` is not wired in V2 and is **not in your advertised tool set** — you should never see it. When you need to "generate then commit" an attribute, compose it yourself: decide the value in your own narration, then `sneq__register_fact` it.
+- **Generate then commit:** there is no collapse tool. Decide the value in narration, validate it when needed, then call `sneq__register_fact`.
 
 ## Pointer
 

@@ -8,7 +8,6 @@ export const ToolNames = [
   "sneq__mention_entity",
   "sneq__register_fact",
   "sneq__add_constraint",
-  "sneq__collapse_attribute",
   "sneq__set_scene",
   "sneq__advance_turn",
   "sneq__validate_narration"
@@ -48,7 +47,7 @@ export const schemas = {
   sneq__get_relevant_facts: z.object({
     entityId: z.string(),
     attributeKeys: z.array(z.string()).optional(),
-    depth: z.number().int().min(0).max(3).optional()
+    depth: z.union([z.literal(0), z.literal(1)]).optional()
   }),
   sneq__suggest_existing: z.object({
     mention: z.string(),
@@ -74,12 +73,6 @@ export const schemas = {
     rule: z.unknown(),
     justification: z.string()
   }),
-  sneq__collapse_attribute: z.object({
-    entityId: z.string(),
-    attributeKey: z.string(),
-    profondeur: z.enum(["MINIMAL", "STANDARD", "DETAILLE"]).optional(),
-    registre: z.enum(["NEUTRE","DRAMATIQUE","HUMORISTIQUE","SOMBRE"]).optional()
-  }),
   sneq__set_scene: z.object({
     locationEntityId: z.string(),
     presentEntityIds: z.array(z.string()),
@@ -96,12 +89,11 @@ export const schemas = {
 export const toolDescriptions: Record<ToolName, string> = {
   sneq__lookup_entity: "Resolve a mention to an existing entity in the canonical store. Returns match, candidates, and which layer of the resolver answered. The current scene's description is passed to the disambiguation judge automatically.",
   sneq__get_entity: "Fetch an entity by id with its full set of figed (canonical) attributes.",
-  sneq__get_relevant_facts: "List canonical facts about an entity, optionally narrowed by attribute keys or graph depth.",
+  sneq__get_relevant_facts: "List canonical facts about an entity, optionally including direct-neighbor facts with depth:1.",
   sneq__suggest_existing: "Before introducing a new entity by name, surface existing candidates so canonical reality doesn't fork. Use BEFORE mention_entity.",
   sneq__mention_entity: "Introduce or re-use an entity. Returns isNew and resolvedTo. If the result has needsAdjudication=true the engine refused to silently create a near-duplicate: surface the candidates to the player (or pick one yourself), then either use the chosen candidate's entityId or re-call with force:true to create a genuinely new entity.",
   sneq__register_fact: "Append a canonical (figed) attribute to an entity. Returns contradictions instead of throwing - the caller adjudicates.",
   sneq__add_constraint: "Add a soft or strict constraint to a non-figed attribute.",
-  sneq__collapse_attribute: "Drive an LLM call (heavy tier) to fill a specific attribute, validate, inscribe, propagate. Engine-internal LLM use.",
   sneq__set_scene: "Declare the current scene: where the player is and which entities are present.",
   sneq__advance_turn: "Bump the campaign's monotonic turn counter, optionally with a one-line summary.",
   sneq__validate_narration: "Validate a candidate narration string against the campaign canon. Returns the list of proper-noun candidates the regex extractor found, plus any that didn't resolve. Use BEFORE flushing narration to the player."

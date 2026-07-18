@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { repositoryAtomicWriteStrategy } from "../../src/atomic/repository-strategy.js";
-import type { AtomicWriteStrategy } from "../../src/atomic/types.js";
+import type { AtomicWriteStrategy, CreateEntityCommand, CreateEntityResult } from "../../src/atomic/types.js";
 import { CampaignContext } from "../../src/campaign.js";
 import { Engine } from "../../src/engine.js";
 import { asCampaignId, asEntityID } from "../../src/domain/ids.js";
@@ -36,6 +36,12 @@ const routerDeps = { resolveProvider: () => provider };
 function injectedStrategy(): AtomicWriteStrategy {
   return {
     registerFact: vi.fn(async () => ({ factId: null, contradictions: [] })),
+    addConstraint: vi.fn(async (command) => ({ constraintId: command.constraintId })),
+    createEntity: vi.fn(async (command) => ({
+      status: "created" as const,
+      entityId: command.candidate.id,
+      isNew: true as const,
+    })),
     setScene: vi.fn(async () => ({ sceneId: "s1" as never, turnNumber: 1 })),
     advanceTurn: vi.fn(async () => ({ turnNumber: 1 })),
     confirmEntityMatch: vi.fn(async (command) => ({
@@ -183,6 +189,92 @@ describe("atomic write strategy selection", () => {
       .sort()).toEqual(["guard commander", "the captain"]);
   });
 
+  it("rejects createEntity when the candidate belongs to a different campaign than the command", async () => {
+    const campaignId = asCampaignId("target");
+    const repository = new InMemoryRepository({ embeddingDim: 0 });
+    await repository.createCampaign({ id: campaignId, name: "Target", createdAt: 0, embeddingDim: 0 });
+    await repository.createCampaign({ id: asCampaignId("other"), name: "Other", createdAt: 0, embeddingDim: 0 });
+    const strategy = repositoryAtomicWriteStrategy(repository);
+
+    await expect(strategy.createEntity({
+      operationId: "op-mismatch",
+      campaignId,
+      expectedEntityRevision: 0,
+      candidate: {
+        campaignId: asCampaignId("other"),
+        id: asEntityID("e-cross"),
+        type: "PERSONNAGE",
+        name: "Cross",
+        nomConnu: true,
+        aliases: [],
+        tags: [],
+        createdAt: 0,
+        embedding: null,
+        embeddingRefreshedAt: null,
+      },
+      identityKeys: ["cross"],
+      force: false,
+    })).rejects.toThrow(/campaign mismatch/i);
+
+    // Neither campaign was mutated.
+    expect(await repository.getEntity(asCampaignId("other"), asEntityID("e-cross"))).toBeNull();
+    expect(await repository.entityRevision(campaignId)).toBe(0);
+    expect(await repository.entityRevision(asCampaignId("other"))).toBe(0);
+  });
+
+  it("increments the entity revision when confirmation adds an alias", async () => {
+    const campaignId = asCampaignId("confirm-revision");
+    const repository = new InMemoryRepository({ embeddingDim: 0 });
+    await repository.createCampaign({ id: campaignId, name: "Revision", createdAt: 0, embeddingDim: 0 });
+    const entityId = await seedEntity(repository, campaignId);
+    const strategy = repositoryAtomicWriteStrategy(repository);
+    expect(await repository.entityRevision(campaignId)).toBe(1);
+
+    await strategy.confirmEntityMatch({
+      operationId: "op-confirm-revision",
+      campaignId,
+      entityId,
+      mention: "the captain",
+      type: "PERSONNAGE",
+      observedAt: 10,
+    });
+
+    expect(await repository.entityRevision(campaignId)).toBe(2);
+  });
+
+  it("preserves both constraints when addConstraint runs concurrently", async () => {
+    const campaignId = asCampaignId("constraint-concurrent");
+    const repository = new InMemoryRepository({ embeddingDim: 0 });
+    await repository.createCampaign({ id: campaignId, name: "Constraints", createdAt: 0, embeddingDim: 0 });
+    const strategy = repositoryAtomicWriteStrategy(repository);
+
+    await Promise.all([
+      strategy.addConstraint({
+        operationId: "op-a",
+        campaignId,
+        constraintId: "a" as never,
+        entityId: asEntityID("captain"),
+        attributeKey: "loyalty",
+        rule: { type: "REGEX", pattern: "duke" },
+        justification: "a",
+        createdAt: 1,
+      }),
+      strategy.addConstraint({
+        operationId: "op-b",
+        campaignId,
+        constraintId: "b" as never,
+        entityId: asEntityID("captain"),
+        attributeKey: "loyalty",
+        rule: { type: "REGEX", pattern: "king" },
+        justification: "b",
+        createdAt: 2,
+      }),
+    ]);
+
+    expect((await repository.getPotentialite(campaignId, asEntityID("captain"), "loyalty"))
+      ?.contraintes.map((constraint) => String(constraint.id)).sort()).toEqual(["a", "b"]);
+  });
+
   it("rejects a repository without transaction when no strategy is supplied", () => {
     expect(() => new Engine({
       repository: {} as RepositoryAccess,
@@ -229,6 +321,12 @@ describe("atomic write strategy selection", () => {
         timestamp: 0,
       },
     });
+    await campaign.addConstraint({
+      entityId,
+      attributeKey: "loyalty",
+      rule: { type: "REGEX", pattern: "duke|king" },
+      justification: "politics",
+    });
     await campaign.setScene({
       locationEntityId: entityId,
       presentEntityIds: [],
@@ -245,6 +343,13 @@ describe("atomic write strategy selection", () => {
       campaignId,
       entityId,
       attributeKey: "role",
+    }));
+    expect(strategy.addConstraint).toHaveBeenCalledWith(expect.objectContaining({
+      campaignId,
+      entityId,
+      attributeKey: "loyalty",
+      createdAt: expect.any(Number),
+      constraintId: expect.any(String),
     }));
     expect(strategy.setScene).toHaveBeenCalledWith(expect.objectContaining({
       campaignId,
@@ -264,6 +369,7 @@ describe("atomic write strategy selection", () => {
 
     for (const method of [
       strategy.registerFact,
+      strategy.addConstraint,
       strategy.setScene,
       strategy.advanceTurn,
       strategy.confirmEntityMatch,
@@ -273,5 +379,65 @@ describe("atomic write strategy selection", () => {
         campaignId,
       }));
     }
+  });
+
+  it("keeps one operation ID across a stale create retry", async () => {
+    const campaignId = asCampaignId("retry-op");
+    const repository = new InMemoryRepository({ embeddingDim: 0 });
+    await repository.createCampaign({ id: campaignId, name: "Retry", createdAt: 0, embeddingDim: 0 });
+    const base = injectedStrategy();
+    const createEntity = vi.fn(async (command: CreateEntityCommand): Promise<CreateEntityResult> => ({
+      status: "created",
+      entityId: command.candidate.id,
+      isNew: true,
+    }));
+    createEntity.mockResolvedValueOnce({ status: "stale" });
+    const engine = new Engine({
+      repository,
+      router: routerConfig,
+      _routerDeps: routerDeps,
+      writeStrategy: { ...base, createEntity },
+    });
+    const campaign = engine.campaign(campaignId);
+
+    await expect(campaign.mentionEntity({
+      canonicalName: "Roric",
+      type: "PERSONNAGE",
+      description: "Captain",
+    })).resolves.toMatchObject({ isNew: true });
+
+    expect(createEntity).toHaveBeenCalledTimes(2);
+    const first = createEntity.mock.calls[0]![0];
+    const second = createEntity.mock.calls[1]![0];
+    expect(second.operationId).toBe(first.operationId);
+    expect(second.candidate.id).toBe(first.candidate.id);
+    expect(second.candidate.createdAt).toBe(first.candidate.createdAt);
+  });
+
+  it("throws after three stale entity revisions without changing operation ID", async () => {
+    const campaignId = asCampaignId("retry-exhausted");
+    const repository = new InMemoryRepository({ embeddingDim: 0 });
+    await repository.createCampaign({ id: campaignId, name: "Exhausted", createdAt: 0, embeddingDim: 0 });
+    const base = injectedStrategy();
+    const createEntity = vi.fn(async (_command: CreateEntityCommand) => ({ status: "stale" as const }));
+    const engine = new Engine({
+      repository,
+      router: routerConfig,
+      _routerDeps: routerDeps,
+      writeStrategy: { ...base, createEntity },
+    });
+    const campaign = engine.campaign(campaignId);
+
+    await expect(campaign.mentionEntity({
+      canonicalName: "Roric",
+      type: "PERSONNAGE",
+      description: "Captain",
+    })).rejects.toMatchObject({
+      name: "SneqConcurrentEntityCreationError",
+      campaignId,
+      attempts: 3,
+    });
+    expect(createEntity).toHaveBeenCalledTimes(3);
+    expect(new Set(createEntity.mock.calls.map(([command]) => command.operationId)).size).toBe(1);
   });
 });

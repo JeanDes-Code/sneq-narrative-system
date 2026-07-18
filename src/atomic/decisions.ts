@@ -1,14 +1,86 @@
 import { normalizeAlias } from "../resolver/normalize.js";
 import type {
+  AddConstraintDecision,
+  AddConstraintDecisionInput,
   AdvanceTurnDecision,
   AdvanceTurnDecisionInput,
   ConfirmEntityMatchDecision,
   ConfirmEntityMatchDecisionInput,
+  CreateEntityDecision,
+  CreateEntityDecisionInput,
   RegisterFactDecision,
   RegisterFactDecisionInput,
   SetSceneDecision,
   SetSceneDecisionInput,
 } from "./types.js";
+
+export function decideAddConstraint(input: AddConstraintDecisionInput): AddConstraintDecision {
+  const constraint = {
+    id: input.constraintId,
+    source: { kind: "INFERENCE_IA" as const, confidence: 0.7 },
+    createdAt: input.createdAt,
+    regle: input.rule,
+    justificationNarrative: input.justification,
+  };
+  const base = input.existing ?? {
+    entiteId: input.entityId,
+    attribut: input.attributeKey,
+    etat: "INDEFINI" as const,
+    contraintes: [],
+    contexteGeneratif: { categorieAttribut: "PSYCHOLOGIE" as const, tendances: [] },
+  };
+  return {
+    potentialite: {
+      ...base,
+      etat: "CONTRAINT",
+      contraintes: [...base.contraintes, constraint],
+      contexteGeneratif: {
+        ...base.contexteGeneratif,
+        tendances: [...base.contexteGeneratif.tendances],
+      },
+    },
+    result: { constraintId: input.constraintId },
+  };
+}
+
+export function decideCreateEntity(input: CreateEntityDecisionInput): CreateEntityDecision {
+  if (input.currentEntityRevision !== input.expectedEntityRevision) {
+    return { entity: null, result: { status: "stale" } };
+  }
+
+  const matches = [...new Map(
+    input.exactMatches
+      .filter((match) => match.type === input.candidate.type)
+      .map((match) => [match.id, match]),
+  ).values()];
+
+  if (matches.length === 1) {
+    const match = matches[0]!;
+    return {
+      entity: null,
+      result: { status: "existing", entityId: match.id, isNew: false, resolvedTo: match.id },
+    };
+  }
+
+  if (matches.length > 1 && !input.force) {
+    return {
+      entity: null,
+      result: {
+        status: "conflict",
+        candidates: matches.slice(0, 5).map((match) => ({
+          entityId: match.id,
+          name: match.name,
+          type: match.type,
+        })),
+      },
+    };
+  }
+
+  return {
+    entity: input.candidate,
+    result: { status: "created", entityId: input.candidate.id, isNew: true },
+  };
+}
 
 export function decideRegisterFact(input: RegisterFactDecisionInput): RegisterFactDecision {
   const contradictions = input.existing.filter(

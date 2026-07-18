@@ -1,3 +1,4 @@
+import Database from "better-sqlite3";
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { SqliteRepository } from "../../src/repository/sqlite/index.js";
 import { asCampaignId, asEntityID } from "../../src/domain/ids.js";
@@ -112,6 +113,30 @@ describe("SqliteRepository · transaction serialization", () => {
     expect(x).not.toBeNull();
     expect(y).not.toBeNull();
   });
+
+  it("waits for an already-started transaction before closing the database", async () => {
+    const repository = new SqliteRepository({ path: ":memory:", embeddingDim: 0 });
+    await repository.createCampaign({ id: cid, name: "Close queue", createdAt: 0, embeddingDim: 0 });
+    let release!: () => void;
+    let entered!: () => void;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    const started = new Promise<void>((resolve) => { entered = resolve; });
+    const transaction = repository.transaction(async (tx) => {
+      entered();
+      await gate;
+      await tx.upsertEntity(someEntity("before-close"));
+    });
+
+    await started;
+    let closeFinished = false;
+    const closing = repository.close().then(() => { closeFinished = true; });
+    await Promise.resolve();
+    expect(closeFinished).toBe(false);
+
+    release();
+    await Promise.all([transaction, closing]);
+    expect(closeFinished).toBe(true);
+  });
 });
 
 describe("SqliteRepository · dim lifecycle", () => {
@@ -134,6 +159,29 @@ describe("SqliteRepository · dim lifecycle", () => {
     await r1.createCampaign({ id: cid, name: "x", createdAt: 0, embeddingDim: 4 });
     await r1.close();
     expect(() => new SqliteRepository({ path: tmp, embeddingDim: 8 })).toThrow(/dim mismatch/i);
+  });
+
+  it("migrates a version-2 campaign with entity revision zero", async () => {
+    const tmp = `${process.env["TMPDIR"] ?? "/tmp"}/sneq-revision-${Date.now()}-${Math.random().toString(36).slice(2)}.db`;
+    const legacy = new Database(tmp);
+    legacy.exec(`
+      CREATE TABLE schema_version (version INTEGER PRIMARY KEY);
+      INSERT INTO schema_version (version) VALUES (2);
+      CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+      CREATE TABLE campaigns (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        created_at INTEGER NOT NULL,
+        embedding_dim INTEGER NOT NULL
+      );
+      INSERT INTO campaigns (id, name, created_at, embedding_dim)
+      VALUES ('c1', 'Legacy', 0, 0);
+    `);
+    legacy.close();
+
+    const migrated = new SqliteRepository({ path: tmp, embeddingDim: 0 });
+    expect(await migrated.entityRevision(cid)).toBe(0);
+    await migrated.close();
   });
 
   it("supports embeddingDim 0: no vec table, vector search returns [], embedding writes throw", async () => {
@@ -161,6 +209,19 @@ describe("SqliteRepository · dim lifecycle", () => {
     await r.createCampaign({ id: cid, name: "x", createdAt: 0, embeddingDim: 4 });
     await expect(r.searchEntitiesByVector(cid, new Float32Array([1, 0]), { topK: 3 })).rejects.toThrow(/dim mismatch/i);
     await r.close();
+  });
+});
+
+describe("SqliteRepository · embedding lifecycle", () => {
+  it("drops the vector when an entity is re-upserted without an embedding", async () => {
+    const vec = new Float32Array([1, 0, 0, 0]);
+    await repo.upsertEntity({ ...someEntity("e1"), embedding: vec, embeddingRefreshedAt: 1 });
+    expect(await repo.searchEntitiesByVector(cid, vec, { topK: 5 })).toHaveLength(1);
+
+    await repo.upsertEntity({ ...someEntity("e1"), embedding: null, embeddingRefreshedAt: null });
+    const hits = await repo.searchEntitiesByVector(cid, vec, { topK: 5 });
+    expect(hits.map((h) => String(h.entity.id))).not.toContain("e1");
+    expect((await repo.getEntity(cid, asEntityID("e1")))?.embedding ?? null).toBeNull();
   });
 });
 

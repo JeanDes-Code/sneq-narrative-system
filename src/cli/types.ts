@@ -12,7 +12,6 @@ export const KNOWN_COMMANDS = [
   "mention-entity",
   "register-fact",
   "add-constraint",
-  "collapse-attribute",
   "set-scene",
   "advance-turn",
   "validate-narration",

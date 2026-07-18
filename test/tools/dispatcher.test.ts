@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { dispatchToolCall, type ToolCallContext } from "../../src/tools/dispatcher.js";
 import { Engine } from "../../src/engine.js";
+import { ToolNames } from "../../src/tools/schemas.js";
 
 function stubCtx(): ToolCallContext {
   return {
@@ -11,7 +12,6 @@ function stubCtx(): ToolCallContext {
     mentionEntity: async (input) => ({ entityId: "new-id", isNew: true, _name: input.canonicalName } as never),
     registerFact: async (_input) => ({ factId: "f1", contradictions: [] } as never),
     addConstraint: async (_input) => ({ constraintId: "c1" } as never),
-    collapseAttribute: async (_id, _key, _opts) => ({ value: { type: "STRING", value: "x" }, reasoning: "", propagation: { entitesImpactees: [] } } as never),
     setScene: async (_input) => ({ sceneId: "s1", turnNumber: 1 } as never),
     advanceTurn: async (summary) => ({ turnNumber: 42, _summary: summary ?? null } as never),
     validateNarration: async (_input) => ({ ok: true, extractedNames: [], issues: [] })
@@ -41,6 +41,14 @@ describe("dispatchToolCall", () => {
       .rejects.toThrow();
   });
 
+  it("rejects graph depth greater than one", async () => {
+    await expect(dispatchToolCall(
+      "sneq__get_relevant_facts",
+      { entityId: "a", depth: 2 },
+      stubCtx(),
+    )).rejects.toThrow();
+  });
+
   it("dispatches sneq__advance_turn with optional summary", async () => {
     const r = await dispatchToolCall("sneq__advance_turn", { summary: "we left the village" }, stubCtx());
     expect((r as { turnNumber: number }).turnNumber).toBe(42);
@@ -68,13 +76,22 @@ describe("dispatchToolCall", () => {
 import { anthropicTools, openAITools, geminiTools, genericTools, ADVERTISED_TOOL_NAMES } from "../../src/tools/adapters.js";
 
 describe("advertised tools", () => {
-  it("collapse_attribute is not advertised in any adapter shape", () => {
-    expect(ADVERTISED_TOOL_NAMES).toHaveLength(10);
-    expect(ADVERTISED_TOOL_NAMES).not.toContain("sneq__collapse_attribute");
-    expect(anthropicTools().map(t => t.name)).not.toContain("sneq__collapse_attribute");
-    expect(openAITools().map(t => t.function.name)).not.toContain("sneq__collapse_attribute");
-    expect(geminiTools()[0]!.functionDeclarations.map(t => t.name)).not.toContain("sneq__collapse_attribute");
-    expect(genericTools().map(t => t.name)).not.toContain("sneq__collapse_attribute");
+  it("exports one truthful ten-tool set", () => {
+    expect(ToolNames).toHaveLength(10);
+    expect(ADVERTISED_TOOL_NAMES).toEqual(ToolNames);
+    expect(ToolNames).not.toContain("sneq__collapse_attribute");
+    expect(anthropicTools()).toHaveLength(10);
+    expect(openAITools()).toHaveLength(10);
+    expect(geminiTools()[0]!.functionDeclarations).toHaveLength(10);
+    expect(genericTools()).toHaveLength(10);
+  });
+
+  it("rejects the removed collapse tool as unknown", async () => {
+    await expect(dispatchToolCall(
+      "sneq__collapse_attribute",
+      { entityId: "e", attributeKey: "k" },
+      stubCtx(),
+    )).rejects.toThrow(/unknown tool/i);
   });
 
   it("mention_entity accepts force and dispatches it", async () => {
