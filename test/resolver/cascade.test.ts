@@ -232,6 +232,51 @@ describe("Resolver · degraded mode (no embedder)", () => {
   });
 });
 
+describe("Resolver · embedding infrastructure failures", () => {
+  it("returns unavailable instead of throwing when embedding generation fails", async () => {
+    const judge = replayProvider("m", []);
+    const r = new Resolver({
+      repo,
+      router: makeRouter(judge),
+      thresholds: defaultThresholds,
+      userPromptRegistry: new UserPromptRegistry(),
+      embedder: { async embed() { throw new Error("embedding down"); } },
+    });
+
+    const res = await r.resolveEntity({ campaignId: cid, mention: "unknown captain" });
+
+    expect(res).toMatchObject({
+      match: null,
+      layerUsed: "none",
+      notFoundReason: "ambiguous",
+      unavailableReason: "embeddings",
+    });
+  });
+
+  it("returns unavailable instead of throwing when vector search fails", async () => {
+    const judge = replayProvider("m", []);
+    const search = repo.searchEntitiesByVector.bind(repo);
+    repo.searchEntitiesByVector = async () => { throw new Error("vector index down"); };
+    const r = new Resolver({
+      repo,
+      router: makeRouter(judge),
+      thresholds: defaultThresholds,
+      userPromptRegistry: new UserPromptRegistry(),
+      embedder: { async embed() { return new Float32Array([1, 0, 0]); } },
+    });
+
+    const res = await r.resolveEntity({ campaignId: cid, mention: "unknown captain" });
+    repo.searchEntitiesByVector = search;
+
+    expect(res).toMatchObject({
+      match: null,
+      layerUsed: "none",
+      notFoundReason: "ambiguous",
+      unavailableReason: "vector-search",
+    });
+  });
+});
+
 describe("Resolver · judge robustness", () => {
   it("a judge whose chain is exhausted yields ambiguous, not a throw", async () => {
     const judge = replayProvider("m", [

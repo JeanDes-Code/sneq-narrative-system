@@ -70,3 +70,6 @@ export interface Repository {
   // Lifecycle
   close(): Promise<void>;
 }
+
+/** Repository surface usable by distributed stores; atomic writes are injected separately. */
+export type RepositoryAccess = Omit<Repository, "transaction">;
