@@ -1,5 +1,28 @@
-import type { Provider, ProviderRef, ChatRequest, ChatResponse, EmbeddingRequest, EmbeddingResponse } from "../interface.js";
+import type { Provider, ProviderRef, ChatRequest, ChatResponse, EmbeddingRequest, EmbeddingResponse, ProviderUsage } from "../interface.js";
 import { ProviderHttpError } from "../interface.js";
+
+/** Wire format of the OpenAI-compatible `usage` object (snake_case, all optional —
+ *  DeepSeek adds prompt_cache_*, reasoning models add completion_tokens_details). */
+interface RawUsage {
+  prompt_tokens?: number;
+  completion_tokens?: number;
+  total_tokens?: number;
+  prompt_cache_hit_tokens?: number;
+  prompt_cache_miss_tokens?: number;
+  completion_tokens_details?: { reasoning_tokens?: number };
+}
+
+function parseUsage(raw: RawUsage | undefined): ProviderUsage | undefined {
+  if (!raw) return undefined;
+  return {
+    promptTokens: raw.prompt_tokens,
+    completionTokens: raw.completion_tokens,
+    totalTokens: raw.total_tokens,
+    promptCacheHitTokens: raw.prompt_cache_hit_tokens,
+    promptCacheMissTokens: raw.prompt_cache_miss_tokens,
+    reasoningTokens: raw.completion_tokens_details?.reasoning_tokens
+  };
+}
 
 export class OpenAICompatibleProvider implements Provider {
   constructor(public readonly ref: ProviderRef, private readonly fetchImpl: typeof fetch = fetch) {
@@ -38,6 +61,7 @@ export class OpenAICompatibleProvider implements Provider {
     if (!res.ok) throw codeForStatus(res.status, await res.text());
     const data = await res.json() as {
       choices: Array<{ message: { content: string | null; tool_calls?: Array<{ function: { name: string; arguments: string } }> } }>
+      usage?: RawUsage;
     };
     const choice = data.choices[0];
     if (!choice) throw new ProviderHttpError("MALFORMED", res.status, "no choices in response");
@@ -49,7 +73,8 @@ export class OpenAICompatibleProvider implements Provider {
       text: choice.message.content ?? "",
       toolCalls,
       modelUsed: this.ref.model,
-      providerUsed: this.ref.baseUrl!
+      providerUsed: this.ref.baseUrl!,
+      usage: parseUsage(data.usage)
     };
   }
 
@@ -66,13 +91,14 @@ export class OpenAICompatibleProvider implements Provider {
     });
 
     if (!res.ok) throw codeForStatus(res.status, await res.text());
-    const data = await res.json() as { data: Array<{ embedding: number[] }> };
+    const data = await res.json() as { data: Array<{ embedding: number[] }>; usage?: RawUsage };
     const vectors = data.data.map(d => new Float32Array(d.embedding));
     return {
       vectors,
       dim: vectors[0]?.length ?? 0,
       modelUsed: this.ref.model,
-      providerUsed: this.ref.baseUrl!
+      providerUsed: this.ref.baseUrl!,
+      usage: parseUsage(data.usage)
     };
   }
 }

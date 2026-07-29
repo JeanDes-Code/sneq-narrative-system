@@ -45,11 +45,24 @@ export interface ChatRequest {
   temperature?: number;
 }
 
+/** Token-usage metadata reported by the provider, camelCased from the wire format.
+ *  Every field is optional: providers omit what they don't track. A missing field
+ *  means "not reported", never zero. */
+export interface ProviderUsage {
+  promptTokens?: number | undefined;
+  completionTokens?: number | undefined;
+  totalTokens?: number | undefined;
+  promptCacheHitTokens?: number | undefined;
+  promptCacheMissTokens?: number | undefined;
+  reasoningTokens?: number | undefined;
+}
+
 export interface ChatResponse {
   text: string;
   toolCalls: Array<{ name: string; arguments: unknown }>;
   modelUsed: string;
   providerUsed: string;
+  usage?: ProviderUsage | undefined;
 }
 
 export interface EmbeddingRequest {
@@ -61,6 +74,7 @@ export interface EmbeddingResponse {
   dim: number;
   modelUsed: string;
   providerUsed: string;
+  usage?: ProviderUsage | undefined;
 }
 
 export interface Provider {

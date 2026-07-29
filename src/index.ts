@@ -19,7 +19,7 @@ export { Router, RouterExhaustedError, createDefaultDeps, type RouterDeps, type 
 export type {
   RouterConfig, RouterTiers, ProviderRef, ProviderChain, Tier,
   ChatRequest, ChatResponse, EmbeddingRequest, EmbeddingResponse,
-  Provider, ProviderKind, ProviderErrorCode
+  Provider, ProviderKind, ProviderErrorCode, ProviderUsage
 } from "./router/interface.js";
 export { ProviderHttpError } from "./router/interface.js";
 
