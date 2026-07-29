@@ -1,4 +1,4 @@
-export const SNEQ_ENGINE_VERSION = "0.1.0";
+export const SNEQ_ENGINE_VERSION = "0.3.0";
 
 // Engine + CampaignContext
 export { Engine, type NewCampaignInput } from "./engine.js";
@@ -19,7 +19,7 @@ export { Router, RouterExhaustedError, createDefaultDeps, type RouterDeps, type 
 export type {
   RouterConfig, RouterTiers, ProviderRef, ProviderChain, Tier,
   ChatRequest, ChatResponse, EmbeddingRequest, EmbeddingResponse,
-  Provider, ProviderKind, ProviderErrorCode
+  Provider, ProviderKind, ProviderErrorCode, ProviderUsage
 } from "./router/interface.js";
 export { ProviderHttpError } from "./router/interface.js";
 

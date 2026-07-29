@@ -17,6 +17,14 @@ then run the verification commands at the bottom.
 
 These land on top of 0.1.0 and are not yet published. If you track `main`:
 
+- **`0.3.0` — Provider usage metadata (additive).** `ChatResponse` and `EmbeddingResponse`
+  gained an optional `usage?: ProviderUsage` field, exported from the package root.
+  The OpenAI-compatible provider now parses the wire `usage` object and camelCases it:
+  `promptTokens`, `completionTokens`, `totalTokens`, `promptCacheHitTokens`,
+  `promptCacheMissTokens`, `reasoningTokens`. Every field is optional — a provider that
+  omits a field yields `undefined` for it (**never zero**), and a provider that omits the
+  whole `usage` object yields `usage: undefined`. No consumer action required; read it
+  when you need metering.
 - `collapse-attribute`, `sneq__collapse_attribute`, and `CampaignContext.collapseAttribute` were
   **removed**. They never succeeded in 0.1.0 (they threw / exited 1). The CLI now reports
   `collapse-attribute` as an unknown command. Compose the equivalent yourself: `Router.chat`
