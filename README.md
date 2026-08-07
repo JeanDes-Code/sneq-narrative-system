@@ -309,7 +309,7 @@ skills/                         agent-discoverable skill
 pnpm test            # unit tests (excludes integration smoke)
 pnpm typecheck       # full project tsc --noEmit
 pnpm build           # emit dist/
-pnpm docs            # regenerate docs/api.md from TypeDoc
+pnpm docs:build      # regenerate docs/api.md from TypeDoc (CI fails on a stale diff)
 SNEQ_INTEGRATION_SMOKE=1 pnpm test    # include integration smoke (needs API keys)
 ```
 
