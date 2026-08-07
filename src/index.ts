@@ -1,4 +1,4 @@
-export const SNEQ_ENGINE_VERSION = "0.3.0";
+export const SNEQ_ENGINE_VERSION = "0.3.1";
 
 // Engine + CampaignContext
 export { Engine, type NewCampaignInput } from "./engine.js";
@@ -31,6 +31,7 @@ export {
   SneqCampaignNotFoundError,
   SneqCampaignContextInvalidatedError,
   SneqConcurrentEntityCreationError,
+  SneqUnknownEntityError,
   type CampaignContextInvalidationReason,
   type ValidationFailureDetail
 } from "./errors.js";

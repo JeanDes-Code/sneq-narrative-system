@@ -7,7 +7,15 @@ import type { Scene } from "../domain/scene.js";
 import type { Turn } from "../domain/turn.js";
 
 export interface AtomicCommand {
-  /** Stable token for atomically deduplicating retries of one logical write. */
+  /**
+   * Stable token identifying one logical write, generated once per engine call and
+   * reused across its retries.
+   *
+   * The engine does NOT deduplicate on it. The built-in repository-backed strategy
+   * ignores this field entirely; a distributed `AtomicWriteStrategy` that needs
+   * exactly-once semantics has to implement the dedup itself, keyed on this token —
+   * that is what it is here for. Do not read it as a guarantee the engine provides.
+   */
   operationId: string;
 }
 

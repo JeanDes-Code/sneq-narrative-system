@@ -36,3 +36,14 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm build
       - run: pnpm test
+
+      # docs/api.md ships in package.json#files, so a stale copy goes to npm.
+      # Regenerate and fail on a diff — the assembler already refuses to write a
+      # file with a dead link, so this also keeps its cross-references honest.
+      # One node version is enough; the output does not depend on the runtime.
+      - name: docs are generated, not remembered
+        if: matrix.node == 22
+        run: |
+          pnpm docs
+          git diff --exit-code --stat -- docs/api.md \
+            || { echo "::error::docs/api.md is stale — run 'pnpm docs' and commit the result"; exit 1; }

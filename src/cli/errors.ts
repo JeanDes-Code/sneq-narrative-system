@@ -1,5 +1,5 @@
 import { ZodError } from "zod";
-import { SneqValidationError, SneqContradictionError, SneqProviderError, SneqCampaignNotFoundError } from "../errors.js";
+import { SneqValidationError, SneqContradictionError, SneqProviderError, SneqCampaignNotFoundError, SneqUnknownEntityError } from "../errors.js";
 
 export type ErrorCode =
   | "INVALID_ARGS"
@@ -58,6 +58,19 @@ export function formatError(err: unknown): FormattedError {
         error: err.message,
         code: "VALIDATION_FAILED",
         details: { contradictions: err.contradictions }
+      }),
+      exitCode: 1
+    };
+  }
+  // A user/agent error, not an engine bug: exit 1, and the message already names the
+  // corrective call. Keeping it out of INTERNAL_ERROR is the point — an agent reads
+  // exit 2 as "the engine is broken" and gives up instead of fixing its own call.
+  if (err instanceof SneqUnknownEntityError) {
+    return {
+      json: JSON.stringify({
+        error: err.message,
+        code: "ENTITY_NOT_FOUND",
+        details: { tool: err.toolName, field: err.field, value: err.value }
       }),
       exitCode: 1
     };

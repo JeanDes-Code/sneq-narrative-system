@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { CliError, formatError } from "../../../src/cli/errors.js";
-import { SneqValidationError, SneqContradictionError, SneqProviderError } from "../../../src/errors.js";
+import { SneqValidationError, SneqContradictionError, SneqProviderError, SneqUnknownEntityError } from "../../../src/errors.js";
 
 describe("formatError", () => {
   it("formats a CliError", () => {
@@ -51,6 +51,17 @@ describe("formatError", () => {
     expect(parsed.code).toBe("PROVIDER_ERROR");
     expect(parsed.error).toBe("router exhausted");
     expect(parsed.details).toEqual({ tier: "heavy", exhausted: true });
+  });
+
+  it("maps an unknown entity id to ENTITY_NOT_FOUND, not INTERNAL_ERROR", () => {
+    const r = formatError(new SneqUnknownEntityError("sneq__set_scene", "locationEntityId", "la taverne du Cerf"));
+    expect(r.exitCode).toBe(1);
+    const parsed = JSON.parse(r.json);
+    expect(parsed.code).toBe("ENTITY_NOT_FOUND");
+    expect(parsed.error).toContain("sneq__mention_entity");
+    expect(parsed.details).toEqual({
+      tool: "sneq__set_scene", field: "locationEntityId", value: "la taverne du Cerf"
+    });
   });
 
   it("uses exit code 2 for INTERNAL_ERROR", () => {

@@ -46,6 +46,27 @@ export class SneqConcurrentEntityCreationError extends Error {
   }
 }
 
+/**
+ * A tool call carried something that is not a known entity id where one is required —
+ * typically a model typing a free-text name. `EntityID` is a compile-time brand, so
+ * nothing stops such a value at runtime: the write used to "succeed" and every read
+ * after it came back empty. This turns that silence into a message naming the fix.
+ */
+export class SneqUnknownEntityError extends Error {
+  constructor(
+    public readonly toolName: string,
+    public readonly field: string,
+    public readonly value: string,
+  ) {
+    super(
+      `${toolName}: ${field} ${JSON.stringify(value)} is not a known entity id in this campaign. ` +
+      `Call sneq__lookup_entity to find the existing entity, or sneq__mention_entity to introduce it, ` +
+      `then pass the returned entityId.`,
+    );
+    this.name = "SneqUnknownEntityError";
+  }
+}
+
 export class SneqProviderError extends Error {
   constructor(public readonly tier: Tier, public readonly exhausted: boolean, message: string) {
     super(message);

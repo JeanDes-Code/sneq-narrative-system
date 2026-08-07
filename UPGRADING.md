@@ -17,6 +17,36 @@ then run the verification commands at the bottom.
 
 These land on top of 0.1.0 and are not yet published. If you track `main`:
 
+- **`0.3.1` — Honest surface (one breaking check).** No new features; this release makes
+  the package stop claiming things it does not do.
+
+  **Breaking, deliberately:** `sneq__set_scene`, `sneq__register_fact`,
+  `sneq__add_constraint` and `sneq__get_relevant_facts` now reject an `entityId` this
+  campaign does not know, throwing `SneqUnknownEntityError` (CLI: code `ENTITY_NOT_FOUND`,
+  exit 1). Before, a value that was not an entity id — typically a model typing a name
+  like `"la taverne du Cerf"` — was accepted: `EntityID` is a compile-time brand and
+  nothing checked it at runtime. The scene was declared with nobody in it, every later
+  read came back empty, and no error was raised. **If your integration passed names, it
+  was silently doing nothing and now says so**, naming the field, the value and the call
+  to make first. `sneq__get_entity` is untouched: `null` is its honest answer for an
+  unknown id, and an explicit null was never a silent failure.
+
+  **`operationId` is not what the docs said.** The engine does **not** deduplicate on it,
+  and the built-in repository-backed strategy ignores the field. If you built a
+  distributed `AtomicWriteStrategy` assuming the engine handled retries, it did not — the
+  dedup is yours to implement, keyed on that token. Nothing changed in the code here; the
+  documentation was wrong, including `docs/api.md` as published.
+
+  **Tool descriptions rewritten.** All ten now state what they return, what they do
+  **not** return, the failure mode to handle, and the call that must precede them. Two
+  corrections matter to an agent: `sneq__get_entity` never returned canonical attributes
+  (its description claimed it did), and `sneq__add_constraint` propagates nothing — no
+  other entity is touched and no fact is derived.
+
+  **`docs/api.md`** is regenerated, and its ~1000 cross-references — which pointed into a
+  gitignored, unpackaged directory — are now in-document anchors. CI regenerates it and
+  fails on a diff.
+
 - **`0.3.0` — Provider usage metadata (additive).** `ChatResponse` and `EmbeddingResponse`
   gained an optional `usage?: ProviderUsage` field, exported from the package root.
   The OpenAI-compatible provider now parses the wire `usage` object and camelCases it:

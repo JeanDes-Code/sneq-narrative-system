@@ -1,4 +1,5 @@
 import { schemas, type ToolName, ToolNames } from "./schemas.js";
+import { SneqUnknownEntityError } from "../errors.js";
 import type { EntityID, FactId, ConstraintId, SceneId } from "../domain/ids.js";
 import type { Entity, EntityType } from "../domain/entity.js";
 import type { AttributFige, AttributValue, CategorieAttribut } from "../domain/attribute.js";
@@ -19,6 +20,45 @@ export interface ToolCallContext {
   validateNarration(input: { narration: string; type?: EntityType; strict?: boolean }): Promise<import("../hooks/narration-gate.js").ValidationReport>;
 }
 
+/**
+ * Fields that must hold a real entity id, per tool. `sneq__get_entity` is deliberately
+ * absent: `null` is its honest answer to "is this id known?", and an explicit null is
+ * not a silent failure. The guard exists for the calls where a bad id used to be
+ * swallowed — a scene declared with nobody in it, a fact filed against nothing.
+ */
+const GUARDED_ENTITY_FIELDS: Partial<Record<ToolName, { single?: string[]; list?: string[] }>> = {
+  sneq__get_relevant_facts: { single: ["entityId"] },
+  sneq__register_fact: { single: ["entityId"] },
+  sneq__add_constraint: { single: ["entityId"] },
+  sneq__set_scene: { single: ["locationEntityId"], list: ["presentEntityIds"] },
+};
+
+/**
+ * Sequential on purpose: the first offending field is the one worth reporting, and a
+ * scene rarely carries enough entities for the round-trips to matter.
+ */
+async function assertEntityIdsResolve(
+  toolName: ToolName,
+  args: Record<string, unknown>,
+  ctx: ToolCallContext,
+): Promise<void> {
+  const guarded = GUARDED_ENTITY_FIELDS[toolName];
+  if (!guarded) return;
+
+  for (const field of guarded.single ?? []) {
+    const value = args[field] as string;
+    if (await ctx.getEntity(value as EntityID)) continue;
+    throw new SneqUnknownEntityError(toolName, field, value);
+  }
+  for (const field of guarded.list ?? []) {
+    const values = (args[field] ?? []) as string[];
+    for (const [i, value] of values.entries()) {
+      if (await ctx.getEntity(value as EntityID)) continue;
+      throw new SneqUnknownEntityError(toolName, `${field}[${i}]`, value);
+    }
+  }
+}
+
 export async function dispatchToolCall(name: string, rawArgs: unknown, ctx: ToolCallContext): Promise<unknown> {
   if (!(ToolNames as readonly string[]).includes(name)) {
     throw new Error(`unknown tool: ${name}`);
@@ -26,6 +66,7 @@ export async function dispatchToolCall(name: string, rawArgs: unknown, ctx: Tool
   const toolName = name as ToolName;
   const schema = schemas[toolName];
   const args = schema.parse(rawArgs) as Record<string, unknown>;
+  await assertEntityIdsResolve(toolName, args, ctx);
 
   switch (toolName) {
     case "sneq__lookup_entity":
