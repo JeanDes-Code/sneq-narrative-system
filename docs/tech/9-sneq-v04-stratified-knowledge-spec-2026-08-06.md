@@ -1,4 +1,6 @@
-# sneq-engine v0.4.0 — Stratified knowledge: spec
+# sneq-engine — Stratified knowledge: spec
+
+**Ships as 0.5.0.** There is no 0.4.0 release — `0.4` is the internal build milestone (§9). This file's name, the `v0.4` label on the map, and the "v0.4" wording throughout the body all predate that decision and are kept so existing links resolve. Read "v0.4" as "this design", not as a release.
 
 **Date:** 2026-08-06 · **Source:** three-minds design round (Sol / Kimi K3 / House-Opus) over issue [#9](https://github.com/JeanDes-Code/sneq-narrative-system/issues/9), the v1 theory (`SNEQ/01..08`), and the 0.3.0 code at `e2843a0`.
 **Status: spec of record — open frontier.** Not canon. This document states what is **decided** about v0.4. What is not yet decided is listed in §13 under *Design gaps still open*, and three of those gaps block the decisive seam (§11 phase D). Those open questions are worked as tickets on [wayfinder map #10](https://github.com/JeanDes-Code/sneq-narrative-system/issues/10) — the document holds the decisions, the map holds the frontier. Read the two together.
@@ -241,7 +243,7 @@ export interface InventionTransition {                  // append-only audit
 }
 ```
 
-- **`AttributFige` → `CanonicalAttribute`**: stays replace-on-key **because it is explicitly a current-state projection now** — its history lives in events and invention transitions. Gains `source: { kind: "EVENT" | "PROMOTED_INVENTION" | "LEGACY_FACT"; … }` and `day`. Deprecated alias `AttributFige` exported through 0.4, removed in 0.5 (there is a live out-of-tree consumer — this is a migration window, not a speculative seam).
+- **`AttributFige` → `CanonicalAttribute`**: stays replace-on-key **because it is explicitly a current-state projection now** — its history lives in events and invention transitions. Gains `source: { kind: "EVENT" | "PROMOTED_INVENTION" | "LEGACY_FACT"; … }` and `day`. **No deprecated alias.** An earlier draft exported `AttributFige` through 0.4 and removed it in 0.5, as a migration window for the live out-of-tree consumer. There is no intermediate release to migrate through (§9), so the rename is a clean break at 0.5.0 and grimoire migrates as part of that work.
 - **`add_constraint` is re-founded, not deleted** (issue #9 amendment, 2026-08-06 — the round read domain types and never enumerated `dist/tools/`; for a middleware the tool contract is the primary API). It has live and planned callers (Jean's Hermes/Leeloo sessions via the CLI; the Hermes-Agent GDD plans it as its world-rules system) and it serves **two distinct roles** in 0.4:
   1. **Provisional layer entry** (the amendment's reading): a `DOIT_ETRE` with a single value sourced `INFERENCE_IA` is a *proposed value* and lands as a `ProvisionalInvention` — which supplies the lifecycle `Potentialite` structurally cannot (status, uptake tracking, transitions).
   2. **World rules** (the theory's `REGLE_MONDE` source, Hermes-Agent's planned use): laws declared at campaign setup or as dynamics emerge — all six rule types kept (`DOIT_ETRE`, `NE_PEUT_PAS_ETRE`, `IMPLIQUE`, `CORRELE_AVEC`, `RANGE_NUMERIQUE`, `REGEX` all have concrete planned uses) — **consulted at promotion and at commit validation**. `validateValue` gains its first readers ever (zero call sites today, engine and all consumers included).
@@ -377,9 +379,19 @@ Contract gains: `appendEvent`/`getEvents`, `appendRecord`/`getRecords`, `upsertH
 | Write surface | +4 tools (14) | 12 tools | composite commit (10) | **Sol** — one atomic bundle; torn writes are real on Convex (verified: no bundle op exists) |
 | Version | 0.4.0 | 0.4.0 ("the 1.0 story, shipped honestly early") | 0.4.0 | **0.4.0, unanimous** |
 
-## 9. Version verdict — 0.4.0
+## 9. Version verdict — one release, 0.5.0
 
-Unanimous across three vendors. This is architecturally the 1.0 story, but every load-bearing number in it is unvalidated in play: the salience weights are a prototype guess, the promotion rule is a synthesis of a theory recommendation and an untested reframing, and carriage mechanics have run for zero campaign-hours. **1.0.0 is earned by one full migrated grimoire campaign** in which holder contexts demonstrably prevent leaks without starving NPCs — §6's detectors are how we'll know. Ship 0.4.0, play it, let the numbers promote it. (Fittingly, the release model is the invention model: 0.4.0 enters CONTRAINT; a campaign's worth of uptake promotes it.)
+**There is no 0.4.0.** Decided with Jean 2026-08-08 ([#30](https://github.com/JeanDes-Code/sneq-narrative-system/issues/30)). Everything in this document ships as a single breaking release, **0.5.0**; `0.4` survives only as an internal slicing milestone for the build. The round's unanimous 0.4.0 verdict is void — it was rendered before §11–§14 tripled the surface, and it named a release nobody will run.
+
+**Ship criterion: Jean can run a real campaign with it.** Not "the code works". The system gets its first real play test at 0.5.0 and not before, so anything the campaign needs is in, and anything it does not is out.
+
+Three consequences follow, and one of them is the only thing on this map that has made the surface *smaller*:
+
+- **No migration window, so no migration machinery.** The spec had assumed a consumer running on 0.4 while 0.5 was built — hence the `AttributFige` alias, the two-step migrations, the deprecation gap in §13. Nobody will. One clean break: no alias, no dual code path, nothing to keep consistent.
+- **§12.2, §12.3 and §12.4 are critical path, not polish.** The live consumer is an agent (Leeloo, through the CLI), and what an agent reads is the tool descriptions and the skill file. Ship 0.5.0 with either still lying and the play test measures a badly-briefed agent — a failure could not be attributed to the engine rather than the briefing. `doctor` joins them: it is the instrument that says *why* a campaign misbehaves.
+- **A 0.3.1 patch ships first**, carrying what repairs present-tense damage and depends on no open ticket: the ten tool descriptions, the `operationId` documentation correction, `docs/api.md` regenerated, and the branded-ID validation at the tool boundary. That validation is breaking on purpose — it turns grimoire's silent `set_scene` failure into a loud one (§12.1), and Jean's call was explicit that breaking grimoire is acceptable, because the behaviour it breaks does nothing.
+
+**1.0.0 is still earned, not declared** — by one full migrated grimoire campaign in which holder contexts demonstrably prevent leaks without starving NPCs. §6's detectors are how we'll know. Every load-bearing number here remains unvalidated in play: the salience weights are a prototype guess, the promotion rule is a synthesis of a theory recommendation and an untested reframing, and carriage mechanics have run for zero campaign-hours. Ship 0.5.0, play it, let the numbers promote it. (Fittingly, the release model is the invention model: 0.5.0 enters CONTRAINT; a campaign's worth of uptake promotes it.)
 
 ## 10. Explicitly untouched
 
@@ -500,6 +512,8 @@ This has gone wrong repeatedly, and the instinct — "write better docs" — is 
 
 ### 12.3 Deliverable: `skills/sneq-narrative-engine.md` is rewritten, not updated
 
+**Critical path (§9).** The ship criterion is a real campaign, and the live consumer is an agent. This file and the tool descriptions of §12.2 are what that agent reads; if either still lies at 0.5.0, the play test measures the briefing rather than the engine.
+
 §10 says the skill file "gets a content update, not a redesign". That is wrong, and it is the document agents actually load. Its spine inverts: the core loop's step 4 (`register_fact`) is deleted; four of seven tool bullets change or disappear; two of six failure modes invert (a canon-contradicted provisional is now `REJECTED` **silently** — today the file teaches "contradictions are normal, adjudicate explicitly"); and `get_relevant_facts` — the documented form of the read §0 calls the actual bug — has its own bullet teaching `depth: 1`.
 
 Worse is what is absent. The frontmatter `description` is the **routing trigger** that decides whether an agent loads this skill at all, and it says *"track canonical entities, facts, scenes, and turns"* — no holder, no world day, no "who knows what". An agent facing a perspective problem will not load it. Nothing tells the agent which holder it is reading for, that "what is true" is unaskable, or that writes are one bundle instead of five ordered calls.
@@ -507,6 +521,8 @@ Worse is what is absent. The frontmatter `description` is the **routing trigger*
 The rewrite must carry, explicitly: the **holder discipline** (every read is for someone); the **id discipline** (never pass a name where an id is required, and how to get one); the **one-bundle write**; the **two clocks** and that narration alone never moves the world; and the fact that promotion is the engine's job, never the agent's.
 
 ### 12.4 A conformance harness consumers can run
+
+**Critical path (§9)**, for the same reason and one more: when the 0.5.0 campaign misbehaves, this is the instrument that says *why*. Without it the first play test yields an impression, not a diagnosis.
 
 Ship an executable checklist — `sneq-engine doctor --campaign <id>` or an exported test suite — that an integrating team (or an agent doing the integration) runs to get a verdict instead of a guess:
 
@@ -556,7 +572,7 @@ The spec allocated one UPGRADING headline draft and one clause about the skill f
 - **`gravity` is model-supplied** yet drives auto-dispatch and 40% of salience — in tension with "the model writes content, never effects".
 - **No direct canonical write remains** once `register_fact` is deleted: seeding a character sheet at setup would require fabricating events.
 - **The GCN is kept with no reader** — its only production caller is `getRelevantFacts` (`campaign.ts:145`), which §3 deletes; and `SNEQ/03:132-162` has `connu_publiquement`/`publique` relation flags, i.e. an unfiltered secret-relations channel straight through the seam.
-- **Deprecation policy is inconsistent**: `AttributFige` keeps an alias to 0.5 for the out-of-tree consumer, while `getRelevantFacts` — which the same consumer reaches through `prepareTurn` — is deleted outright with no window.
+- ~~Deprecation policy is inconsistent~~ — **resolved by §9.** One release means one break: no alias for `AttributFige`, no window for `getRelevantFacts`, nothing to keep consistent. Listed here only so the gap is not re-raised.
 
 **Theory to reconcile (5 of 8 SNEQ docs are never cited):**
 - `SNEQ/06:219` — *"PERSPECTIVE — Un fait peut être vrai d'un point de vue, faux d'un autre"* is the theory's warrant for the entire seam, uncited.
@@ -627,7 +643,11 @@ Recommended rung 0: **`Xenova/paraphrase-multilingual-MiniLM-L12-v2`, `dtype: 'q
 
 ## UPGRADING.md headline (draft)
 
-> **0.4.0 — Stratified knowledge (breaking).** SNEQ no longer answers "what is true" on the path to the model — only "what does this holder know." `getRelevantFacts` and `register_fact` are gone: write through `commit_narrative` (events, records, carriages, inventions — one atomic bundle), read through `get_holder_context` (beliefs ranked by engine-computed salience, delivered by carriages that arrive on a world day you advance yourself). Facts you stored are now `CanonicalAttribute` projections (`AttributFige` alias kept until 0.5); reliability lives on beliefs, not facts; turns no longer move the world.
+Two entries, and 0.4.0 is skipped — see §9.
+
+> **0.3.1 — Honest surface (one breaking check).** No new features. The ten tool descriptions now state what each tool returns and what it does **not** — `sneq__get_entity` never returned attributes, whatever its description claimed. `docs/api.md` is regenerated and its idempotency guarantee corrected: `operationId` is accepted and stored, and the built-in local strategy does **not** deduplicate on it. **Breaking, deliberately:** every tool taking an `EntityID` now rejects a value that is not one, with a message naming the call to make first. If your integration passed model-typed names into `set_scene`, it was silently doing nothing and now says so.
+
+> **0.5.0 — Stratified knowledge (breaking).** SNEQ no longer answers "what is true" on the path to the model — only "what does this holder know." `getRelevantFacts` and `register_fact` are gone: write through `commit_narrative` (events, records, carriages, inventions — one atomic bundle), read through `get_holder_context` (beliefs ranked by engine-computed salience, delivered by carriages that arrive on a world day you advance yourself). Compose your prompt however you like, then hand it to `assertContainment` before the call — that is where the guarantee is enforced. Facts you stored are now `CanonicalAttribute` projections, renamed with **no alias**; reliability lives on beliefs, not facts; turns no longer move the world.
 
 ---
 
@@ -642,3 +662,5 @@ The body above carries only the current decision. This log carries how it got th
 **2026-08-08 — verification pass** over the 0.3.0 code, the repo docs, the v1 theory, the **four live out-of-tree consumers** (grimoire, nexus-dynamics-rpg, rebel-political-narrative-game, arcanum) and the research prototype (`experimentation-1`). Four structural additions — §0.5 (seven premises of *this* spec, corrected) · §11 (the integration surface, because v0.4's central claim is unreachable at the single insertion point 0.3.0 offers) · §12 (the agent-facing contract as a deliverable) · §13 (the documentation work-package) — plus §14 (embeddings without setup, and a migration path for the locked dimension). It reversed the previous day on one point: **containment moved out of `validate_narration` to a pre-flight assertion** (§11 phase D), per the docstring of the prototype the spec cites. It also withdrew the `better_sqlite3` blocker, which was never real.
 
 **2026-08-08, later — consolidation.** No new findings. The three passes had left the body self-contradicting in seven places: §0 on `get_entity` and on the sqlite blocker, §3 on the measured ratio, §5.2 on `add_constraint`'s signature and on where containment lives, §7 on the prerequisite, §10 on what is untouched. Each was rewritten to state the surviving decision once, and the chronology moved here. Status changed from DRAFT to *spec of record — open frontier*, pointing at map #10 for what remains undecided. Nothing in the design changed.
+
+**2026-08-08 — the scope line, decided with Jean ([#30](https://github.com/JeanDes-Code/sneq-narrative-system/issues/30)).** The verification pass had added four sections and removed nothing; the release question it opened was answered rather than deferred. **No 0.4.0 ships.** One breaking release, 0.5.0, with `0.4` kept as an internal build milestone. The ship criterion is a real campaign, not green tests. Reversals: the round's unanimous 0.4.0 verdict is void (§9); the `AttributFige` deprecated alias is dropped, because no intermediate release exists to migrate through (§2.6), which also closes §13's deprecation-policy gap; §11 ships whole, not reduced to the phases that make the thesis testable; §12.2/12.3/12.4 move onto the critical path, since the live consumer is an agent that reads the tool descriptions and the skill file. A 0.3.1 patch ships ahead of it with the honest-surface work and one deliberately breaking check.
