@@ -1,8 +1,8 @@
 {
   "name": "sneq-engine",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "packageManager": "pnpm@10.30.3",
-  "description": "Bookkeeping engine for turn-based AI-narrated games (SNEQ V2) — canonical entities, facts, scenes and turns for AI game masters",
+  "description": "Bookkeeping engine for turn-based AI-narrated games (SNEQ V2) \u2014 canonical entities, facts, scenes and turns for AI game masters",
   "type": "module",
   "license": "MIT",
   "repository": {
@@ -70,7 +70,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.json",
-    "docs": "typedoc && node scripts/build-api-md.mjs",
+    "docs:build": "typedoc && node scripts/build-api-md.mjs",
     "clean": "rm -rf dist"
   },
   "dependencies": {

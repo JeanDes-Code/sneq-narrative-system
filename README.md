@@ -147,10 +147,12 @@ confirmation, constraint append (`addConstraint`), and canonical entity creation
 Pure command decisions are available from `sneq-engine/atomic` so an adapter can run
 SNEQ's rules inside its store transaction without importing a framework into the engine.
 
-Every command carries an `operationId` generated once per logical engine call. A distributed strategy
-must atomically deduplicate retries of that ID and return the original result; this covers a committed
-store mutation whose transport response was lost. The local repository-backed strategy remains an
-in-process `Repository.transaction(fn)` implementation.
+Every command carries an `operationId` generated once per logical engine call and stable across its
+retries. **The engine does not deduplicate on it** — the built-in repository-backed strategy ignores
+the field and is an in-process `Repository.transaction(fn)`. If you need exactly-once semantics over a
+transport that can lose a response after the store committed, your distributed strategy implements the
+dedup, keyed on that ID, and returns the original result. The token exists so you can; it is not a
+guarantee you inherit.
 
 Canonical creation is optimistic: `mentionEntity()` reads a per-campaign `entityRevision`, resolves and
 embeds outside any transaction, then asks the strategy to `createEntity` only if the revision is
@@ -307,7 +309,7 @@ skills/                         agent-discoverable skill
 pnpm test            # unit tests (excludes integration smoke)
 pnpm typecheck       # full project tsc --noEmit
 pnpm build           # emit dist/
-pnpm docs            # regenerate docs/api.md from TypeDoc
+pnpm docs:build      # regenerate docs/api.md from TypeDoc (CI fails on a stale diff)
 SNEQ_INTEGRATION_SMOKE=1 pnpm test    # include integration smoke (needs API keys)
 ```
 

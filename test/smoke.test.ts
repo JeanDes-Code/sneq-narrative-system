@@ -15,7 +15,7 @@ const packageJson = JSON.parse(
 
 describe("smoke", () => {
   it("exports version constant", () => {
-    expect(SNEQ_ENGINE_VERSION).toBe("0.3.0");
+    expect(SNEQ_ENGINE_VERSION).toBe("0.3.1");
   });
 
   it("exports distributed-store decisions from the main entrypoint", () => {
