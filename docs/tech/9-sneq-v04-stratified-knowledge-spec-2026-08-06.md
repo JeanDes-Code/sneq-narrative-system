@@ -1,11 +1,11 @@
 # sneq-engine v0.4.0 — Stratified knowledge: spec
 
 **Date:** 2026-08-06 · **Source:** three-minds design round (Sol / Kimi K3 / House-Opus) over issue [#9](https://github.com/JeanDes-Code/sneq-narrative-system/issues/9), the v1 theory (`SNEQ/01..08`), and the 0.3.0 code at `e2843a0`.
-**Status:** DRAFT — reviewed with Jean 2026-08-07. Every load-bearing claim below was re-verified against the code by the synthesizing session; mind attributions are noted where a finding was unique.
+**Status: spec of record — open frontier.** Not canon. This document states what is **decided** about v0.4. What is not yet decided is listed in §13 under *Design gaps still open*, and three of those gaps block the decisive seam (§11 phase D). Those open questions are worked as tickets on [wayfinder map #10](https://github.com/JeanDes-Code/sneq-narrative-system/issues/10) — the document holds the decisions, the map holds the frontier. Read the two together.
 
-**Amended 2026-08-08** after a verification pass over the 0.3.0 code, the repo documentation, the v1 theory, and — new — **the four live out-of-tree consumers** (grimoire, nexus-dynamics-rpg, rebel-political-narrative-game, arcanum) plus the research prototype (`experimentation-1`). Three structural additions: **§0.5** corrects seven premises of *this* spec · **§11** defines the integration surface (the turn pipeline), because v0.4's central claim is unreachable at the single insertion point 0.3.0 has · **§12** makes the agent-facing contract a deliverable, and **§13** the documentation work-package. The containment gate moves out of `validate_narration` (§5.2) to a pre-flight assertion (§11 phase D), per the prototype it cites. **§14** makes embeddings setup-free by default and gives the locked embedding dimension a migration path.
+**Baseline verified 2026-08-08** on the work machine: Node **v24.13.0**, `pnpm test` → **34 files, 313 tests, all passing** (including `sqlite-contract.test.ts`, 17), `pnpm typecheck` clean.
 
-**Amended 2026-08-07** after review with Jean and the issue #9 amendment (2026-08-06, tool-surface analysis): lazy holder creation (§2.3) · `DispatchPolicy` auto-dispatch (§2.4, supersedes "never auto-dispatch" in §6.1) · `add_constraint` kept and re-founded, two roles, all six rule types (§2.6) · `GM_NARRATION` guard adopted (§2.6) · `validate_narration` hosts the containment/canary gates (§5.2). Consumer census correction: grimoire is not the only consumer — Hermes/Leeloo call the CLI in live play, and the Hermes-Agent GDD plans `add_constraint` as its world-rules system (with the caveat recorded in §2.6: the auto-propagation it describes never existed in 0.3.0).
+**How to read this document.** The body carries the current decision and nothing else — where a later pass reversed an earlier one, the body was rewritten, not annotated. The chronology lives in the **Amendment log** at the end. §0.5 is the exception and stays in place: it is not history but a standing correction of premises this spec was built on, and each entry names code that still reads that way today.
 
 ---
 
@@ -18,12 +18,12 @@ Issue #9's plan rested on two factual premises about 0.3.0. Both are false, and 
 
 Two more findings that reshape scope:
 
-- **The omniscient read is the actual bug** (House, decisive; Sol converged). `getRelevantFacts` (`src/campaign.ts:139-152`) returns every fact of the entity and, at depth 1, every fact of every neighbor — unfiltered, unranked. It is one of the ten advertised tools and it is what grimoire calls to build GM context. This is Arm B of the experiment (96% scene leakage) reproduced *inside* the library. `get_entity` and `prepare-turn` leak the same way (Sol §0.4).
+- **The omniscient read is the actual bug** (House, decisive; Sol converged). `getRelevantFacts` (`src/campaign.ts:139-152`) returns every fact of the entity and, at depth 1, every fact of every neighbor — unfiltered, unranked. It is one of the ten advertised tools and it is what grimoire calls to build GM context. This is Arm B of the experiment (96% scene leakage) reproduced *inside* the library. `prepare-turn` leaks the same way (`campaign.ts:362-369`). `get_entity` does **not** — see §0.5 premise 3: it returns a bare `Entity` with no attribute field, and the leak Sol charged it with lives in its tool *description*, not its return value.
 - **A fourth repository adapter exists out of tree** (House R3). Grimoire implements the full `Repository` contract on Convex (`grimoire/apps/web/lib/canon/convex-sneq-repository.ts:125,153`) and persists `Potentialite` rows. Deleting the constraint types is a cross-repo data migration, not a free move. Convex stores rows as `payload` blobs behind `as AttributFige` casts that TypeScript will not police.
 
 The theory largely sides with the issue, more than the issue knew (House T1/T2, verified): the v1 docs count time in `{ jour, heure }` — `turn` is a 0.3.0 invention — and `SNEQ/02` §2.5 already prescribes "contrainte souple immédiate, convertie en stricte si confirmée", which is the promotion mechanism issue #9 rediscovered. And `SNEQ/01` §1.8: "Les faits FIGÉS ne sont jamais modifiés. Seule l'interprétation peut évoluer" — the player floor was already doctrine.
 
-**Practical blocker found on the way (House R6, reproduced):** the test suite fails locally — `better_sqlite3.node` is compiled for `NODE_MODULE_VERSION 137`, machine runs Node v26.4.0. `pnpm rebuild better-sqlite3` before any of this work starts; until then the SQLite adapter is unverified.
+**A blocker the round reported and that does not exist:** House R6 claimed the suite fails locally on a `better_sqlite3` ABI mismatch against "Node v26.4.0". There is no such Node release. Re-run on the work machine 2026-08-08: Node v24.13.0, 313/313 passing, SQLite adapter included. No rebuild gates this work. Recorded here because the claim was carried as a prerequisite in two places for two days — an unverified blocker costs as much as a missed one.
 
 ---
 
@@ -268,7 +268,7 @@ getHolderContext(holderId, { about?: EntityID; topK?: number }): {
 }
 ```
 
-Raw truth (`getEvents`, `getRecords`, `getCanonicalAttributes`) remains available to *trusted application code* — save inspection, admin UIs, tests — but is **not on the agent tool surface**. You cannot leak what the API will not hand you: this is the structural form of "one context window cannot withhold from itself", and it is the part that maps 1:1 to the measured 0.80-vs-4.84 separation.
+Raw truth (`getEvents`, `getRecords`, `getCanonicalAttributes`) remains available to *trusted application code* — save inspection, admin UIs, tests — but is **not on the agent tool surface**. You cannot leak what the API will not hand you: this is the structural form of "one context window cannot withhold from itself", and it is the part the experiment measured — a separation **in the 4–6× range** (§11.5 corrects the headline 6.05× to ≈4.17× after the blind cross-check; quote the range, never a point). Note the scope of that claim precisely: the seam makes *SNEQ's* contribution to the payload clean. It does not make the payload clean, because SNEQ does not compose it — that is what §11 phases C and D exist to close.
 
 ---
 
@@ -302,18 +302,18 @@ commitNarrative({ event?, records[], carriages[], carriageEffects[],
 |---|---|
 | **removed** | `sneq__get_relevant_facts`, `sneq__register_fact` |
 | **added** | `sneq__get_holder_context { holderId, about?, topK? }`, `sneq__commit_narrative` |
-| **changed** | `sneq__get_entity` (identity only) · `sneq__advance_turn` (+ optional `days`) · `sneq__add_constraint` (same signature; now the entry of the provisional layer — single-value `DOIT_ETRE` → `ProvisionalInvention`, exclusion rules → promotion-time validation) · `sneq__validate_narration` (**corrected 2026-08-08**: gains a knowledge-aware *canary* pass and the ability to **block**, not merely report. The **containment gate does not live here** — see §11 phase D and the note below) |
+| **changed** | `sneq__get_entity` (identity only) · `sneq__advance_turn` (+ optional `days`) · `sneq__add_constraint` (**signature unresolved — open**: it must serve two roles, and §0.5 premise 5 proves the shape in this spec cannot. `decideAddConstraint` hardcodes `INFERENCE_IA`, so the intended discriminator matches every constraint and `REGLE_MONDE` has no producer. The role must become explicit in the payload. Adjudicated at [#19](https://github.com/JeanDes-Code/sneq-narrative-system/issues/19), not here) · `sneq__validate_narration` (keeps its entity-resolution job, gains holder awareness and the power to **block** rather than merely report. The **containment gate does not live here** — see §11 phase D and the note below) |
 | **unchanged** | `lookup_entity`, `suggest_existing`, `mention_entity`, `set_scene` |
 
 One composite write beats five order-sensitive writes in an agent loop; tool count is a real cost (deep modules: much behavior, small interface).
 
-**Correction — containment was filed at the wrong end.** The 2026-08-07 amendment put "the containment + canary gates" inside `validate_narration`, i.e. on the model's output. The prototype this spec cites says the opposite in the docstring of the function itself (`experimentation-1/prototypes/scaled-audit/engine.ts:409-413`):
+**Why containment is not an output gate.** Containment belongs *before* the call, not after it. The prototype this spec cites says so in the docstring of the function itself (`experimentation-1/prototypes/scaled-audit/engine.ts:409-413`):
 
 > *"Every token from every event/record this holder has NOT learned. Decided from state, **before any call** — the containment gate. **Not a validator on the model's output; a statement about what was handed over.**"*
 
 And it keeps the two functions deliberately separate (`:448-455`): `checkCanary` is *"a TEST-ONLY string assertion over prose that came back. Never a runtime validator that re-asks."* The distinction is load-bearing: **containment proves the fact was never handed over; the canary catches it being reconstructible from what was.** In the measured run, arm B fails containment **5/5 with `present == forbidden`, before the model has spoken** (`runs/pro-run2/containment.txt`). A post-hoc narration check cannot produce that result, because by then the leak has already been handed to the model.
 
-So: **containment is a pre-flight assertion over the composed payload (§11 phase D)**; the canary stays test-only in the suite (§7.3); and `validate_narration` keeps its entity-resolution job, gains holder awareness, and gains the power to withhold. Note that `strict` is today an **empty shell** — it is accepted at `schemas.ts:85` and `hooks/narration-gate.ts:10` and **read nowhere** in the `Validator`; "the output gate mostly ships already" overstates what exists by roughly the whole gate.
+So: **containment is a pre-flight assertion over the composed payload (§11 phase D)**; the canary stays test-only in the suite (§7.3); and `validate_narration` keeps its entity-resolution job, gains holder awareness, and gains the power to withhold. Budget it as new work, not as polish: `strict` is today an **empty shell** — accepted at `schemas.ts:85` and `hooks/narration-gate.ts:10`, **read nowhere** in the `Validator`. Roughly the whole gate is unwritten.
 
 **`ValidationReport` cannot express a block.** Its shape is `{ ok, partial, extractedNames, issues }` (`src/hooks/narration-gate.ts:31-36`) — it reports, it never withholds or repairs. Blocking, redaction and a bounded repair loop are new control flow, and grimoire has already had to invent all three on top (`packages/gm/src/loop.ts:186-200`, and a `blocked → partial` downgrade in `apps/web/lib/canon/sneq-memory.ts:110-129`).
 
@@ -321,7 +321,7 @@ So: **containment is a pre-flight assertion over the composed payload (§11 phas
 
 `get-relevant-facts` → `get-holder-context`; `register-fact` → `commit-narrative`; `advance-turn --days N`; `prepare-turn --holder <id>`; add `upsert-holder`. Everything else unchanged.
 
-**Count corrected (2026-08-08):** 14 today (`src/cli/types.ts:5-20`), two renames (count-neutral) plus one addition = **15**. README:210 and UPGRADING:175 both encode the old 14 — UPGRADING:175 as an *executable* verification step, so it fails on release day if not updated.
+**The count:** 14 today (`src/cli/types.ts:5-20`), two renames (count-neutral) plus one addition = **15**. README:210 and UPGRADING:175 both encode the old 14 — UPGRADING:175 as an *executable* verification step, so it fails on release day if not updated.
 
 **`upsert-holder` is not routable as written.** `run.ts:127-135` sends every non-special command through `sneq__${command.replaceAll("-","_")}`, so it would dispatch `sneq__upsert_holder`, which §5.2 does not create. Decide explicitly: a sixth special-case branch in `run.ts` (keeps the tool surface at ten), or an eleventh tool. **Adjudication: special-case branch** — holder authoring is a host/setup concern, not a narration-loop concern, and the §11 pipeline puts holder creation in `commit_narrative`'s `holders[]` for in-play creation anyway.
 
@@ -358,7 +358,7 @@ Contract gains: `appendEvent`/`getEvents`, `appendRecord`/`getRecords`, `upsertH
 4. **`core/promotion` — the lifecycle.** Uptake promotes; later reconfirmation promotes; same-turn echo does not; confidence alone never does; canon-contradicted provisional → `REJECTED` with **no** `SneqContradictionError` (inverts today's behavior — likeliest to be implemented wrong); promoted + contradicted → contradiction returned, act untouched; stale provisional stays retrievable and promotable 20 turns later; same `operationId` retried → exactly one transition.
 5. **`atomic/commit-narrative` — one bundle or nothing.** Inject failure at each write boundary → nothing visible; retry idempotent; and assert the advertised tool surface exposes no unrestricted ledger read (the test that proves v0.4 is one system, not a module with a bypass).
 
-~~**Prerequisite:** `pnpm rebuild better-sqlite3` — until then the SQLite third of the contract suite is decorative.~~ **Withdrawn 2026-08-08 — the blocker does not exist.** Verified on the work machine: `node --version` → **v24.13.0** (not v26.4.0, which is not a Node release), and `pnpm test` → **34 files, 313 tests, all passing**, including `sqlite-contract.test.ts` (17) and `sqlite.test.ts`. `pnpm typecheck` is clean. The SQLite third of the contract suite is live, not decorative. No rebuild is needed before this work starts.
+**No prerequisite.** The whole suite is live and green on the work machine — see the verified baseline in the header. The SQLite third of the contract suite runs; nothing gates the start of this work.
 
 **Missing from the five, and each is cheap:** the **migration** (SQLite v3→v4 `figed` → `canonical_attributes` copy-as-`LEGACY_FACT`, and the JSON v1 loader — both are new code with no test in the plan) · **`DispatchPolicy` auto-dispatch** (the structural mitigation of risk §6.1, currently untested) · the **holder resolution cascade** of §2.3 (entity → individual → group → campaign default) · the **clock** (`advance_turn --days`, and that no engine path converts between `turn` and `day`) · and **§11's containment assertion**, which is the one test that maps to the measured result.
 
@@ -383,9 +383,17 @@ Unanimous across three vendors. This is architecturally the 1.0 story, but every
 
 ## 10. Explicitly untouched
 
-**Revised 2026-08-08 — four of the seven were not safe.** `UserPromptRegistry`/`confirmEntityMatch` (it writes a *player-observed* alias into a globally readable identity surface — the `nomConnu` gap) · scenes (`prepare-turn` changes shape and gains a holder; `Scene.presentEntityIds` must now feed `event.participants` and the `PARTICIPANT` derogation) · GCN storage (storage survives, the read surface does not — see §13) · the skill file (a rewrite, not a content update — §12.3). The three genuinely safe: entity resolution + anti-fork cascade, the router/providers, and the resolver thresholds. Also note the three hooks are *not* listed here and are not safe: `NarrationGateContext` exposes no holder and no beliefs, yet §5.2 puts a per-holder gate inside it, and `PreGenerationRegistry` is orphaned (its `triggerKind` union has no `CARRIAGE_ARRIVED`/`DAY_ADVANCED`, its `hint` no `holderId`).
+**Genuinely untouched — three.** Entity resolution + the anti-fork cascade · the router/providers (including the just-shipped usage metrics) · the resolver thresholds.
 
-Entity resolution + anti-fork cascade · `UserPromptRegistry` / `confirmEntityMatch` · Router/providers (including the just-shipped usage metrics) · scenes · GCN storage · the three-adapter contract seam · skill file (`skills/sneq-narrative-engine.md` gets a content update, not a redesign).
+**Claimed untouched, and in scope after all — five.** The first pass listed seven; verification moved five of them back in. Each is real work, and none of it is budgeted anywhere else:
+
+- **`UserPromptRegistry` / `confirmEntityMatch`** — it writes a *player-observed* alias into a globally readable identity surface. That is the `nomConnu` gap (`SNEQ/02:36`): the theory scoped the name itself per knower, and v0.4 does not.
+- **Scenes** — `prepare-turn` changes shape and gains a holder, and `Scene.presentEntityIds` must now feed `event.participants` and the `PARTICIPANT` derogation.
+- **GCN** — storage survives; the read surface does not. Its only production caller is `getRelevantFacts` (`campaign.ts:145`), which §3 deletes, so the GCN is kept with no reader (§13).
+- **The skill file** — a rewrite, not a content update (§12.3). Its frontmatter `description` is the routing trigger that decides whether an agent loads it at all.
+- **The three hooks** — never listed, never safe. `NarrationGateContext` exposes no holder and no beliefs, yet §5.2 puts a per-holder gate inside it. `PreGenerationRegistry` is orphaned: its `triggerKind` union has no `CARRIAGE_ARRIVED`/`DAY_ADVANCED`, its `hint` no `holderId`.
+
+The three-adapter contract seam is untouched *as a seam* — the contract itself gains a dozen methods (§5.4).
 
 ---
 
@@ -620,3 +628,17 @@ Recommended rung 0: **`Xenova/paraphrase-multilingual-MiniLM-L12-v2`, `dtype: 'q
 ## UPGRADING.md headline (draft)
 
 > **0.4.0 — Stratified knowledge (breaking).** SNEQ no longer answers "what is true" on the path to the model — only "what does this holder know." `getRelevantFacts` and `register_fact` are gone: write through `commit_narrative` (events, records, carriages, inventions — one atomic bundle), read through `get_holder_context` (beliefs ranked by engine-computed salience, delivered by carriages that arrive on a world day you advance yourself). Facts you stored are now `CanonicalAttribute` projections (`AttributFige` alias kept until 0.5); reliability lives on beliefs, not facts; turns no longer move the world.
+
+---
+
+## Amendment log
+
+The body above carries only the current decision. This log carries how it got there — three passes, each of which reversed something the one before it had settled. Read it when a decision looks arbitrary; the reason is usually here.
+
+**2026-08-06 — the round.** Three-minds design round (Sol / Kimi K3 / House-Opus) over issue #9, the v1 theory (`SNEQ/01..08`) and the 0.3.0 code at `e2843a0`. Produced §§0–10: the two false premises in #9, the D+D shape merge, and the eight adjudications in §8. Kimi's shape A was refuted by verified premise 1 and did not survive the round.
+
+**2026-08-07 — review with Jean, plus the issue #9 amendment (tool-surface analysis).** Five changes, each superseding round output: lazy holder creation (§2.3, replacing upfront authoring) · `DispatchPolicy` auto-dispatch (§2.4, superseding the round's "never auto-dispatch") · `add_constraint` kept and re-founded rather than deleted, two roles, all six rule types (§2.6, superseding Sol's deletion verdict, which rested on an incomplete caller census) · the `GM_NARRATION` guard adopted (§2.6) · containment and canary filed inside `validate_narration` (§5.2). Consumer census corrected: grimoire is not the only consumer — Hermes/Leeloo drive the CLI in live play.
+
+**2026-08-08 — verification pass** over the 0.3.0 code, the repo docs, the v1 theory, the **four live out-of-tree consumers** (grimoire, nexus-dynamics-rpg, rebel-political-narrative-game, arcanum) and the research prototype (`experimentation-1`). Four structural additions — §0.5 (seven premises of *this* spec, corrected) · §11 (the integration surface, because v0.4's central claim is unreachable at the single insertion point 0.3.0 offers) · §12 (the agent-facing contract as a deliverable) · §13 (the documentation work-package) — plus §14 (embeddings without setup, and a migration path for the locked dimension). It reversed the previous day on one point: **containment moved out of `validate_narration` to a pre-flight assertion** (§11 phase D), per the docstring of the prototype the spec cites. It also withdrew the `better_sqlite3` blocker, which was never real.
+
+**2026-08-08, later — consolidation.** No new findings. The three passes had left the body self-contradicting in seven places: §0 on `get_entity` and on the sqlite blocker, §3 on the measured ratio, §5.2 on `add_constraint`'s signature and on where containment lives, §7 on the prerequisite, §10 on what is untouched. Each was rewritten to state the surviving decision once, and the chronology moved here. Status changed from DRAFT to *spec of record — open frontier*, pointing at map #10 for what remains undecided. Nothing in the design changed.
