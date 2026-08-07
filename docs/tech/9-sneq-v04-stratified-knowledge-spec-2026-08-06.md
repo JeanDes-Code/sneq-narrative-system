@@ -3,6 +3,8 @@
 **Date:** 2026-08-06 · **Source:** three-minds design round (Sol / Kimi K3 / House-Opus) over issue [#9](https://github.com/JeanDes-Code/sneq-narrative-system/issues/9), the v1 theory (`SNEQ/01..08`), and the 0.3.0 code at `e2843a0`.
 **Status:** DRAFT — reviewed with Jean 2026-08-07. Every load-bearing claim below was re-verified against the code by the synthesizing session; mind attributions are noted where a finding was unique.
 
+**Amended 2026-08-08** after a verification pass over the 0.3.0 code, the repo documentation, the v1 theory, and — new — **the four live out-of-tree consumers** (grimoire, nexus-dynamics-rpg, rebel-political-narrative-game, arcanum) plus the research prototype (`experimentation-1`). Three structural additions: **§0.5** corrects seven premises of *this* spec · **§11** defines the integration surface (the turn pipeline), because v0.4's central claim is unreachable at the single insertion point 0.3.0 has · **§12** makes the agent-facing contract a deliverable, and **§13** the documentation work-package. The containment gate moves out of `validate_narration` (§5.2) to a pre-flight assertion (§11 phase D), per the prototype it cites. **§14** makes embeddings setup-free by default and gives the locked embedding dimension a migration path.
+
 **Amended 2026-08-07** after review with Jean and the issue #9 amendment (2026-08-06, tool-surface analysis): lazy holder creation (§2.3) · `DispatchPolicy` auto-dispatch (§2.4, supersedes "never auto-dispatch" in §6.1) · `add_constraint` kept and re-founded, two roles, all six rule types (§2.6) · `GM_NARRATION` guard adopted (§2.6) · `validate_narration` hosts the containment/canary gates (§5.2). Consumer census correction: grimoire is not the only consumer — Hermes/Leeloo call the CLI in live play, and the Hermes-Agent GDD plans `add_constraint` as its world-rules system (with the caveat recorded in §2.6: the auto-propagation it describes never existed in 0.3.0).
 
 ---
@@ -24,6 +26,21 @@ The theory largely sides with the issue, more than the issue knew (House T1/T2, 
 **Practical blocker found on the way (House R6, reproduced):** the test suite fails locally — `better_sqlite3.node` is compiled for `NODE_MODULE_VERSION 137`, machine runs Node v26.4.0. `pnpm rebuild better-sqlite3` before any of this work starts; until then the SQLite adapter is unverified.
 
 ---
+
+## 0.5 Premises of *this* spec, corrected (2026-08-08)
+
+§0 charges issue #9 with resting on unverified premises. A verification pass over the code, the docs, the theory and the consumers found this spec doing the same thing in seven places. The design survives all seven; the **scope** does not.
+
+1. **`operationId` dedup does not exist.** §5.1 says `commit_narrative` is "idempotent by `operationId` (existing dedup rules apply)" and §7.4/§7.5 test retries against it. `operationId` is *written* 7× (`src/campaign.ts:130,161,243,271,286,300,315`), *declared* once with a doc comment promising dedup (`src/atomic/types.ts:10-11`), and **read zero times** in `src/`. `repositoryAtomicWriteStrategy` never consults it. Idempotency is **new work**, not an existing rule. (It is real in grimoire's Convex adapter — `findCompletedOperation`/`recordOperation`, `convex/canonMutations.ts:446,466` — which is why it looks like it exists.) `docs/api.md` documents the guarantee as if shipped, on npm.
+2. **The `better_sqlite3` blocker is not real.** See §7. Node v24.13.0; 313/313 tests pass.
+3. **`get_entity` does not leak.** §0 says it "leaks the same way" and §3 "narrows" it. `campaign.ts:122-125` returns a bare `Entity`, and `Entity` (`src/domain/entity.ts:26-38`) has no attribute field — there has never been a dump. The false claim lives in `toolDescriptions` (`src/tools/schemas.ts:91`: *"with its full set of figed (canonical) attributes"*), i.e. in the in-band documentation the model reads at call time. §3's narrowing is a one-line doc fix. (`prepare-turn` **does** leak, as claimed: `campaign.ts:362-369`.) The real unaddressed identity leak is `Entity.description` — persisted GM prose handed to any caller — plus aliases; the theory scoped exactly this with `nomConnu` (`SNEQ/02:36`), and §7.3's containment test does not cover it.
+4. **The uptake extractor is capitalization-only.** §2.6 promises "no new NLP" by reusing `validate-narration`'s extractor. `isProperNounCandidate` (`src/core/validate-narration.ts:288-294`) requires an uppercase initial and caps sequences at 3 tokens. Lowercase surface tokens — *la cicatrice*, *le bac*, *la taxe* — are **never** extracted, so `PLAYER_UPTAKE` under-fires exactly where inventions are most common. This is risk §6.3 arriving through the front door, and the two are not connected in the text. Also, `extract` is an instance method on a `Validator` requiring `Resolver` + `Router`; standalone use needs a free function.
+5. **`add_constraint` cannot keep "the same signature" and serve two roles.** `decideAddConstraint` hardcodes `source: { kind: "INFERENCE_IA", confidence: 0.7 }` (`src/atomic/decisions.ts:20`) and `etat: "CONTRAINT"` (`:35`). Every constraint is `INFERENCE_IA`, so §2.6's discriminator ("a single-value `DOIT_ETRE` sourced `INFERENCE_IA` → provisional") matches *everything* and `REGLE_MONDE` (`src/domain/potentialite.ts:9`) has no producer. The signature must gain an explicit role/source. Related: `validateValue` cannot simply "gain its first readers" — `IMPLIQUE` and `CORRELE_AVEC` unconditionally `return { ok: true }` (`src/core/validation.ts:96-98`), and `ValidationContext` demands a strict/soft split that `Contrainte` has no field to express.
+6. **`Observation.fiabilite` cannot be removed by declaration.** §2.2 types `OfficialRecord.observation` as `Observation` while saying "fiabilite REMOVED" — but `fiabilite` is **required** on `Observation` (`src/domain/observation.ts:24`). Introduce a distinct `Provenance` type. Removal also breaks `src/cli/observation.ts:5-11` (the `Pick<>` and all four presets), the zod schema (`src/tools/schemas.ts:36`), and leaves a stale key in every persisted `figed.observation` blob (`sqlite/serialization.ts:87`) — with **no blob migration** in §5.4's schema-v4 list. Mitigating finding: nothing in `src/` ever *reads* `fiabilite` for a decision, so the break is type/serialization only.
+7. **The omniscient read is not what the flagship consumer calls.** §0 says `getRelevantFacts` "is what grimoire calls to build GM context". It is not: grimoire calls `prepareTurn` (`packages/gm/src/loop.ts:316-324`), and that injection is **dead in production** — `set_scene` passes model-typed free-text names where `EntityID`s are required (`packages/gm/src/tools.ts:267`), so `getEntity` returns null for every one and `presentEntities` is **always empty**. Grimoire also **never calls `registerFact`**, so the SNEQ fact layer is **empty in production** and the codex renders `facts: []`. The diagnosis "the omniscient read is the actual bug" is right in principle and wrong in practice: today's measurable leak comes from the host's raw transcript window (§11 phase C), not from an API nobody calls. Deleting `getRelevantFacts` does not remove the omniscient read — it **relocates it one level up**, into consumer code where SNEQ can no longer see it.
+
+**The pattern behind 3, 4 and 7 is the one §11 and §12 exist to fix:** every one of them is a place where the *documentation* said one thing, the *code* did another, and nothing failed loudly enough for anyone — human or agent — to notice for months.
+
 
 ## 1. The design in one paragraph
 
@@ -285,18 +302,36 @@ commitNarrative({ event?, records[], carriages[], carriageEffects[],
 |---|---|
 | **removed** | `sneq__get_relevant_facts`, `sneq__register_fact` |
 | **added** | `sneq__get_holder_context { holderId, about?, topK? }`, `sneq__commit_narrative` |
-| **changed** | `sneq__get_entity` (identity only) · `sneq__advance_turn` (+ optional `days`) · `sneq__add_constraint` (same signature; now the entry of the provisional layer — single-value `DOIT_ETRE` → `ProvisionalInvention`, exclusion rules → promotion-time validation) · `sneq__validate_narration` (gains the containment + canary gates from experimentation-1#19 as a runtime `strict` mode — the amendment's point that the output gate mostly ships already) |
+| **changed** | `sneq__get_entity` (identity only) · `sneq__advance_turn` (+ optional `days`) · `sneq__add_constraint` (same signature; now the entry of the provisional layer — single-value `DOIT_ETRE` → `ProvisionalInvention`, exclusion rules → promotion-time validation) · `sneq__validate_narration` (**corrected 2026-08-08**: gains a knowledge-aware *canary* pass and the ability to **block**, not merely report. The **containment gate does not live here** — see §11 phase D and the note below) |
 | **unchanged** | `lookup_entity`, `suggest_existing`, `mention_entity`, `set_scene` |
 
 One composite write beats five order-sensitive writes in an agent loop; tool count is a real cost (deep modules: much behavior, small interface).
 
-### 5.3 CLI (14 commands)
+**Correction — containment was filed at the wrong end.** The 2026-08-07 amendment put "the containment + canary gates" inside `validate_narration`, i.e. on the model's output. The prototype this spec cites says the opposite in the docstring of the function itself (`experimentation-1/prototypes/scaled-audit/engine.ts:409-413`):
+
+> *"Every token from every event/record this holder has NOT learned. Decided from state, **before any call** — the containment gate. **Not a validator on the model's output; a statement about what was handed over.**"*
+
+And it keeps the two functions deliberately separate (`:448-455`): `checkCanary` is *"a TEST-ONLY string assertion over prose that came back. Never a runtime validator that re-asks."* The distinction is load-bearing: **containment proves the fact was never handed over; the canary catches it being reconstructible from what was.** In the measured run, arm B fails containment **5/5 with `present == forbidden`, before the model has spoken** (`runs/pro-run2/containment.txt`). A post-hoc narration check cannot produce that result, because by then the leak has already been handed to the model.
+
+So: **containment is a pre-flight assertion over the composed payload (§11 phase D)**; the canary stays test-only in the suite (§7.3); and `validate_narration` keeps its entity-resolution job, gains holder awareness, and gains the power to withhold. Note that `strict` is today an **empty shell** — it is accepted at `schemas.ts:85` and `hooks/narration-gate.ts:10` and **read nowhere** in the `Validator`; "the output gate mostly ships already" overstates what exists by roughly the whole gate.
+
+**`ValidationReport` cannot express a block.** Its shape is `{ ok, partial, extractedNames, issues }` (`src/hooks/narration-gate.ts:31-36`) — it reports, it never withholds or repairs. Blocking, redaction and a bounded repair loop are new control flow, and grimoire has already had to invent all three on top (`packages/gm/src/loop.ts:186-200`, and a `blocked → partial` downgrade in `apps/web/lib/canon/sneq-memory.ts:110-129`).
+
+### 5.3 CLI (15 commands)
 
 `get-relevant-facts` → `get-holder-context`; `register-fact` → `commit-narrative`; `advance-turn --days N`; `prepare-turn --holder <id>`; add `upsert-holder`. Everything else unchanged.
 
+**Count corrected (2026-08-08):** 14 today (`src/cli/types.ts:5-20`), two renames (count-neutral) plus one addition = **15**. README:210 and UPGRADING:175 both encode the old 14 — UPGRADING:175 as an *executable* verification step, so it fails on release day if not updated.
+
+**`upsert-holder` is not routable as written.** `run.ts:127-135` sends every non-special command through `sneq__${command.replaceAll("-","_")}`, so it would dispatch `sneq__upsert_holder`, which §5.2 does not create. Decide explicitly: a sixth special-case branch in `run.ts` (keeps the tool surface at ten), or an eleventh tool. **Adjudication: special-case branch** — holder authoring is a host/setup concern, not a narration-loop concern, and the §11 pipeline puts holder creation in `commit_narrative`'s `holders[]` for in-play creation anyway.
+
+**Two new flags need wiring**, and neither exists: `FLAGS_WITH_VALUE` (`src/cli/parse-argv.ts:9-11`) has no `--days` and no `--holder`, and `ParsedInvocation` (`src/cli/types.ts:24-35`) has no fields for them. Note this breaks the existing convention that every tool argument travels through `--args`/stdin — accept it (these two are ergonomic hot paths) but write it down.
+
+**`--source` / `--observation` become orphans.** `buildObservation` is wired only at `run.ts:151` behind `if (inv.command === "register-fact")` — a dead command. Hermes/Leeloo drive live play through exactly that flag. `commit_narrative` must expose how an event and a record get their provenance from the CLI, or the presets die silently.
+
 ### 5.4 Repository contract + adapters
 
-Contract gains: `appendEvent`/`getEvents`, `appendRecord`/`getRecords`, `upsertHolder`/`listHolders`, `appendCarriage`/`listCarriages(toPlaceId?, arrivedBy?)`, `appendCarriageEffect`, `appendInvention`/`appendInventionTransition`/`listInventions(status?)`, clock get/set. The contract test must assert **the absence of any event mutation path** — unusual, and the point.
+Contract gains: `appendEvent`/`getEvents`, `appendRecord`/`getRecords`, `upsertHolder`/`listHolders`, `appendCarriage`/`listCarriages(toPlaceId?, arrivedBy?)`, `appendCarriageEffect`, `appendInvention`/`appendInventionTransition`/`listInventions(status?)`, clock get/set, and **`reindexEmbeddings(vectors)` + `setEmbeddingDim(dim)`** (§14 — the dimension is currently immutable after the first write, with no migration path at all). The contract test must assert **the absence of any event mutation path** — unusual, and the point.
 
 - **SQLite**: schema v4 — new tables (`events`, `records`, `holders`, `carriages`, `carriage_effects`, `inventions`, `invention_transitions`), `figed` → `canonical_attributes` (copy as `LEGACY_FACT`), index `(campaign_id, to_place_id, arrival_day)`. `potentialites` table survives as-is.
 - **Memory / JSON-file**: new maps/arrays; JSON save format bumps `version: 1 → 2` with a v1 loader. JSON adapter accepts the O(n) carriage scan for solo play — documented, not discovered at turn 400.
@@ -323,7 +358,9 @@ Contract gains: `appendEvent`/`getEvents`, `appendRecord`/`getRecords`, `upsertH
 4. **`core/promotion` — the lifecycle.** Uptake promotes; later reconfirmation promotes; same-turn echo does not; confidence alone never does; canon-contradicted provisional → `REJECTED` with **no** `SneqContradictionError` (inverts today's behavior — likeliest to be implemented wrong); promoted + contradicted → contradiction returned, act untouched; stale provisional stays retrievable and promotable 20 turns later; same `operationId` retried → exactly one transition.
 5. **`atomic/commit-narrative` — one bundle or nothing.** Inject failure at each write boundary → nothing visible; retry idempotent; and assert the advertised tool surface exposes no unrestricted ledger read (the test that proves v0.4 is one system, not a module with a bypass).
 
-**Prerequisite:** `pnpm rebuild better-sqlite3` — until then the SQLite third of the contract suite is decorative.
+~~**Prerequisite:** `pnpm rebuild better-sqlite3` — until then the SQLite third of the contract suite is decorative.~~ **Withdrawn 2026-08-08 — the blocker does not exist.** Verified on the work machine: `node --version` → **v24.13.0** (not v26.4.0, which is not a Node release), and `pnpm test` → **34 files, 313 tests, all passing**, including `sqlite-contract.test.ts` (17) and `sqlite.test.ts`. `pnpm typecheck` is clean. The SQLite third of the contract suite is live, not decorative. No rebuild is needed before this work starts.
+
+**Missing from the five, and each is cheap:** the **migration** (SQLite v3→v4 `figed` → `canonical_attributes` copy-as-`LEGACY_FACT`, and the JSON v1 loader — both are new code with no test in the plan) · **`DispatchPolicy` auto-dispatch** (the structural mitigation of risk §6.1, currently untested) · the **holder resolution cascade** of §2.3 (entity → individual → group → campaign default) · the **clock** (`advance_turn --days`, and that no engine path converts between `turn` and `day`) · and **§11's containment assertion**, which is the one test that maps to the measured result.
 
 ---
 
@@ -346,7 +383,239 @@ Unanimous across three vendors. This is architecturally the 1.0 story, but every
 
 ## 10. Explicitly untouched
 
+**Revised 2026-08-08 — four of the seven were not safe.** `UserPromptRegistry`/`confirmEntityMatch` (it writes a *player-observed* alias into a globally readable identity surface — the `nomConnu` gap) · scenes (`prepare-turn` changes shape and gains a holder; `Scene.presentEntityIds` must now feed `event.participants` and the `PARTICIPANT` derogation) · GCN storage (storage survives, the read surface does not — see §13) · the skill file (a rewrite, not a content update — §12.3). The three genuinely safe: entity resolution + anti-fork cascade, the router/providers, and the resolver thresholds. Also note the three hooks are *not* listed here and are not safe: `NarrationGateContext` exposes no holder and no beliefs, yet §5.2 puts a per-holder gate inside it, and `PreGenerationRegistry` is orphaned (its `triggerKind` union has no `CARRIAGE_ARRIVED`/`DAY_ADVANCED`, its `hint` no `holderId`).
+
 Entity resolution + anti-fork cascade · `UserPromptRegistry` / `confirmEntityMatch` · Router/providers (including the just-shipped usage metrics) · scenes · GCN storage · the three-adapter contract seam · skill file (`skills/sneq-narrative-engine.md` gets a content update, not a redesign).
+
+---
+
+## 11. Integration surface — the turn pipeline (NEW, 2026-08-08)
+
+### 11.1 Why this section exists
+
+v0.4's load-bearing sentence is: *"there is no way to ask SNEQ 'what is true?' from the tool surface, so a leak requires information the API never handed over."* **That sentence is only true if SNEQ sees the payload that reaches the model.** It never does. A census of the four live consumers shows where the library actually sits:
+
+| # | Stage of a turn | What 0.3.0 offers | Actually used in production |
+|---|---|---|---|
+| 0 | Composition root | `Engine`, `Repository`, entity resolution | ✅ 4/4 |
+| 1 | Player input captured | — | absent |
+| 2 | Input interpretation | — | absent |
+| 3 | **Knowledge selection** | `prepareTurn` / `getRelevantFacts`, both omniscient | grimoire: **dead** (premise 7); nexus: yes, but shadowed by its own `deriveBeliefs` |
+| 4 | **Payload / prompt composition** | — | **4/4 wrote their own** |
+| 5 | **Pre-flight assertion on the payload** | — | **0/4 — no consumer can** |
+| 6 | LLM call | `Router` (transport) | ✅ 3/4 |
+| 7 | **Agent loop + tool calls** | the 10 tools + dispatcher | ❌ **0/4 — `grep -rn "sneq__"` in grimoire returns 0** |
+| 8 | Deterministic resolution (dice, systems) | — (out of scope, correctly) | n/a |
+| 9 | Output gate | `validateNarration` | ✅ 3/3 — the one seam genuinely adopted |
+| 10 | State commit | `registerFact`, `setScene`, `mentionEntity` | partial; grimoire never calls `registerFact` |
+| 11 | Post-turn tick | `advanceTurn` | grimoire never; nexus yes |
+| 12 | **Cross-turn transcript** | — | absent |
+
+Two conclusions, both uncomfortable and both actionable:
+
+- **The surface designed as primary is the one nobody uses.** Zero of four consumers advertise the SNEQ tools; all four wrote their own tool schemas, dispatcher and agent loop (grimoire `packages/gm/`, 819 lines; nexus `src/turn/pipeline.ts`; rebel `packages/director/`). Holding the protocol "at ten" optimises an unused surface. **Adjudication: the tool protocol is demoted from primary API to one supported binding of the pipeline below.** Keep the ten — they are the right ten — but the library-level pipeline is what ships as the contract, and §12 documents *both*.
+- **SNEQ is absent from exactly the three stages that decide whether the thesis holds** — 4, 5 and 12.
+
+Evidence that this is not hypothetical: nexus injects its per-NPC belief line (`What <NPC> knows/believes (only this may inform their behavior)`, `pipeline.ts:134`) **three lines above** an unfiltered `Canon so far: ${canonContext}` dump (`:137`) — an arm-A construction and an arm-B construction in the same prompt. And grimoire re-injects the last twelve journal entries as **raw prior narration** on every call (`packages/gm/src/context.ts:9,95`), unfiltered, unsummarised, unscoped. A perfect per-call perspective filter cannot help either one.
+
+### 11.2 The eight phases
+
+SNEQ does not take ownership of the prompt — every consumer has good reasons to own it (grimoire orders messages slow→fast for DeepSeek prefix caching; nexus has a two-phase propose/narrate split; rebel is offline-first with authored fallbacks). SNEQ takes ownership of the **decisions**, and requires **sight of the final payload**.
+
+| Phase | API | Status |
+|---|---|---|
+| **A** | `ingestPlayerInput({ holderId, text })` → resolved mentions, detected uptake, player assertions | **NEW** |
+| **B** | `getHolderContext(holderId, { about?, topK? })` | ✅ §3 |
+| **C** | `renderContextBlock(ctx)` + **`filterTranscript(holderId, entries)`** | **NEW** |
+| **D** | **`assertContainment({ holderId, text })`** → `{ pass, forbidden[], present[] }` | **NEW — the decisive seam** |
+| **E** | host calls the LLM (`Router` optional) | ✅ |
+| **F** | `gateNarration({ holderId, narration })` — holder-aware, may **block** and request repair | ⚠️ exists, advisory and holder-blind |
+| **G** | `commitNarrative(bundle)` | ✅ §5.1 |
+| **H** | **`tick({ days })`** → arrivals, policy dispatch, cache invalidation, salience decay | **NEW** |
+
+**Phase A — `ingestPlayerInput`.** Also closes a hole §2.6 opens: it promises engine-side promotion detection over `PLAYER_UTTERANCE` text, but §5.1's bundle carries `promotionEvidence[]` **supplied by the caller**, and no tool, CLI command or bundle field ever hands SNEQ the raw player utterance. As written, the model decides its own promotions — precisely what §2.6 forbids ("detected by the engine at commit time, never by the model"). The old ingress was `--source player-utterance` on the deleted `register-fact`.
+
+**Phase C — `filterTranscript` is not optional.** This is the leak that is measurable today. The host holds a transcript; SNEQ must be able to tell it which entries this holder may see, and which must be dropped, summarised or redacted. Without it, v0.4's guarantee expires after one turn.
+
+**Phase D — `assertContainment` is the seam that makes the thesis testable.** The host composes whatever it wants and submits the **final string**; SNEQ answers whether it contains a token this holder cannot hold. This is the only design that both respects consumer autonomy over the prompt and makes "you cannot leak what the API never handed over" an enforceable claim rather than an aspiration. Cost: ~30 lines, already written and already measured (`forbiddenTokensFor`/`checkContainment`, `experimentation-1/prototypes/scaled-audit/engine.ts:414-446`). The only thing the library lacks is `surfaceTokens` per event/record — which §2.1 already specifies. **Default posture: throw.** The prototype does (`run.ts:45-49` — *"the engine is broken, stop"*), because a containment failure is an engine bug, not a gameplay outcome.
+
+**Phase H — `tick`.** `advance_turn` bumps a counter. Somebody has to run the world: deliver arrivals, apply `DispatchPolicy`, invalidate belief caches, decay salience. If that somebody is the GM model, risk §6.1 is the default outcome; if it is the host, it must be one named call. Note grimoire never calls `advanceTurn` at all — its turn counter moves only as a side effect of `setScene` (`src/atomic/decisions.ts:106-124`).
+
+### 11.3 Non-LLM ingress and the `turn` assumption
+
+Everything above is shaped for a text game with a GM agent. Two of the consumer families are not that.
+
+- **The game must be able to write without a model in the loop.** In a 2D/3D game most events are systemic — combat, theft, a quest completing, an NPC watching the player walk past. `commit_narrative` must be callable by game code with no LLM anywhere. rebel already enforces this ordering (*"AI proposes → game validates → world resolves → game commits → AI narrates"*, `ARCHITECTURE.md:9`) and had to keep SNEQ out of resolution entirely to get it.
+- **`turn` is a chat-game assumption.** The 3D projects have no turns at all. v0.4 adds `day`, which helps, but `turn` remains a mandatory ordering key on every new type. Provide a monotonic sequence decoupled from the chat turn, or say explicitly that turnless hosts must synthesise one.
+- **Latency has no budget.** `get_holder_context` on the hot path of an NPC dialogue in a 3D game is a pure derivation over the whole ledger, on every interaction. §2.5 says "cacheable" and stops there; see the cache gaps in §13.
+- `3d-game-gauntlet/docs/VISION.md` §14 leaves *"ce qu'il faut modifier dans SNEQ pour qu'il serve un jeu 3D"* explicitly open, and §8 fixes an invariant SNEQ must serve: **there must always be a free-text input option** — i.e. phase A is required there too.
+
+### 11.4 What the consumers built themselves (the real backlog)
+
+Four independent teams, no coordination, same holes:
+
+- **A per-holder read** — nexus wrote `canKnow` + salience (`src/beliefs/derive.ts:14-39`), experimentation-1 wrote 464 lines of it, rebel wrote a visibility filter and had already named the gap a year ago (*"the game needs explicit access rules to prevent the AI from leaking canonical information into dialogue"*), grimoire went without and leaks by default. **4/4.** This is §3, and it is the right call.
+- **An append-only layer over `AttributFige`** — rebel wrote a whole ADR (Family-A keys `<selector>@<seq>@<eventId>` plus a fold), nexus its own `GameEvent[]` with `witnessIds` and `gravity`, arcanum `recentTurns`. **Three independent reinventions** is the strongest possible signal that §2.1 is correct.
+- **Free-text facts as a first-class citizen** — nexus built `factKey()` + a djb2 hash (`adapter.ts:42-68`) and lost a fact to an 8-char slug collision; grimoire built incremental `note-N` keys (ADR 0012). Both are workarounds for the same missing API: *record this observation about this entity* without inventing a stable key. **v0.4 does not fix this** — `ProvisionalInvention` still requires an `attributeKey`. It should.
+- **De-noising the narration gate** — nexus carries ~500 stopwords, a stemmer and a possessive normaliser and still flags `Ms`, `Cheap's`, `Tastes` every turn; its notes ask twice, by name, for SNEQ's LLM-judge tier.
+- **`adopt-or-create`** — all three wrote the same `listCampaigns().some(...)` dance because `createCampaign` throws on duplicates.
+- **A `tool` role in `ChatRequest`** — grimoire had to serialise tool calls as prose and add a leak detector after raw JSON reached a player on 2026-07-30 (`apps/web/lib/ai/sneq-router-brain.ts:31-47,59-62`).
+
+**What no consumer wants SNEQ to absorb**, stated identically by all four: the world event resolver, mechanical resolution, RNG, scheduling, intervention windows. nexus: *"the model writes content, never effects"*; rebel: *"AI proposes → game validates"*; 3d-game: *"narration molle, systèmes durs"*. That convergence is free validation for v0.4's scope — provided it stays on the knowledge side of the line.
+
+### 11.5 One correction to the measured claim
+
+§9 and §3 quote "0.80 vs 4.84" (6.05×). The repo's own cross-check corrects it: 10 transcripts re-audited blind by a second model give DeepSeek a recall of **33% on arm A vs 60% on arm B**, so the ratio is inflated; corrected it is **≈4.17×**. `CROSSCHECK.md`: *"the honest reading is a range, not a point: the separation is somewhere around 4-6×, and it is not 10×."* Quote the range. The qualitative result needs no ratio and is stronger: arm B recited a carriage still on the road, crown records across a realm border, a muster notice read by an illiterate stablehand — *"Arm A never did this once, in any transcript, in either batch."*
+
+---
+
+## 12. The agent-facing contract (NEW, 2026-08-08)
+
+### 12.1 The diagnosis: agents did not misread the docs, the API let them fail silently
+
+This has gone wrong repeatedly, and the instinct — "write better docs" — is the wrong lesson. Every documented failure below is an **affordance** failure first and a documentation failure second.
+
+- **The `set_scene` catastrophe.** `set_scene` takes `locationEntityId: EntityID` and `presentEntityIds: EntityID[]`. Grimoire's model types free-text names into them (`packages/gm/src/tools.ts:267`). SNEQ accepts them: they are `string`s at runtime, branded types vanish at compile time, and the tool boundary does not check. `getEntity(name)` then returns `null` for every one, `presentEntities` is silently `[]`, and **the GM prompt has been running with zero canon context in production for months**. No error, no warning, no log. No amount of documentation fixes an API that accepts a wrong value and returns success.
+- **The tool descriptions lie, and they are the only doc guaranteed to be in context.** `toolDescriptions` (`src/tools/schemas.ts:89-100`) is shipped to the model on **every single call**. `sneq__get_entity` promises *"with its full set of figed (canonical) attributes"* — which has never been true (§0.5 premise 3). An agent that believes it will never call the read it actually needs. This is the single highest-leverage documentation surface in the repository, and neither the spec nor §10 mentions it.
+- **The skill file teaches a loop the engine does not enforce.** `skills/sneq-narrative-engine.md:31` — *"Narrate. Then commit canon."* Nothing checks that step 4 happened. Risk §6.2 ("narration outruns the ledger") is the documented workflow's natural failure mode, and grimoire demonstrates it perfectly: `registerFact` has an adapter and **zero callers**, so the fact layer is empty.
+- **The API asks agents to do the thing agents are worst at.** `register_fact` requires inventing a stable `attributeKey`. Two teams independently built hashes and counters to escape it (§11.4). Naming things consistently across a 400-turn campaign is not a reasonable ask of a stochastic process.
+- **The pointer of last resort is broken.** The skill file (`:36,:79`) calls `docs/api.md` *"the source of truth"*. That file ships **795 dead links** (483 into `interfaces/`,`type-aliases/`… + 312 `../README.md`) pointing into `docs/typedoc/`, which is gitignored and not packaged. No CI step regenerates or checks it (`.github/workflows/ci.yml` never runs `pnpm docs`), and it is in `package.json#files`, so a stale copy ships to npm.
+- **Every new failure mode will be indistinguishable from a crash.** `src/errors.ts` and `cli/errors.ts` gain nothing in v0.4: unknown holder, event-mutation attempt, border block, standing block, promotion rejection, uncovered dispatch route all fall through `formatError` to `INTERNAL_ERROR`, **exit 2** (`cli/errors.ts:96-99`). An agent reads that as "the engine is broken", not "you asked for the wrong thing".
+
+### 12.2 Five rules v0.4 adopts
+
+1. **Make the wrong call impossible, or loud. Never silent.** Validate branded IDs at the tool boundary and reject a non-id with an actionable message: `set_scene: "la taverne du Cerf" is not an EntityID. Call sneq__lookup_entity or sneq__mention_entity first, then pass the returned entityId.` This one check, shipped in 0.4, retro-fixes grimoire's dead context. Every tool that takes an `EntityID`/`HolderId` gets it. **This is a §7 test, not a doc bullet.**
+2. **The tool description is the documentation.** It is the only text guaranteed to be in the model's context. Each of the ten gets rewritten to state: what it returns, what it does **not** return, the one failure mode the agent must handle, and the call that must precede it. `get_holder_context` must say in-band that there is no way to ask what is *true* — otherwise the agent will hunt for one and improvise when it fails.
+3. **Errors are documentation.** Every v0.4 failure mode gets its own error class, its own CLI exit code, and a message naming the corrective call. Reserve `INTERNAL_ERROR`/exit 2 for genuine engine bugs.
+4. **One worked example, executed in CI.** A complete turn — ingest → holder context → containment → commit → tick — as runnable code in the skill file and README, run by the test suite so it cannot rot. No consumer has ever had one; all four reverse-engineered the loop from type signatures, and all four got a different answer.
+5. **Docs are generated and verified, not remembered.** `pnpm docs` runs in CI and the build fails on a dirty diff. Note the hard mechanical dependency: `typedoc.json` has a **single entry point** (`src/index.ts`), so the six new domain modules and `core/{derive-beliefs,salience,containment}.ts` are invisible to `docs/api.md` unless they are re-exported from `src/index.ts`. **Miss that and the entire v0.4 type surface is undocumented in the file the skill calls authoritative.** The spec has never mentioned `src/index.ts`.
+
+### 12.3 Deliverable: `skills/sneq-narrative-engine.md` is rewritten, not updated
+
+§10 says the skill file "gets a content update, not a redesign". That is wrong, and it is the document agents actually load. Its spine inverts: the core loop's step 4 (`register_fact`) is deleted; four of seven tool bullets change or disappear; two of six failure modes invert (a canon-contradicted provisional is now `REJECTED` **silently** — today the file teaches "contradictions are normal, adjudicate explicitly"); and `get_relevant_facts` — the documented form of the read §0 calls the actual bug — has its own bullet teaching `depth: 1`.
+
+Worse is what is absent. The frontmatter `description` is the **routing trigger** that decides whether an agent loads this skill at all, and it says *"track canonical entities, facts, scenes, and turns"* — no holder, no world day, no "who knows what". An agent facing a perspective problem will not load it. Nothing tells the agent which holder it is reading for, that "what is true" is unaskable, or that writes are one bundle instead of five ordered calls.
+
+The rewrite must carry, explicitly: the **holder discipline** (every read is for someone); the **id discipline** (never pass a name where an id is required, and how to get one); the **one-bundle write**; the **two clocks** and that narration alone never moves the world; and the fact that promotion is the engine's job, never the agent's.
+
+### 12.4 A conformance harness consumers can run
+
+Ship an executable checklist — `sneq-engine doctor --campaign <id>` or an exported test suite — that an integrating team (or an agent doing the integration) runs to get a verdict instead of a guess:
+
+- every `EntityID`/`HolderId` reaching the engine resolves (**catches the grimoire bug on day one**)
+- the scene's `presentEntityIds` are non-empty when a scene exists
+- events have been appended in the last N turns (**catches "narration outruns the ledger"**)
+- every advertised read is holder-scoped; no unrestricted ledger read is on the tool surface
+- `assertContainment` passes for every holder that received a payload this session
+- the belief cache's hit rate and invalidation count are sane
+
+Four consumers, four silent misintegrations, zero of them detectable from inside the consumer. This is the cheapest thing in the whole spec and probably the highest-yield.
+
+---
+
+## 13. Documentation & migration work-package (NEW, 2026-08-08)
+
+The spec allocated one UPGRADING headline draft and one clause about the skill file, for a release that deletes two tools, renames the central storage type, adds six domain modules, two clocks and a cache. Owners required.
+
+**Code-adjacent (blocks the build or ships wrong):**
+- `src/index.ts` — re-export the six new domain modules + `core/{derive-beliefs,salience,containment}.ts`. **Gate for `docs/api.md` (§12.2 rule 5).**
+- `toolDescriptions` (`src/tools/schemas.ts:89-100`) — ten rewritten strings (§12.2 rule 2).
+- `src/cli/help.ts:3-18` — an exhaustive `Record<CommandName,string>`; the build fails if not updated in lockstep. Same for `SNEQ_ENGINE_VERSION` (`src/index.ts:1`), pinned by `test/smoke.test.ts:18`.
+- `src/errors.ts` + `src/cli/errors.ts` — the new taxonomy (§12.2 rule 3).
+- TSDoc on `CanonicalAttribute` explaining projection semantics — `docs/api.md:3463` renders `AttributFige` today with **zero prose**, so the "it is explicitly a current-state projection now" reasoning exists only in this spec.
+
+**Prose:**
+- `skills/sneq-narrative-engine.md` — full rewrite (§12.3).
+- `README.md` — L18 (the one-line pitch sells constraint propagation, which v0.4 removes), L27 ("three repository adapters" — there are four), L145-146, L191-194 (`register-fact` example using the exact `--source gm-narration` preset the new guard blocks), L202-203, L210 (14→15), L277-281, and the L239-260 architecture diagram (no ledger, no projection, no seam — a redraw).
+- `UPGRADING.md` — **structurally unfit before content**: titled "Upgrading to 0.1.0" with a single "Unreleased" bucket, no per-version sections. Its TL;DR (L8-12) promises *"your existing database files keep working untouched (the schema migration is automatic and additive)"* — false under §5.4, which renames `figed` and bumps the JSON format. That is the most damaging stale sentence in the repo. Must also gain the Convex tables/validators/backfill section §5.4 mandates, and note the removal of `propagate` + `PropagationInput`/`PropagationResult`/`ContraintePropagee` from the public API (`src/index.ts:138`) — absent from the headline draft.
+- `docs/api.md` — regenerate; fix or strip the 795 dead links; add `pnpm docs` + dirty-diff check to `.github/workflows/ci.yml`.
+
+**Migration, unaddressed:**
+- Observation blob rewrite for the `fiabilite` removal (§0.5 premise 6) — not in the schema-v4 list.
+- The **day-0 legacy epoch** consequence, stated honestly in §4 but not followed through: every pre-0.4 fact lands in one bucket, so any day-ordered query over a migrated campaign returns the whole legacy corpus at once. Grimoire's backfill is where this lands.
+- `MemoryState`/`emptyMemoryState()` are published types on `sneq-engine/memory`; adding seven ledger collections is a breaking change to them, and `PersistedShape` (`json/index.ts:51`) embeds `MemoryState` verbatim.
+- No `decideCommitNarrative`. The six pure `decide*` fns are published on `sneq-engine/atomic` and are how the out-of-tree Convex adapter shares SNEQ's rules. Without an equivalent, the one consumer this spec calls load-bearing re-derives promotion, contradiction and transition logic by hand.
+
+**Design gaps still open (carried from the audit, not yet resolved in the body of this spec):**
+- **`DispatchPolicy` has no home** — absent from §5.4's contract additions, from the tool surface, from the CLI, and from `EngineConfig`. It is the structural mitigation of risk §6.1.
+- **Salience weights** are "a config constant" with no slot in `EngineConfig`.
+- **The belief cache is under-specified**: `revision` is undefined (`entityRevision()` covers entities only), and — the real hole — `CarriageEffect` is append-only and may be dated *after* the arrival it delays, so beliefs for a **past** day change; a key of `(campaignId, holderId, day, revision)` cannot express that. `SNEQ/05` already has the machinery (`dependDe`, `indexParEntite`, `invaliderDependants()`, tombstones, `CacheStats`) and is uncited.
+- **The event → `CanonicalAttribute` projection rule is never given** (which act produces which key?).
+- **`Belief.content` derivation is never given.**
+- **`getHolderContext({ about })`** filters by entity, but `Belief.subject` is `EVENT | RECORD` — an event→entity index is needed and is not in the contract.
+- **Place → realm has no source of truth**: `Carriage` carries both `fromPlaceId` and `originRealm`, and no entity carries a realm.
+- **`surfaceTokens`: who produces them**, model or engine? Load-bearing for both containment and uptake.
+- **`gravity` is model-supplied** yet drives auto-dispatch and 40% of salience — in tension with "the model writes content, never effects".
+- **No direct canonical write remains** once `register_fact` is deleted: seeding a character sheet at setup would require fabricating events.
+- **The GCN is kept with no reader** — its only production caller is `getRelevantFacts` (`campaign.ts:145`), which §3 deletes; and `SNEQ/03:132-162` has `connu_publiquement`/`publique` relation flags, i.e. an unfiltered secret-relations channel straight through the seam.
+- **Deprecation policy is inconsistent**: `AttributFige` keeps an alias to 0.5 for the out-of-tree consumer, while `getRelevantFacts` — which the same consumer reaches through `prepareTurn` — is deleted outright with no window.
+
+**Theory to reconcile (5 of 8 SNEQ docs are never cited):**
+- `SNEQ/06:219` — *"PERSPECTIVE — Un fait peut être vrai d'un point de vue, faux d'un autre"* is the theory's warrant for the entire seam, uncited.
+- `SNEQ/04:193-201` already has `connaissances`, `reputations`, `temoinPresents` — beliefs, standing and `WITNESSED` — but as **generation** inputs, where v0.4 builds only the read filter. Say whether the generation side is out of scope.
+- `SNEQ/07` §7.3 `HIERARCHIE_NARRATIVE` (`heriteDe`) is §2.3's holder cascade, one level richer.
+- `SNEQ/02:36 nomConnu` scoped *the name itself* per knower — the identity leak §3 leaves open.
+- The §2.5 warrant ("contrainte souple immédiate, convertie en stricte si confirmée") is quoted verbatim but sits under **"2.5 Questions de Conception"** — an open question, still open in `SNEQ/08:300` — and its subject is **rumour handling**. v0.4 transplants the mechanism onto GM inventions and leaves rumours with **no promotion path at all**. Restore it or document the divergence.
+
+---
+
+## 14. Embeddings & the zero-setup default (NEW, 2026-08-08)
+
+### 14.1 The default exists and nobody uses it
+
+`src/router/defaults.ts` already ships Google `text-embedding-004` (768 dims) as the embeddings primary, with `fallbacks: []` and a correct comment explaining why (a fallback of a different dimension would poison writes on failover). Adoption across the four consumers:
+
+| Consumer | Embeddings |
+|---|---|
+| nexus-dynamics-rpg | `embeddingDim: 0` — *"alias-only resolution; no embeddings key needed"* (`adapter.ts:295`) |
+| rebel-political-narrative-game | `embeddingDim: 0`, three call sites (`store.ts:92,211,215`) |
+| grimoire | **Venice AI at 4096 dims**, via a hand-written `VeniceEmbeddingProvider` (`lib/ai/providers.ts:68`) |
+| arcanum | bypasses SNEQ for this entirely |
+
+**0/4 use the default chain.** Two disabled vectors outright; one wrote its own provider. The vector rung of the resolver cascade — `alias → vector → LLM judge → user-prompt` — is therefore dead in most of the fleet, which quietly degrades entity resolution to alias-only and makes the anti-fork guarantee weaker than the README advertises.
+
+### 14.2 Why setup is hard: three walls at once
+
+1. **The key.** Account, project, env var. Any key-based default keeps this wall standing.
+2. **`embeddingDim` is chosen at campaign creation and is then immutable.** A mismatch throws *"Use a fresh database file or a matching --embedding-dim"* (`sqlite/index.ts:51-52`), and there is **no reindex path anywhere in the contract**. The dimension must be decided before the first write, irreversibly, at the moment the author knows least. `0` is the only choice that commits to nothing — which is very likely the whole explanation for the census above.
+3. **`sqlite-vec`** is one more optional native peer to install.
+
+Wall 2 is the interesting one, and it is ours, not the provider's.
+
+### 14.3 A three-rung ladder
+
+The `Provider` abstraction already supports this; only rung 0 is new.
+
+```ts
+embeddings: "local"    // rung 0 — 384 dims, no key, no account, offline after first fetch
+embeddings: "google"   // rung 1 — today's default; free tier, one key
+embeddings: { provider: "openai-compatible", baseUrl: "…" }   // rung 2 — what grimoire does
+```
+
+Rung 0 must ship as an **optional peer dependency**, exactly like `better-sqlite3` and `sqlite-vec`: `@huggingface/transformers` pulls ~380 MB of `node_modules` (onnxruntime) and cannot be imposed on consumers who do not want it.
+
+### 14.4 Measured, on the work machine (2026-08-08, Node v24.13.0, Apple silicon)
+
+Real entity-resolution cases in French — a mention against candidate canonical entities:
+
+| Model | Dims | On-disk | Verdict |
+|---|---|---|---|
+| `Xenova/all-MiniLM-L6-v2` (English) | 384 | 97 MB | weak on FR (0.598 vs 0.430 FR↔EN) |
+| `Xenova/multilingual-e5-small` | 384 | 465 MB | ❌ **ranks the wrong candidate**, margin 0.0024 |
+| `Xenova/paraphrase-multilingual-MiniLM-L12-v2` | 384 | 449 MB | ✅ margin 0.170 |
+| ⭐ same, `dtype: 'q8'` | 384 | **113 MB** | ✅ **4/4 cases**, 119 ms / 50 texts |
+
+Recommended rung 0: **`Xenova/paraphrase-multilingual-MiniLM-L12-v2`, `dtype: 'q8'`, 384 dims.** Warm load ≈1 s, **3.5 ms per text**, 113 MB on disk, no key, no network after the first fetch.
+
+**The trap, and it must be documented, not discovered:** `multilingual-e5-small` ranked *"La Forge de Valmure"* (the place) above *"Aldric Fervent — forgeron"* (the person) for the mention *"le forgeron"*, and compresses every score into 0.75–0.81. That flat band would wreck the resolver's `tauLow`/`tauHigh` thresholds, which assume a usable spread. **Embedding models are not interchangeable behind one `embeddingDim`**, and checking this costs twenty lines. Any documented alternative model ships with its measured spread, or it does not ship.
+
+*(Free-tier quotas for Gemini, Mistral, Cloudflare Workers AI and HF Inference were **not** verified for this amendment — no web access in the session. Do not write rate-limit numbers into the docs without re-checking them.)*
+
+### 14.5 What v0.4 owes this
+
+- **`reindexEmbeddings(vectors)` + `setEmbeddingDim(dim)` on the repository contract (§5.4).** Moving from rung 0 (384) to rung 1 (768) must be a supported migration, not "start a new campaign". v0.4 already migrates SQLite to schema v4 and JSON to version 2 — this is the only moment where the cost is near zero. Without it, rung 0 becomes a trap of its own: the easy default that cannot be upgraded.
+- **A §12-shaped error.** The current dim-mismatch message says *what* to do and never *why*, and arrives after the campaign is unusable. It should name the reindex call, and campaign creation should state the consequence of `embeddingDim: 0` at the moment of choosing it.
+- **README correction.** L24 sells the degraded alias-only mode as being "for demos, prototypes, and providers without an embeddings endpoint". In practice it is what two production consumers run. Either rung 0 makes vectors the easy path, or the README should stop implying that keyless mode is a toy.
 
 ## UPGRADING.md headline (draft)
 
