@@ -28,12 +28,13 @@ const attributValue: z.ZodType<unknown> = z.union([
 
 const category = z.enum(["IDENTITE","PSYCHOLOGIE","HISTORIQUE","SOCIAL","COMPETENCE","SECRET","ETAT","POSSESSION"]);
 
-const observation = z.object({
+// Strict: a caller still sending `fiabilite` (removed, #18) fails loudly at
+// the boundary instead of having the key silently dropped.
+const observation = z.strictObject({
   source: z.enum(["GM_NARRATION","PLAYER_UTTERANCE","DICE_ROLL","SYSTEM"]),
   method: z.enum(["DIALOGUE_DIRECT","DOCUMENT","OBSERVATION_VISUELLE","DEDUCTION_CONFIRMEE","AVEU","DEMONSTRATION"]),
   emittedBy: z.string().optional(),
   sceneId: z.string().optional(),
-  fiabilite: z.enum(["CERTAINE","TEMOIGNAGE","RUMEUR_CONFIRMEE"]),
   excerpt: z.string().optional(),
   timestamp: z.number()
 });

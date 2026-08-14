@@ -18,7 +18,7 @@ function entity(id: string, over: Partial<Entity> = {}): Entity {
 }
 
 const obs: Observation = {
-  source: "GM_NARRATION", method: "DIALOGUE_DIRECT", fiabilite: "CERTAINE", timestamp: 0
+  source: "GM_NARRATION", method: "DIALOGUE_DIRECT", timestamp: 0
 };
 
 function fact(eid: string, key: string, value: string, turn = 1): AttributFige & { campaignId: CampaignId } {

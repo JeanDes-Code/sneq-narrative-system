@@ -317,7 +317,6 @@ describe("atomic write strategy selection", () => {
       observation: {
         source: "GM_NARRATION",
         method: "DIALOGUE_DIRECT",
-        fiabilite: "CERTAINE",
         timestamp: 0,
       },
     });

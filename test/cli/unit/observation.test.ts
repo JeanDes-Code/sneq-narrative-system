@@ -6,14 +6,17 @@ describe("buildObservation", () => {
     const o = buildObservation(undefined);
     expect(o.source).toBe("GM_NARRATION");
     expect(o.method).toBe("DIALOGUE_DIRECT");
-    expect(o.fiabilite).toBe("CERTAINE");
     expect(typeof o.timestamp).toBe("number");
   });
 
-  it("expands player-utterance preset to TEMOIGNAGE fiability", () => {
+  it("expands player-utterance preset", () => {
     const o = buildObservation("player-utterance");
     expect(o.source).toBe("PLAYER_UTTERANCE");
-    expect(o.fiabilite).toBe("TEMOIGNAGE");
+    expect(o.method).toBe("DIALOGUE_DIRECT");
+  });
+
+  it("carries no fiabilite key — provenance only (#18)", () => {
+    expect(Object.keys(buildObservation(undefined))).not.toContain("fiabilite");
   });
 
   it("expands dice-roll preset to DEMONSTRATION method", () => {
@@ -29,9 +32,9 @@ describe("buildObservation", () => {
   });
 
   it("partial override merges with preset", () => {
-    const o = buildObservation("gm-narration", { fiabilite: "RUMEUR_CONFIRMEE" });
+    const o = buildObservation("gm-narration", { excerpt: "entendu au marché" });
     expect(o.source).toBe("GM_NARRATION");
-    expect(o.fiabilite).toBe("RUMEUR_CONFIRMEE");
+    expect(o.excerpt).toBe("entendu au marché");
   });
 
   it("passes through sceneId when provided", () => {

@@ -89,7 +89,7 @@ describe("CampaignContext lifecycle", () => {
         attributeKey: "role",
         value: { type: "STRING" as const, value: "captain" },
         category: "SOCIAL" as const,
-        observation: { source: "SYSTEM" as const, method: "DEDUCTION_CONFIRMEE" as const, fiabilite: "CERTAINE" as const, timestamp: 0 },
+        observation: { source: "SYSTEM" as const, method: "DEDUCTION_CONFIRMEE" as const, timestamp: 0 },
       }),
       () => context.addConstraint({
         entityId,

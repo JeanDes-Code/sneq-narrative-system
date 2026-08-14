@@ -14,7 +14,6 @@ const provider: Provider = {
 const observation = {
   source: "SYSTEM",
   method: "DEDUCTION_CONFIRMEE",
-  fiabilite: "CERTAINE",
   timestamp: 0,
 } as const;
 

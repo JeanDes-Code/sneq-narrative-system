@@ -218,7 +218,7 @@ describe("CLI e2e — 10 tool commands", () => {
       "get-relevant-facts", "--db", dbPath, "--campaign", "c1",
       "--args", JSON.stringify({ entityId, attributeKeys: ["rumeur"] })
     ]);
-    expect((facts.out as Array<{ observation: { fiabilite: string } }>)[0]?.observation.fiabilite).toBe("TEMOIGNAGE");
+    expect((facts.out as Array<{ observation: { source: string } }>)[0]?.observation.source).toBe("PLAYER_UTTERANCE");
   });
 
   it("set-scene + advance-turn round-trip", async () => {

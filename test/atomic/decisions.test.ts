@@ -18,7 +18,6 @@ const entityId = asEntityID("e1");
 const observation = {
   source: "GM_NARRATION",
   method: "DIALOGUE_DIRECT",
-  fiabilite: "CERTAINE",
   timestamp: 10,
 } as const;
 

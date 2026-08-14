@@ -33,14 +33,17 @@ export {
   SneqConcurrentEntityCreationError,
   SneqUnknownEntityError,
   type CampaignContextInvalidationReason,
-  type ValidationFailureDetail
+  type ValidationFailureDetail,
+  type IntraCommitConflict
 } from "./errors.js";
 
 // Repository (interface + types). Reference SQLite adapter is also exposed,
 // but lazy-loadable via sneq-engine/sqlite for consumers who don't want better-sqlite3.
 export type {
-  Repository, RepositoryAccess, CampaignMeta, FactQuery, VectorSearchOpts, EntityWithScore
+  Repository, RepositoryAccess, CampaignMeta, FactQuery, VectorSearchOpts, EntityWithScore,
+  CarriageQuery
 } from "./repository/interface.js";
+export { OPERATION_RETENTION } from "./repository/interface.js";
 
 // Distributed-store atomic strategy (framework-free)
 export type {
@@ -83,7 +86,7 @@ export {
 
 // Domain
 export type { Entity, EntityType, Alias, AliasSource } from "./domain/entity.js";
-export type { AttributValue, AttributFige, CategorieAttribut } from "./domain/attribute.js";
+export type { AttributValue, AttributFige, CategorieAttribut, CanonicalAttribute, CanonicalSource } from "./domain/attribute.js";
 export type { Observation, ObservationSource, ObservationMethod, Fiabilite } from "./domain/observation.js";
 export type {
   Potentialite, Contrainte, RegleContrainte, ContrainteSource, EtatAttribut,
@@ -92,10 +95,24 @@ export type {
 export type { NoeudGCN, AreteGCN, TypeRelation, ReglePropagation } from "./domain/gcn.js";
 export type { Scene } from "./domain/scene.js";
 export type { Turn } from "./domain/turn.js";
-export type { CampaignId, EntityID, FactId, ConstraintId, SceneId } from "./domain/ids.js";
-export {
-  asCampaignId, asEntityID, asFactId, asConstraintId, asSceneId
+export type {
+  CampaignId, EntityID, FactId, ConstraintId, SceneId,
+  EventId, RecordId, HolderId, CarriageId, InventionId
 } from "./domain/ids.js";
+export {
+  asCampaignId, asEntityID, asFactId, asConstraintId, asSceneId,
+  asEventId, asRecordId, asHolderId, asCarriageId, asInventionId
+} from "./domain/ids.js";
+
+// Ledger domain (0.5.0)
+export type { NarrativeEvent, EventAct, ActEffect } from "./domain/event.js";
+export type { OfficialRecord, CarriageRoute } from "./domain/record.js";
+export type { Holder, GroupHolder, IndividualHolder, DerogationReason } from "./domain/holder.js";
+export type { Carriage, CarriageEffect, DispatchPolicy, DispatchRoute, DispatchRule } from "./domain/carriage.js";
+export type {
+  ProvisionalInvention, InventionStatus, PromotionEvidence, InventionTransition
+} from "./domain/invention.js";
+export { rebuildProjection, type ProjectionInputs } from "./core/projection.js";
 
 // Resolver
 export type { ResolverThresholds } from "./resolver/thresholds.js";

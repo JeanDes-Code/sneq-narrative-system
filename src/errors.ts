@@ -1,4 +1,5 @@
-import type { AttributFige } from "./domain/attribute.js";
+import type { AttributFige, AttributValue } from "./domain/attribute.js";
+import type { EntityID, EventId } from "./domain/ids.js";
 import type { Tier } from "./router/interface.js";
 
 export interface ValidationFailureDetail {
@@ -13,9 +14,17 @@ export class SneqValidationError extends Error {
   }
 }
 
+/** Two `sets` on the same key with different values inside one commit (#27). */
+export interface IntraCommitConflict {
+  entityId: EntityID;
+  key: string;
+  values: [AttributValue, AttributValue];
+  eventId: EventId;
+}
+
 export class SneqContradictionError extends Error {
-  constructor(public readonly contradictions: AttributFige[]) {
-    super(`Fact contradicts ${contradictions.length} canonical fact(s)`);
+  constructor(public readonly contradictions: AttributFige[] | IntraCommitConflict[], message?: string) {
+    super(message ?? `Fact contradicts ${contradictions.length} canonical fact(s)`);
     this.name = "SneqContradictionError";
   }
 }

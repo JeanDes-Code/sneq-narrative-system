@@ -147,7 +147,7 @@ describe("entity-id guard at the tool boundary", () => {
     ["sneq__register_fact", {
       entityId: "le forgeron", attributeKey: "metier", category: "HISTORIQUE",
       value: { type: "STRING", value: "capitaine" },
-      observation: { source: "GM_NARRATION", method: "DIALOGUE_DIRECT", fiabilite: "CERTAINE", timestamp: 1 }
+      observation: { source: "GM_NARRATION", method: "DIALOGUE_DIRECT", timestamp: 1 }
     }],
     ["sneq__add_constraint", { entityId: "le forgeron", attributeKey: "k", rule: {}, justification: "j" }],
     ["sneq__get_relevant_facts", { entityId: "le forgeron" }],

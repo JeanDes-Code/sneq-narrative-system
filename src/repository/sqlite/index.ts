@@ -2,15 +2,21 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import Database from "better-sqlite3";
 import type BetterSqlite3 from "better-sqlite3";
 import type {
-  Repository, CampaignMeta, VectorSearchOpts, EntityWithScore, FactQuery
+  Repository, CampaignMeta, VectorSearchOpts, EntityWithScore, FactQuery, CarriageQuery
 } from "../interface.js";
+import { OPERATION_RETENTION } from "../interface.js";
+import type { NarrativeEvent } from "../../domain/event.js";
+import type { OfficialRecord } from "../../domain/record.js";
+import type { Holder } from "../../domain/holder.js";
+import type { Carriage, CarriageEffect, DispatchPolicy } from "../../domain/carriage.js";
+import type { ProvisionalInvention, InventionTransition, InventionStatus } from "../../domain/invention.js";
 import type { Entity, EntityType } from "../../domain/entity.js";
 import type { AttributFige } from "../../domain/attribute.js";
 import type { Potentialite } from "../../domain/potentialite.js";
 import type { AreteGCN, NoeudGCN } from "../../domain/gcn.js";
 import type { Scene } from "../../domain/scene.js";
 import type { Turn } from "../../domain/turn.js";
-import type { CampaignId, EntityID, FactId } from "../../domain/ids.js";
+import type { CampaignId, EntityID, EventId, FactId } from "../../domain/ids.js";
 import { asCampaignId, asFactId } from "../../domain/ids.js";
 import { runMigrations } from "./migrations.js";
 import { loadVec, ensureVecTable, upsertVec, searchVec, deleteVecForCampaign, deleteVecForEntity } from "./vec.js";
@@ -103,7 +109,9 @@ export class SqliteRepository implements Repository {
 
   private deleteCampaignNow(id: CampaignId): void {
     const tx = this.db.transaction(() => {
-      for (const t of ["entities", "aliases_norm", "figed", "potentialites", "nodes", "edges", "turns", "scenes"]) {
+      for (const t of ["entities", "aliases_norm", "figed", "potentialites", "nodes", "edges", "turns", "scenes",
+                       "events", "records", "holders", "carriages", "carriage_effects", "inventions",
+                       "invention_transitions", "operations", "dispatch_policies"]) {
         this.db.prepare(`DELETE FROM ${t} WHERE campaign_id = ?`).run(id);
       }
       this.db.prepare(`DELETE FROM campaigns WHERE id = ?`).run(id);
@@ -381,6 +389,209 @@ export class SqliteRepository implements Repository {
   // (up to busy_timeout) instead of failing with SQLITE_BUSY when it tries to
   // upgrade a stale deferred read — the optimistic revision check then reads the
   // latest committed state and converges via a "stale" retry rather than throwing.
+  // -- ledger (0.5.0) ---------------------------------------------------------------
+  // Append-only tables get INSERTs only; the single UPDATE below maintains the
+  // arrival_day projection column, never a ledger row's content.
+
+  async appendEvent(e: NarrativeEvent): Promise<void> {
+    this.assertCampaignExists(e.campaignId);
+    if (this.db.prepare(`SELECT 1 FROM events WHERE campaign_id = ? AND event_id = ?`).get(e.campaignId, e.eventId)) {
+      throw new Error(`event "${e.eventId}" already exists — the ledger is append-only`);
+    }
+    this.db.prepare(
+      `INSERT INTO events (campaign_id, event_id, day, turn, place_id, gravity, acts, circumstance, participants, surface_tokens)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    ).run(e.campaignId, e.eventId, e.day, e.turn, e.placeId ?? null, e.gravity,
+          JSON.stringify(e.acts), e.circumstance, JSON.stringify(e.participants), JSON.stringify(e.surfaceTokens));
+  }
+
+  async getEvents(campaignId: CampaignId): Promise<NarrativeEvent[]> {
+    const rows = this.db.prepare(
+      `SELECT * FROM events WHERE campaign_id = ? ORDER BY day, turn, seq`
+    ).all(campaignId) as Array<{
+      campaign_id: string; event_id: string; day: number; turn: number;
+      place_id: string | null; gravity: number; acts: string;
+      circumstance: string; participants: string; surface_tokens: string;
+    }>;
+    return rows.map(r => ({
+      eventId: r.event_id as EventId, campaignId: asCampaignId(r.campaign_id),
+      day: r.day, turn: r.turn,
+      ...(r.place_id !== null ? { placeId: r.place_id as EntityID } : {}),
+      gravity: r.gravity as 0 | 1 | 2 | 3,
+      acts: JSON.parse(r.acts) as NarrativeEvent["acts"],
+      circumstance: r.circumstance,
+      participants: JSON.parse(r.participants) as EntityID[],
+      surfaceTokens: JSON.parse(r.surface_tokens) as string[],
+    }));
+  }
+
+  async appendRecord(r: OfficialRecord): Promise<void> {
+    this.assertCampaignExists(r.campaignId);
+    if (this.db.prepare(`SELECT 1 FROM records WHERE campaign_id = ? AND record_id = ?`).get(r.campaignId, r.recordId)) {
+      throw new Error(`record "${r.recordId}" already exists — records accumulate, never replace`);
+    }
+    this.db.prepare(
+      `INSERT INTO records (campaign_id, record_id, entity_id, day, turn, payload) VALUES (?, ?, ?, ?, ?, ?)`
+    ).run(r.campaignId, r.recordId, r.entityId, r.day, r.turn, JSON.stringify(r));
+  }
+
+  async getRecords(campaignId: CampaignId): Promise<OfficialRecord[]> {
+    const rows = this.db.prepare(
+      `SELECT payload FROM records WHERE campaign_id = ? ORDER BY day, turn, seq`
+    ).all(campaignId) as Array<{ payload: string }>;
+    return rows.map(r => JSON.parse(r.payload) as OfficialRecord);
+  }
+
+  async upsertHolder(h: Holder): Promise<void> {
+    this.assertCampaignExists(h.campaignId);
+    this.db.prepare(
+      `INSERT OR REPLACE INTO holders (campaign_id, holder_id, kind, payload) VALUES (?, ?, ?, ?)`
+    ).run(h.campaignId, h.holderId, h.kind, JSON.stringify(h));
+  }
+
+  async listHolders(campaignId: CampaignId): Promise<Holder[]> {
+    const rows = this.db.prepare(`SELECT payload FROM holders WHERE campaign_id = ?`).all(campaignId) as Array<{ payload: string }>;
+    return rows.map(r => JSON.parse(r.payload) as Holder);
+  }
+
+  private recomputeArrival(campaignId: CampaignId, carriageId: string): void {
+    const row = this.db.prepare(
+      `SELECT payload FROM carriages WHERE campaign_id = ? AND carriage_id = ?`
+    ).get(campaignId, carriageId) as { payload: string } | undefined;
+    if (!row) throw new Error(`carriage "${carriageId}" not found`);
+    const c = JSON.parse(row.payload) as Carriage;
+    let arrival: number | null = c.departedDay + c.travelDays;
+    const fxRows = this.db.prepare(
+      `SELECT payload FROM carriage_effects WHERE campaign_id = ? AND carriage_id = ? ORDER BY seq`
+    ).all(campaignId, carriageId) as Array<{ payload: string }>;
+    for (const fxRow of fxRows) {
+      const fx = JSON.parse(fxRow.payload) as CarriageEffect;
+      if (fx.effect.kind === "CANCEL") { arrival = null; break; }
+      if (fx.effect.kind === "DELAY") arrival! += fx.effect.days;
+    }
+    // Projection maintenance only — the carriage payload itself never changes.
+    this.db.prepare(`UPDATE carriages SET arrival_day = ? WHERE campaign_id = ? AND carriage_id = ?`)
+      .run(arrival, campaignId, carriageId);
+  }
+
+  async appendCarriage(c: Carriage): Promise<void> {
+    this.assertCampaignExists(c.campaignId);
+    if (this.db.prepare(`SELECT 1 FROM carriages WHERE campaign_id = ? AND carriage_id = ?`).get(c.campaignId, c.carriageId)) {
+      throw new Error(`carriage "${c.carriageId}" already exists — append effects, not rewrites`);
+    }
+    this.db.prepare(
+      `INSERT INTO carriages (campaign_id, carriage_id, to_place_id, arrival_day, payload) VALUES (?, ?, ?, ?, ?)`
+    ).run(c.campaignId, c.carriageId, c.toPlaceId, c.departedDay + c.travelDays, JSON.stringify(c));
+  }
+
+  async listCarriages(campaignId: CampaignId, q: CarriageQuery): Promise<Carriage[]> {
+    const conds = [`campaign_id = ?`];
+    const params: unknown[] = [campaignId];
+    if (q.toPlaceId !== undefined) { conds.push(`to_place_id = ?`); params.push(q.toPlaceId); }
+    if (q.arrivedBy !== undefined) { conds.push(`arrival_day IS NOT NULL AND arrival_day <= ?`); params.push(q.arrivedBy); }
+    const rows = this.db.prepare(
+      `SELECT payload FROM carriages WHERE ${conds.join(" AND ")}`
+    ).all(...params) as Array<{ payload: string }>;
+    return rows.map(r => JSON.parse(r.payload) as Carriage);
+  }
+
+  async appendCarriageEffect(fx: CarriageEffect): Promise<void> {
+    this.assertCampaignExists(fx.campaignId);
+    this.db.prepare(
+      `INSERT INTO carriage_effects (campaign_id, carriage_id, payload) VALUES (?, ?, ?)`
+    ).run(fx.campaignId, fx.carriageId, JSON.stringify(fx));
+    this.recomputeArrival(fx.campaignId, fx.carriageId);
+  }
+
+  async listCarriageEffects(campaignId: CampaignId, carriageId?: string): Promise<CarriageEffect[]> {
+    const rows = carriageId === undefined
+      ? this.db.prepare(`SELECT payload FROM carriage_effects WHERE campaign_id = ? ORDER BY seq`).all(campaignId)
+      : this.db.prepare(`SELECT payload FROM carriage_effects WHERE campaign_id = ? AND carriage_id = ? ORDER BY seq`).all(campaignId, carriageId);
+    return (rows as Array<{ payload: string }>).map(r => JSON.parse(r.payload) as CarriageEffect);
+  }
+
+  async appendInvention(i: ProvisionalInvention): Promise<void> {
+    this.assertCampaignExists(i.campaignId);
+    if (this.db.prepare(`SELECT 1 FROM inventions WHERE campaign_id = ? AND invention_id = ?`).get(i.campaignId, i.inventionId)) {
+      throw new Error(`invention "${i.inventionId}" already exists`);
+    }
+    this.db.prepare(
+      `INSERT INTO inventions (campaign_id, invention_id, status, payload) VALUES (?, ?, ?, ?)`
+    ).run(i.campaignId, i.inventionId, i.status, JSON.stringify(i));
+  }
+
+  async appendInventionTransition(t: InventionTransition): Promise<void> {
+    this.assertCampaignExists(t.campaignId);
+    const row = this.db.prepare(
+      `SELECT payload FROM inventions WHERE campaign_id = ? AND invention_id = ?`
+    ).get(t.campaignId, t.inventionId) as { payload: string } | undefined;
+    if (!row) throw new Error(`invention "${t.inventionId}" not found`);
+    this.db.prepare(
+      `INSERT INTO invention_transitions (campaign_id, invention_id, payload) VALUES (?, ?, ?)`
+    ).run(t.campaignId, t.inventionId, JSON.stringify(t));
+    const invention = JSON.parse(row.payload) as ProvisionalInvention;
+    invention.status = t.to; // transitions are the only status writer
+    this.db.prepare(`INSERT OR REPLACE INTO inventions (campaign_id, invention_id, status, payload) VALUES (?, ?, ?, ?)`)
+      .run(t.campaignId, t.inventionId, t.to, JSON.stringify(invention));
+  }
+
+  async listInventions(campaignId: CampaignId, status?: InventionStatus): Promise<ProvisionalInvention[]> {
+    const rows = status === undefined
+      ? this.db.prepare(`SELECT payload FROM inventions WHERE campaign_id = ?`).all(campaignId)
+      : this.db.prepare(`SELECT payload FROM inventions WHERE campaign_id = ? AND status = ?`).all(campaignId, status);
+    return (rows as Array<{ payload: string }>).map(r => JSON.parse(r.payload) as ProvisionalInvention);
+  }
+
+  async listInventionTransitions(campaignId: CampaignId, inventionId?: string): Promise<InventionTransition[]> {
+    const rows = inventionId === undefined
+      ? this.db.prepare(`SELECT payload FROM invention_transitions WHERE campaign_id = ? ORDER BY seq`).all(campaignId)
+      : this.db.prepare(`SELECT payload FROM invention_transitions WHERE campaign_id = ? AND invention_id = ? ORDER BY seq`).all(campaignId, inventionId);
+    return (rows as Array<{ payload: string }>).map(r => JSON.parse(r.payload) as InventionTransition);
+  }
+
+  async getWorldDay(campaignId: CampaignId): Promise<number> {
+    const row = this.db.prepare(`SELECT world_day FROM campaigns WHERE id = ?`).get(campaignId) as { world_day: number } | undefined;
+    if (!row) throw new SneqCampaignNotFoundError(campaignId);
+    return row.world_day;
+  }
+
+  async setWorldDay(campaignId: CampaignId, day: number): Promise<void> {
+    const current = await this.getWorldDay(campaignId);
+    if (day < current) throw new Error(`world day cannot run backward: ${current} → ${day}`);
+    this.db.prepare(`UPDATE campaigns SET world_day = ? WHERE id = ?`).run(day, campaignId);
+  }
+
+  async recordOperation(campaignId: CampaignId, operationId: string, result: unknown): Promise<void> {
+    this.assertCampaignExists(campaignId);
+    this.db.prepare(`DELETE FROM operations WHERE campaign_id = ? AND operation_id = ?`).run(campaignId, operationId);
+    this.db.prepare(`INSERT INTO operations (campaign_id, operation_id, result) VALUES (?, ?, ?)`)
+      .run(campaignId, operationId, JSON.stringify(result ?? null));
+    // Bounded ring (#29): evict oldest past retention.
+    this.db.prepare(
+      `DELETE FROM operations WHERE campaign_id = ? AND seq NOT IN (
+         SELECT seq FROM operations WHERE campaign_id = ? ORDER BY seq DESC LIMIT ?)`
+    ).run(campaignId, campaignId, OPERATION_RETENTION);
+  }
+
+  async findOperation(campaignId: CampaignId, operationId: string): Promise<unknown | null> {
+    const row = this.db.prepare(
+      `SELECT result FROM operations WHERE campaign_id = ? AND operation_id = ?`
+    ).get(campaignId, operationId) as { result: string } | undefined;
+    return row ? (JSON.parse(row.result) as unknown) : null;
+  }
+
+  async getDispatchPolicy(campaignId: CampaignId): Promise<DispatchPolicy> {
+    this.assertCampaignExists(campaignId);
+    const row = this.db.prepare(`SELECT policy FROM dispatch_policies WHERE campaign_id = ?`).get(campaignId) as { policy: string } | undefined;
+    return row ? (JSON.parse(row.policy) as DispatchPolicy) : { routes: [], rules: [] };
+  }
+
+  async setDispatchPolicy(campaignId: CampaignId, p: DispatchPolicy): Promise<void> {
+    this.assertCampaignExists(campaignId);
+    this.db.prepare(`INSERT OR REPLACE INTO dispatch_policies (campaign_id, policy) VALUES (?, ?)`)
+      .run(campaignId, JSON.stringify(p));
+  }
+
   async transaction<T>(fn: (tx: Repository) => Promise<T>): Promise<T> {
     return this.enqueue(async () => {
       this.db.exec("BEGIN IMMEDIATE");

@@ -54,8 +54,8 @@ describe("parseArgv", () => {
   });
 
   it("parses --observation as partial JSON", () => {
-    const r = parseArgv(["register-fact", "--observation", '{"fiabilite":"RUMEUR_CONFIRMEE"}']);
-    expect(r.observationOverride).toEqual({ fiabilite: "RUMEUR_CONFIRMEE" });
+    const r = parseArgv(["register-fact", "--observation", '{"excerpt":"entendu au marché"}']);
+    expect(r.observationOverride).toEqual({ excerpt: "entendu au marché" });
   });
 
   it("rejects an unknown flag", () => {

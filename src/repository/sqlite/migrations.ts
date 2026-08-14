@@ -1,6 +1,6 @@
 import type BetterSqlite3 from "better-sqlite3";
 
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 const MIGRATIONS: Array<{ version: number; sql: string }> = [
   {
@@ -116,6 +116,101 @@ const MIGRATIONS: Array<{ version: number; sql: string }> = [
   {
     version: 3,
     sql: `ALTER TABLE campaigns ADD COLUMN entity_revision INTEGER NOT NULL DEFAULT 0;`
+  },
+  {
+    // 0.5.0 ledger (§5.4). Events/records/effects/transitions are append-only:
+    // no UPDATE statement for them exists anywhere in the adapter, and the
+    // contract test asserts the absence of a mutation path on the surface.
+    // Data migration (figed → canonical_attributes copy, LEGACY_CANON
+    // synthesis, observation-blob rewrite) is build slice 2, not this schema.
+    version: 4,
+    sql: `
+      CREATE TABLE IF NOT EXISTS events (
+        seq INTEGER PRIMARY KEY AUTOINCREMENT,
+        campaign_id TEXT NOT NULL,
+        event_id TEXT NOT NULL,
+        day INTEGER NOT NULL,
+        turn INTEGER NOT NULL,
+        place_id TEXT,
+        gravity INTEGER NOT NULL,
+        acts TEXT NOT NULL,
+        circumstance TEXT NOT NULL,
+        participants TEXT NOT NULL,
+        surface_tokens TEXT NOT NULL,
+        UNIQUE (campaign_id, event_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_events_order ON events(campaign_id, day, turn, seq);
+
+      CREATE TABLE IF NOT EXISTS records (
+        seq INTEGER PRIMARY KEY AUTOINCREMENT,
+        campaign_id TEXT NOT NULL,
+        record_id TEXT NOT NULL,
+        entity_id TEXT NOT NULL,
+        day INTEGER NOT NULL,
+        turn INTEGER NOT NULL,
+        payload TEXT NOT NULL,
+        UNIQUE (campaign_id, record_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_records_entity ON records(campaign_id, entity_id);
+
+      CREATE TABLE IF NOT EXISTS holders (
+        campaign_id TEXT NOT NULL,
+        holder_id TEXT NOT NULL,
+        kind TEXT NOT NULL,
+        payload TEXT NOT NULL,
+        PRIMARY KEY (campaign_id, holder_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS carriages (
+        campaign_id TEXT NOT NULL,
+        carriage_id TEXT NOT NULL,
+        to_place_id TEXT NOT NULL,
+        arrival_day INTEGER,
+        payload TEXT NOT NULL,
+        PRIMARY KEY (campaign_id, carriage_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_carriages_arrival ON carriages(campaign_id, to_place_id, arrival_day);
+
+      CREATE TABLE IF NOT EXISTS carriage_effects (
+        seq INTEGER PRIMARY KEY AUTOINCREMENT,
+        campaign_id TEXT NOT NULL,
+        carriage_id TEXT NOT NULL,
+        payload TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_carriage_effects ON carriage_effects(campaign_id, carriage_id);
+
+      CREATE TABLE IF NOT EXISTS inventions (
+        campaign_id TEXT NOT NULL,
+        invention_id TEXT NOT NULL,
+        status TEXT NOT NULL,
+        payload TEXT NOT NULL,
+        PRIMARY KEY (campaign_id, invention_id)
+      );
+      CREATE INDEX IF NOT EXISTS idx_inventions_status ON inventions(campaign_id, status);
+
+      CREATE TABLE IF NOT EXISTS invention_transitions (
+        seq INTEGER PRIMARY KEY AUTOINCREMENT,
+        campaign_id TEXT NOT NULL,
+        invention_id TEXT NOT NULL,
+        payload TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_invention_transitions ON invention_transitions(campaign_id, invention_id);
+
+      CREATE TABLE IF NOT EXISTS operations (
+        seq INTEGER PRIMARY KEY AUTOINCREMENT,
+        campaign_id TEXT NOT NULL,
+        operation_id TEXT NOT NULL,
+        result TEXT NOT NULL,
+        UNIQUE (campaign_id, operation_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS dispatch_policies (
+        campaign_id TEXT PRIMARY KEY,
+        policy TEXT NOT NULL
+      );
+
+      ALTER TABLE campaigns ADD COLUMN world_day INTEGER NOT NULL DEFAULT 0;
+    `
   }
 ];
 

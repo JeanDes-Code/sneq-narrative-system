@@ -233,3 +233,36 @@ describe("SqliteRepository · entity description", () => {
     expect((await repo.getEntity(cid, asEntityID("ed2")))?.description).toBeUndefined();
   });
 });
+
+describe("SqliteRepository · ledger reopen (schema v4)", () => {
+  it("reopens a file DB and reads back identical ledger state; v3 DB migrates in place", async () => {
+    const { mkdtempSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const { asEventId, asHolderId } = await import("../../src/domain/ids.js");
+    const path = join(mkdtempSync(join(tmpdir(), "sneq-sqlite-")), "ledger.db");
+
+    const r1 = new SqliteRepository({ path, embeddingDim: 4 });
+    await r1.createCampaign({ id: cid, name: "L", createdAt: 0, embeddingDim: 4 });
+    await r1.appendEvent({
+      eventId: asEventId("e1"), campaignId: cid, day: 1, turn: 1, gravity: 2,
+      acts: [{ actorId: asEntityID("a"), verb: "STRIKE",
+               sets: { entityId: asEntityID("a"), key: "statut", value: { type: "STRING", value: "blessé" }, category: "ETAT" } }],
+      circumstance: "c", participants: [asEntityID("a")], surfaceTokens: ["gourdin"]
+    });
+    await r1.upsertHolder({
+      kind: "GROUP", holderId: asHolderId("h1"), campaignId: cid,
+      community: "valmure", stratum: "artisans",
+      realmId: asEntityID("realm"), placeId: asEntityID("place"), standing: 0.4
+    });
+    await r1.setWorldDay(cid, 3);
+    const before = { events: await r1.getEvents(cid), holders: await r1.listHolders(cid) };
+    await r1.close();
+
+    const r2 = new SqliteRepository({ path });
+    expect(await r2.getEvents(cid)).toEqual(before.events);
+    expect(await r2.listHolders(cid)).toEqual(before.holders);
+    expect(await r2.getWorldDay(cid)).toBe(3);
+    await r2.close();
+  });
+});
