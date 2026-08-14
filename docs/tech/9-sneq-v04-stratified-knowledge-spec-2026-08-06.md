@@ -104,6 +104,7 @@ export interface OfficialRecord {
   observation: Observation;        // provenance ONLY — fiabilite DELETED from the type itself (#18)
   day: number;
   turn: number;
+  surfaceTokens: string[];         // containment alphabet, same producer rule as events (#25; ratified 2026-08-14)
 }
 ```
 
@@ -234,6 +235,7 @@ export interface ProvisionalInvention {
   introducedOnDay: number;
   status: InventionStatus;
   lastReferencedTurn: number;
+  surfaceTokens: string[];         // uptake alphabet — §2.6's match reads these (#25; ratified 2026-08-14)
 }
 
 export type PromotionEvidence =
@@ -246,13 +248,14 @@ export interface InventionTransition {                  // append-only audit
   inventionId: InventionId;
   from: InventionStatus;
   to: Exclude<InventionStatus, "PROVISIONAL">;
+  atDay: number;                   // the fold orders promotions by (atDay, atTurn) (#27; ratified 2026-08-14)
   atTurn: number;
   evidence?: PromotionEvidence;
   supersededBy?: InventionId;
 }
 ```
 
-- **`AttributFige` → `CanonicalAttribute`**: stays replace-on-key **because it is explicitly a current-state projection now** — its history lives in events and invention transitions. Gains `source: { kind: "EVENT" | "PROMOTED_INVENTION" | "LEGACY_FACT"; … }` and `day`. **No deprecated alias.** An earlier draft exported `AttributFige` through 0.4 and removed it in 0.5, as a migration window for the live out-of-tree consumer. There is no intermediate release to migrate through (§9), so the rename is a clean break at 0.5.0 and grimoire migrates as part of that work.
+- **`AttributFige` → `CanonicalAttribute`**: stays replace-on-key **because it is explicitly a current-state projection now** — its history lives in events and invention transitions. Gains `source: { kind: "EVENT" | "PROMOTED_INVENTION" | "LEGACY_FACT"; … }` and `day`; `observation` becomes **optional** — EVENT/PROMOTED rows carry provenance in `source`, LEGACY_FACT copies keep theirs (ratified 2026-08-14). **No deprecated alias.** An earlier draft exported `AttributFige` through 0.4 and removed it in 0.5, as a migration window for the live out-of-tree consumer. There is no intermediate release to migrate through (§9), so the rename is a clean break at 0.5.0 and grimoire migrates as part of that work.
 - **The projection rule** (decided with Jean, 2026-08-14, [#27](https://github.com/JeanDes-Code/sneq-narrative-system/issues/27)): `CanonicalAttribute` is a **deterministic fold over the ledger** with exactly the three producers the `source` union names.
   1. **Act `sets`** (§2.1): an act projects **only** through its explicit, caller-declared `sets` — the engine never interprets `verb` (the same line as `travelDays`: SNEQ owns no fiction semantics). *Walks* projects nothing because it declares nothing; `category` is declared, never inferred. Applied in `(day, turn, ledger sequence)` order, last writer wins — replace-on-key is state **evolution**, which resolves 0.3.0's split intention (`decideRegisterFact` refuses a differing value while SQLite is `INSERT OR REPLACE` and the contract test requires replacement) in favour of replace. The GM_NARRATION guard becomes structural: a `sets` rides on an on-ledger act and projects; a free-floating assertion with no act to hang on routes to the provisional layer, whatever the caller claims. A fake act smuggling an assertion is possible but **loud** — it sits in the append-only ledger.
   2. **Invention promotions**, per the lifecycle above.
@@ -701,3 +704,5 @@ The body above carries only the current decision. This log carries how it got th
 **2026-08-14 — the last three grillings, decided with Jean ([#23](https://github.com/JeanDes-Code/sneq-narrative-system/issues/23), [#28](https://github.com/JeanDes-Code/sneq-narrative-system/issues/28), [#29](https://github.com/JeanDes-Code/sneq-narrative-system/issues/29)); the frontier closes.** #23: the constraint type-coherence audit is required (riding the v3→v4 migration, re-run by `doctor`); a type-unsatisfiable constraint is `QUARANTINED` — the constraint is the defect, not the invention; silent `REJECTED` stays reserved for canon, which is fiction. #28: `PARTICIPANT` derogation becomes automatic and lazy at cascade time — participation is the declared reason, cost bounded by real play; `PERSONAL_STAKE` stays authored; the shared-stratum texture is stated as intended. #29: engine-side `operationId` idempotency is built, not narrowed — `recordOperation`/`findOperation` join the contract with bounded retention; this session's own decisions raised the stakes (one write carrying time means a retry double-advances the world); §7.4/§7.5 re-scoped to the built mechanism. With these, every open design question on map #10 is decided; what remains is the build hand-off (#16).
 
 **2026-08-14 — the build hand-off, decided with Jean ([#16](https://github.com/JeanDes-Code/sneq-narrative-system/issues/16)); the map's destination is reached.** The build is sliced into **five dependency-ordered PRs** (Jean chose coarse over the proposed ten): foundation (types + contract + fold), migration, knowledge (beliefs + containment + promotion), the write and the world (`commit_narrative` + `tick`), and the surface (APIs + tools + CLI + `doctor` + skill file). Each slice gates on named §7 tests; §12.2 descriptions ride the PRs that change their tools; consumer-side work (grimoire migration, `rpg-mj-knowledge` skill files with the Leeloo grep first, GDD rewrites) is budgeted and named, not sliced. The plan of record: `10-v05-build-handoff-2026-08-14.md`. With this, every ticket on map #10 is closed and the way to building 0.5.0 is clear.
+
+**2026-08-15 — build slices 1-2 land; four type-level ratifications.** Slice 1 (foundation: §2 types, §5.4 ledger contract on three adapters, the projection fold) and slice 2 (the migration epoch: `figed` → `canonical_attributes` copy, per-entity `LEGACY_CANON` synthesis #17, observation-blob rewrite #18, constraint audit #23 — one pure core shared by the SQLite v5 step and the JSON v1 loader so the adapters cannot drift) are implemented, TDD, suite green. The build surfaced four gaps between the spec's prose and its own type blocks, ratified with Jean: `surfaceTokens` added to `OfficialRecord` (§2.2) and `ProvisionalInvention` (§2.6) — both uses were declared, neither field was; `InventionTransition.atDay` — the fold cannot order a promotion against events without a day; `CanonicalAttribute.observation` optional — `source` is the provenance for EVENT/PROMOTED rows. `AttributFige` coexists as an internal-milestone type until slice 4 deletes it with `register_fact`; the released 0.5.0 surface keeps §2.6's no-alias rule.

@@ -8,7 +8,7 @@ import type { Carriage, CarriageEffect } from "../../src/domain/carriage.js";
 import type { ProvisionalInvention } from "../../src/domain/invention.js";
 import {
   asCampaignId, asEntityID, asEventId, asRecordId, asHolderId,
-  asCarriageId, asInventionId
+  asCarriageId, asInventionId, asFactId
 } from "../../src/domain/ids.js";
 
 const DIM = 4;
@@ -253,6 +253,38 @@ export function ledgerContract(name: string, makeRepo: () => Repository | Promis
       };
       await repo.setDispatchPolicy(cid, policy);
       expect(await repo.getDispatchPolicy(cid)).toEqual(policy);
+    });
+
+    // -- canonical projection storage (#27) ----------------------------------
+
+    it("canonical attributes: replace-on-key upsert, readable per entity or whole campaign", async () => {
+      const row = {
+        factId: asFactId("proj_a_statut"), entityId: asEntityID("a"), key: "statut",
+        value: { type: "STRING", value: "libre" } as const, category: "ETAT" as const,
+        turn: 1, day: 1, source: { kind: "EVENT", eventId: asEventId("e1") } as const
+      };
+      await repo.upsertCanonicalAttribute(cid, row);
+      await repo.upsertCanonicalAttribute(cid, { ...row, value: { type: "STRING", value: "geôle" }, day: 2 });
+      await repo.upsertCanonicalAttribute(cid, {
+        ...row, factId: asFactId("proj_b_statut"), entityId: asEntityID("b")
+      });
+      const forA = await repo.getCanonicalAttributes(cid, asEntityID("a"));
+      expect(forA).toHaveLength(1);
+      expect(forA[0]!.value).toEqual({ type: "STRING", value: "geôle" });
+      expect(forA[0]!.day).toBe(2);
+      expect(await repo.getCanonicalAttributes(cid)).toHaveLength(2);
+    });
+
+    // -- migration findings (#23) --------------------------------------------
+
+    it("migration findings persist and read back per campaign", async () => {
+      const finding = {
+        campaignId: cid, entityId: asEntityID("e1"), attributeKey: "allegiance",
+        constraintId: "k1", kind: "TYPE_MISMATCH_WITH_CANON" as const, detail: "ENUM vs STRING"
+      };
+      expect(await repo.listMigrationFindings(cid)).toEqual([]);
+      await repo.appendMigrationFindings([finding]);
+      expect(await repo.listMigrationFindings(cid)).toEqual([finding]);
     });
 
     // -- campaign scoping -----------------------------------------------------

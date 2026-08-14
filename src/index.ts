@@ -113,6 +113,11 @@ export type {
   ProvisionalInvention, InventionStatus, PromotionEvidence, InventionTransition
 } from "./domain/invention.js";
 export { rebuildProjection, type ProjectionInputs } from "./core/projection.js";
+export {
+  migrateLegacyCampaign,
+  type LegacyCampaignInput, type LegacyMigrationOutput
+} from "./core/migrate-legacy.js";
+export type { MigrationFinding, MigrationFindingKind } from "./domain/migration.js";
 
 // Resolver
 export type { ResolverThresholds } from "./resolver/thresholds.js";

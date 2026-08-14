@@ -3,7 +3,8 @@ import type {
 } from "../interface.js";
 import { OPERATION_RETENTION } from "../interface.js";
 import type { Entity, EntityType } from "../../domain/entity.js";
-import type { AttributFige } from "../../domain/attribute.js";
+import type { AttributFige, CanonicalAttribute } from "../../domain/attribute.js";
+import type { MigrationFinding } from "../../domain/migration.js";
 import type { Potentialite } from "../../domain/potentialite.js";
 import type { AreteGCN, NoeudGCN } from "../../domain/gcn.js";
 import type { Scene } from "../../domain/scene.js";
@@ -41,6 +42,9 @@ export interface MemoryState {
   /** Bounded dedup ring (#29): insertion-ordered Map, oldest evicted past OPERATION_RETENTION. */
   operations: Map<string, Map<string, unknown>>;
   dispatchPolicies: Map<string, DispatchPolicy>;
+  /** Projection storage (#27): keyed by `entityId|key` — replace-on-key by construction. */
+  canonicalAttributes: Map<string, Map<string, CanonicalAttribute>>;
+  migrationFindings: Map<string, MigrationFinding[]>;
 }
 
 export function emptyMemoryState(): MemoryState {
@@ -49,7 +53,8 @@ export function emptyMemoryState(): MemoryState {
     potentialites: new Map(), nodes: new Map(), edges: new Map(), turns: new Map(), scenes: new Map(),
     events: new Map(), records: new Map(), holders: new Map(), carriages: new Map(),
     carriageEffects: new Map(), inventions: new Map(), inventionTransitions: new Map(),
-    worldDays: new Map(), operations: new Map(), dispatchPolicies: new Map()
+    worldDays: new Map(), operations: new Map(), dispatchPolicies: new Map(),
+    canonicalAttributes: new Map(), migrationFindings: new Map()
   };
 }
 
@@ -116,7 +121,8 @@ export class InMemoryRepository implements Repository {
                           this.state.events, this.state.records, this.state.holders,
                           this.state.carriages, this.state.carriageEffects, this.state.inventions,
                           this.state.inventionTransitions, this.state.worldDays,
-                          this.state.operations, this.state.dispatchPolicies] as Array<Map<string, unknown>>) {
+                          this.state.operations, this.state.dispatchPolicies,
+                          this.state.canonicalAttributes, this.state.migrationFindings] as Array<Map<string, unknown>>) {
       bucket.delete(id);
     }
     this.state.entityRevisions.delete(id);
@@ -454,6 +460,32 @@ export class InMemoryRepository implements Repository {
     return (this.state.inventionTransitions.get(campaignId) ?? [])
       .filter(t => inventionId === undefined || t.inventionId === inventionId)
       .map(t => structuredClone(t));
+  }
+
+  async upsertCanonicalAttribute(campaignId: CampaignId, row: CanonicalAttribute): Promise<void> {
+    this.assertCampaignExists(campaignId);
+    this.bucket(this.state.canonicalAttributes, campaignId).set(`${row.entityId}|${row.key}`, structuredClone(row));
+    await this.mutated();
+  }
+
+  async getCanonicalAttributes(campaignId: CampaignId, entityId?: EntityID): Promise<CanonicalAttribute[]> {
+    return [...(this.state.canonicalAttributes.get(campaignId)?.values() ?? [])]
+      .filter(r => entityId === undefined || r.entityId === entityId)
+      .map(r => structuredClone(r));
+  }
+
+  async appendMigrationFindings(findings: MigrationFinding[]): Promise<void> {
+    for (const f of findings) {
+      this.assertCampaignExists(f.campaignId);
+      let list = this.state.migrationFindings.get(f.campaignId);
+      if (!list) { list = []; this.state.migrationFindings.set(f.campaignId, list); }
+      list.push(structuredClone(f));
+    }
+    await this.mutated();
+  }
+
+  async listMigrationFindings(campaignId: CampaignId): Promise<MigrationFinding[]> {
+    return (this.state.migrationFindings.get(campaignId) ?? []).map(f => structuredClone(f));
   }
 
   async getWorldDay(campaignId: CampaignId): Promise<number> {

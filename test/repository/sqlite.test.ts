@@ -176,6 +176,18 @@ describe("SqliteRepository · dim lifecycle", () => {
       );
       INSERT INTO campaigns (id, name, created_at, embedding_dim)
       VALUES ('c1', 'Legacy', 0, 0);
+      -- a real v2 DB always has these (created at v1); the v5 data step reads them
+      CREATE TABLE figed (
+        campaign_id TEXT NOT NULL, entity_id TEXT NOT NULL, attribute_key TEXT NOT NULL,
+        fact_id TEXT NOT NULL, value TEXT NOT NULL, category TEXT NOT NULL,
+        observation TEXT NOT NULL, turn INTEGER NOT NULL,
+        PRIMARY KEY (campaign_id, entity_id, attribute_key)
+      );
+      CREATE TABLE potentialites (
+        campaign_id TEXT NOT NULL, entity_id TEXT NOT NULL, attribute_key TEXT NOT NULL,
+        etat TEXT NOT NULL, contraintes TEXT NOT NULL, contexte_generatif TEXT NOT NULL,
+        PRIMARY KEY (campaign_id, entity_id, attribute_key)
+      );
     `);
     legacy.close();
 
@@ -263,6 +275,88 @@ describe("SqliteRepository · ledger reopen (schema v4)", () => {
     expect(await r2.getEvents(cid)).toEqual(before.events);
     expect(await r2.listHolders(cid)).toEqual(before.holders);
     expect(await r2.getWorldDay(cid)).toBe(3);
+    await r2.close();
+  });
+});
+
+describe("SqliteRepository · v3 → v5 data migration (#17 #18 #23)", () => {
+  function v3Db(): string {
+    const tmp = `${process.env["TMPDIR"] ?? "/tmp"}/sneq-v3-${Date.now()}-${Math.random().toString(36).slice(2)}.db`;
+    const legacy = new Database(tmp);
+    legacy.exec(`
+      CREATE TABLE schema_version (version INTEGER PRIMARY KEY);
+      INSERT INTO schema_version (version) VALUES (3);
+      CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+      CREATE TABLE campaigns (
+        id TEXT PRIMARY KEY, name TEXT NOT NULL, created_at INTEGER NOT NULL,
+        embedding_dim INTEGER NOT NULL, entity_revision INTEGER NOT NULL DEFAULT 0
+      );
+      INSERT INTO campaigns (id, name, created_at, embedding_dim) VALUES ('c1', 'Legacy', 0, 0);
+      CREATE TABLE figed (
+        campaign_id TEXT NOT NULL, entity_id TEXT NOT NULL, attribute_key TEXT NOT NULL,
+        fact_id TEXT NOT NULL, value TEXT NOT NULL, category TEXT NOT NULL,
+        observation TEXT NOT NULL, turn INTEGER NOT NULL,
+        PRIMARY KEY (campaign_id, entity_id, attribute_key)
+      );
+      CREATE TABLE potentialites (
+        campaign_id TEXT NOT NULL, entity_id TEXT NOT NULL, attribute_key TEXT NOT NULL,
+        etat TEXT NOT NULL, contraintes TEXT NOT NULL, contexte_generatif TEXT NOT NULL,
+        PRIMARY KEY (campaign_id, entity_id, attribute_key)
+      );
+    `);
+    legacy.prepare(
+      `INSERT INTO figed VALUES ('c1', 'e1', 'metier', 'f1', ?, 'HISTORIQUE', ?, 3)`
+    ).run(
+      JSON.stringify({ type: "STRING", value: "forgeron" }),
+      JSON.stringify({ source: "GM_NARRATION", method: "DIALOGUE_DIRECT", timestamp: 0, fiabilite: "CERTAINE" })
+    );
+    legacy.prepare(
+      `INSERT INTO potentialites VALUES ('c1', 'e1', 'metier', 'CONTRAINT', ?, ?)`
+    ).run(
+      JSON.stringify([{
+        id: "k1", source: { kind: "INFERENCE_IA", confidence: 0.7 }, createdAt: 0,
+        regle: { type: "DOIT_ETRE", valeurs: [{ type: "ENUM", value: "forgeron", enumType: "job" }] },
+        justificationNarrative: "…"
+      }]),
+      JSON.stringify({ categorieAttribut: "SOCIAL", tendances: [] })
+    );
+    legacy.close();
+    return tmp;
+  }
+
+  it("populates the epoch: canonical copy, LEGACY_CANON event, cleaned blobs, audit findings", async () => {
+    const repo = new SqliteRepository({ path: v3Db(), embeddingDim: 0 });
+
+    const canon = await repo.getCanonicalAttributes(cid, asEntityID("e1"));
+    expect(canon).toHaveLength(1);
+    expect(canon[0]!.value).toEqual({ type: "STRING", value: "forgeron" });
+    expect(canon[0]!.source).toEqual({ kind: "LEGACY_FACT" });
+    expect(canon[0]!.day).toBe(0);
+    expect(canon[0]!.observation && "fiabilite" in canon[0]!.observation).toBe(false);
+
+    const events = await repo.getEvents(cid);
+    expect(events).toHaveLength(1);
+    expect(events[0]!.day).toBe(0);
+    expect(events[0]!.gravity).toBe(0);
+    expect(events[0]!.acts[0]!.verb).toBe("LEGACY_CANON");
+    expect(events[0]!.acts[0]!.sets?.key).toBe("metier");
+
+    const facts = await repo.getFigedAttributes(cid, asEntityID("e1"));
+    expect("fiabilite" in (facts[0]!.observation as unknown as Record<string, unknown>)).toBe(false);
+
+    const findings = await repo.listMigrationFindings(cid);
+    expect(findings).toHaveLength(1);
+    expect(findings[0]!.kind).toBe("TYPE_MISMATCH_WITH_CANON");
+    await repo.close();
+  });
+
+  it("does not re-run on reopen: one event, one finding, forever", async () => {
+    const path = v3Db();
+    const r1 = new SqliteRepository({ path, embeddingDim: 0 });
+    await r1.close();
+    const r2 = new SqliteRepository({ path, embeddingDim: 0 });
+    expect(await r2.getEvents(cid)).toHaveLength(1);
+    expect(await r2.listMigrationFindings(cid)).toHaveLength(1);
     await r2.close();
   });
 });

@@ -1,5 +1,6 @@
 import type { Entity } from "../domain/entity.js";
-import type { AttributFige } from "../domain/attribute.js";
+import type { AttributFige, CanonicalAttribute } from "../domain/attribute.js";
+import type { MigrationFinding } from "../domain/migration.js";
 import type { Potentialite } from "../domain/potentialite.js";
 import type { AreteGCN, NoeudGCN } from "../domain/gcn.js";
 import type { Scene } from "../domain/scene.js";
@@ -99,6 +100,15 @@ export interface Repository {
   appendInventionTransition(t: InventionTransition): Promise<void>;
   listInventions(campaignId: CampaignId, status?: InventionStatus): Promise<ProvisionalInvention[]>;
   listInventionTransitions(campaignId: CampaignId, inventionId?: InventionId): Promise<InventionTransition[]>;
+
+  // Canonical projection storage (#27) — written by the fold and the migration,
+  // never directly by tools. Replace-on-key.
+  upsertCanonicalAttribute(campaignId: CampaignId, row: CanonicalAttribute): Promise<void>;
+  getCanonicalAttributes(campaignId: CampaignId, entityId?: EntityID): Promise<CanonicalAttribute[]>;
+
+  // Migration audit (#23) — flagged rows, read again by `doctor`.
+  appendMigrationFindings(findings: MigrationFinding[]): Promise<void>;
+  listMigrationFindings(campaignId: CampaignId): Promise<MigrationFinding[]>;
 
   // World clock (§4) — day only moves forward, and only by explicit statement.
   getWorldDay(campaignId: CampaignId): Promise<number>;

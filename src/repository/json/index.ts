@@ -1,6 +1,8 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { InMemoryRepository, emptyMemoryState, type MemoryState } from "../memory/index.js";
+import { migrateLegacyCampaign } from "../../core/migrate-legacy.js";
+import { asCampaignId } from "../../domain/ids.js";
 
 export interface JsonFileRepositoryOptions {
   /** Path of the JSON store (created on first write; parent dirs created). */
@@ -80,5 +82,32 @@ function tryLoad(path: string): { dim: number | null; state: MemoryState } | nul
     throw new Error(`unsupported sneq json store version: ${String((parsed as { version: unknown }).version)} (this build reads versions 1-2)`);
   }
   const state: MemoryState = { ...emptyMemoryState(), ...parsed.state };
+  if (parsed.version === 1) migrateV1State(state);
   return { dim: parsed.dim, state };
+}
+
+/**
+ * The migration epoch for v1 files (§4, #17 #18 #23) — same pure core as the
+ * SQLite v5 data step, so the two adapters cannot drift.
+ */
+function migrateV1State(state: MemoryState): void {
+  for (const campaignId of state.campaigns.keys()) {
+    const cid = asCampaignId(campaignId);
+    const factsMap = state.facts.get(campaignId);
+    const potMap = state.potentialites.get(campaignId);
+    const out = migrateLegacyCampaign({
+      campaignId: cid,
+      facts: [...(factsMap?.values() ?? [])],
+      potentialites: [...(potMap?.values() ?? [])]
+    });
+    if (factsMap) {
+      for (const f of out.cleanedFacts) factsMap.set(`${f.entityId}|${f.key}`, f);
+    }
+    const canon = new Map(out.canonicalAttributes.map(r => [`${r.entityId}|${r.key}`, r] as const));
+    if (canon.size > 0) state.canonicalAttributes.set(campaignId, canon);
+    if (out.legacyEvents.length > 0) {
+      state.events.set(campaignId, new Map(out.legacyEvents.map(e => [String(e.eventId), e] as const)));
+    }
+    if (out.findings.length > 0) state.migrationFindings.set(campaignId, out.findings);
+  }
 }
