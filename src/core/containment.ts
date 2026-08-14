@@ -1,0 +1,121 @@
+import type { NarrativeEvent } from "../domain/event.js";
+import type { OfficialRecord } from "../domain/record.js";
+import type { Belief } from "../domain/belief.js";
+import type { EntityID, HolderId } from "../domain/ids.js";
+import { SneqContainmentError } from "../errors.js";
+
+/** The identity surface the engine can floor without NLP (#25). */
+export interface EntityLike {
+  id: EntityID;
+  name: string;
+  aliases: string[];
+}
+
+export interface TokenWorld {
+  events: NarrativeEvent[];
+  records: OfficialRecord[];
+  entities: EntityLike[];
+}
+
+const textualValue = (v: { type: string } & Record<string, unknown>): string | null => {
+  if (v.type === "STRING" || v.type === "ENUM") return String(v["value"]);
+  return null;
+};
+
+function namesOf(entities: EntityLike[], ids: Iterable<EntityID | undefined>): string[] {
+  const byId = new Map(entities.map(e => [String(e.id), e] as const));
+  const out: string[] = [];
+  for (const id of ids) {
+    if (id === undefined) continue;
+    const e = byId.get(String(id));
+    if (e) out.push(e.name, ...e.aliases);
+  }
+  return out;
+}
+
+/**
+ * Supplied tokens + the engine floor (#25): participant/place/object names and
+ * aliases for events; subject names, key, and textual value for records.
+ * `verb` is excluded — taxonomy strings do not occur in prose and only add
+ * false positives. The measured basis: the prototype's containment ran on
+ * hand-authored lowercase phrases; the floor covers what is mechanically
+ * nameable, the model covers the distinctive surface.
+ */
+export function surfaceTokensOf(subject: NarrativeEvent | OfficialRecord, entities: EntityLike[]): string[] {
+  const tokens = new Set<string>(subject.surfaceTokens);
+  if ("eventId" in subject) {
+    for (const name of namesOf(entities, [
+      ...subject.participants,
+      subject.placeId,
+      ...subject.acts.map(a => a.objectId),
+      ...subject.acts.map(a => a.actorId)
+    ])) tokens.add(name);
+  } else {
+    for (const name of namesOf(entities, [subject.entityId, subject.authoredBy])) tokens.add(name);
+    tokens.add(subject.key);
+    const value = textualValue(subject.value);
+    if (value !== null) tokens.add(value);
+  }
+  return [...tokens];
+}
+
+/**
+ * Commit-time validation (#25): a supplied token absent from `circumstance`
+ * and every textual act value cannot leak — it can only false-positive against
+ * innocent prose — so it is rejected. Returns the invalid tokens.
+ */
+export function validateSuppliedTokens(e: NarrativeEvent): string[] {
+  const haystacks = [
+    e.circumstance.toLowerCase(),
+    ...e.acts.map(a => (a.value ? textualValue(a.value) : null))
+      .filter((v): v is string => v !== null)
+      .map(v => v.toLowerCase())
+  ];
+  return e.surfaceTokens.filter(t => !haystacks.some(h => h.includes(t.toLowerCase())));
+}
+
+/**
+ * Every token from every event/record this holder has NOT learned. Decided
+ * from state, before any call — not a validator on the model's output; a
+ * statement about what was handed over. A token the holder legitimately holds
+ * is never forbidden, even if it also appears in something they don't hold.
+ */
+export function forbiddenTokensFor(world: TokenWorld, beliefs: Belief[]): string[] {
+  const held = new Set(beliefs.map(b => `${b.subject.kind}:${b.subject.id}`));
+  const forbidden = new Set<string>();
+  const allowed = new Set<string>();
+  for (const e of world.events) {
+    const target = held.has(`EVENT:${e.eventId}`) ? allowed : forbidden;
+    for (const t of surfaceTokensOf(e, world.entities)) target.add(t.toLowerCase());
+  }
+  for (const r of world.records) {
+    const target = held.has(`RECORD:${r.recordId}`) ? allowed : forbidden;
+    for (const t of surfaceTokensOf(r, world.entities)) target.add(t.toLowerCase());
+  }
+  return [...forbidden].filter(t => !allowed.has(t));
+}
+
+export interface ContainmentResult {
+  pass: boolean;
+  forbidden: string[];
+  present: string[];
+}
+
+export function checkContainment(forbidden: string[], text: string): ContainmentResult {
+  const hay = text.toLowerCase();
+  const present = forbidden.filter(t => hay.includes(t.toLowerCase()));
+  return { pass: present.length === 0, forbidden, present };
+}
+
+/**
+ * §11 phase D — the pre-flight assertion over the composed payload. The host
+ * composes whatever it wants and submits the final string; SNEQ answers
+ * whether it contains a token this holder cannot hold. Default posture: throw.
+ */
+export function assertContainment(
+  world: TokenWorld, beliefs: Belief[], holderId: HolderId, text: string
+): ContainmentResult {
+  const result = checkContainment(forbiddenTokensFor(world, beliefs), text);
+  if (!result.pass) throw new SneqContainmentError(String(holderId), result.forbidden, result.present);
+  return result;
+}

@@ -76,6 +76,26 @@ export class SneqUnknownEntityError extends Error {
   }
 }
 
+/**
+ * A composed payload contains a token this holder cannot hold (§11 phase D).
+ * Default posture: throw — "the engine is broken, stop". A containment failure
+ * is an engine bug, never a gameplay outcome.
+ */
+export class SneqContainmentError extends Error {
+  constructor(
+    public readonly holderId: string,
+    public readonly forbidden: string[],
+    public readonly present: string[],
+  ) {
+    super(
+      `containment violated for holder "${holderId}": the payload contains ${present.length} token(s) ` +
+      `this holder never learned (${present.map(t => JSON.stringify(t)).join(", ")}). ` +
+      `The engine handed over something it should not have — stop and inspect, do not narrate around it.`,
+    );
+    this.name = "SneqContainmentError";
+  }
+}
+
 export class SneqProviderError extends Error {
   constructor(public readonly tier: Tier, public readonly exhausted: boolean, message: string) {
     super(message);

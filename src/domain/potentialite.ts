@@ -17,12 +17,17 @@ export type RegleContrainte =
   | { type: "RANGE_NUMERIQUE"; min?: number; max?: number }
   | { type: "REGEX";           pattern: string };
 
+/** #23: quarantined constraints stop gating; the transition is auditable. */
+export type ConstraintStatus = "ACTIVE" | "QUARANTINED";
+
 export interface Contrainte {
   id: ConstraintId;
   source: ContrainteSource;
   createdAt: number;
   regle: RegleContrainte;
   justificationNarrative: string;
+  /** Absent = ACTIVE. Only the quarantine path (#23) ever writes QUARANTINED. */
+  status?: ConstraintStatus;
 }
 
 export interface Tendance {
