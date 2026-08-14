@@ -86,7 +86,7 @@ export function decidePromotion(invention: ProvisionalInvention, ctx: PromotionC
   }
 
   const verdict = validateValue(invention.value, {
-    strictContraintes: gating, softContraintes: [], existingFiged: []
+    strictContraintes: gating, softContraintes: [], existingCanon: []
   });
   if (!verdict.valide) {
     return { outcome: "REJECTED", transition: transition("REJECTED"), quarantined };

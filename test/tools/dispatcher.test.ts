@@ -11,13 +11,13 @@ function stubCtx(): ToolCallContext {
     resolveEntity: async (opts) => ({ match: null, confidence: 0, candidates: [], layerUsed: "none", _mention: opts.mention } as never),
     suggestExisting: async (mention, _type) => ({ candidates: [], recommendsNew: true, _mention: mention } as never),
     getEntity: async (id) => (KNOWN_IDS.has(String(id)) ? ({ id, name: String(id) } as never) : null),
-    getRelevantFacts: async (_id, _opts) => [],
+    getHolderContext: async (args) => ({ holderId: args.holderId ?? "h_default_group", road: "DEFAULT_GROUP", day: 0, turn: 0, beliefs: [], omitted: 0, explain: "stub" } as never),
     mentionEntity: async (input) => ({ entityId: "new-id", isNew: true, _name: input.canonicalName } as never),
-    registerFact: async (_input) => ({ factId: "f1", contradictions: [] } as never),
+    commitNarrative: async (_bundle) => ({ replayed: false, newWorldDay: 0, turn: 1, carriages: 0, promoted: 0, quarantined: [], health: { uncovered: false, unroutable: [], truncated: 0 } } as never),
     addConstraint: async (_input) => ({ constraintId: "c1" } as never),
     setScene: async (_input) => ({ sceneId: "s1", turnNumber: 1 } as never),
-    advanceTurn: async (summary) => ({ turnNumber: 42, _summary: summary ?? null } as never),
-    validateNarration: async (_input) => ({ ok: true, extractedNames: [], issues: [] })
+    advanceTurn: async (input) => ({ turnNumber: 42, worldDay: 0, health: { inTransit: 0, frozenClock: false, outOfBandRecords: 0 }, _summary: input.summary ?? null } as never),
+    validateNarration: async (_input) => ({ ok: true, verdict: "PASS" as const, extractedNames: [], issues: [] })
   };
 }
 
@@ -44,12 +44,17 @@ describe("dispatchToolCall", () => {
       .rejects.toThrow();
   });
 
-  it("rejects graph depth greater than one", async () => {
+  it("rejects a holder read that names both a holder and an entity (#21)", async () => {
     await expect(dispatchToolCall(
-      "sneq__get_relevant_facts",
-      { entityId: "a", depth: 2 },
+      "sneq__get_holder_context",
+      { holderId: "h1", entityId: "e1" },
       stubCtx(),
     )).rejects.toThrow();
+  });
+
+  it("rejects a holder read that names neither — every read is somebody's", async () => {
+    await expect(dispatchToolCall("sneq__get_holder_context", {}, stubCtx()))
+      .rejects.toThrow();
   });
 
   it("dispatches sneq__advance_turn with optional summary", async () => {
@@ -68,11 +73,11 @@ describe("dispatchToolCall", () => {
     let seen: unknown;
     const ctx = {
       ...stubCtx(),
-      validateNarration: async (input: unknown) => { seen = input; return { ok: true, extractedNames: [], issues: [] }; }
+      validateNarration: async (input: unknown) => { seen = input; return { ok: true, verdict: "PASS" as const, extractedNames: [], issues: [] }; }
     };
     const r = await dispatchToolCall("sneq__validate_narration", { narration: "Mira" }, ctx);
     expect(seen).toEqual({ narration: "Mira" });
-    expect(r).toEqual({ ok: true, extractedNames: [], issues: [] });
+    expect(r).toEqual({ ok: true, verdict: "PASS" as const, extractedNames: [], issues: [] });
   });
 });
 
@@ -144,13 +149,20 @@ describe("entity-id guard at the tool boundary", () => {
   });
 
   it.each([
-    ["sneq__register_fact", {
-      entityId: "le forgeron", attributeKey: "metier", category: "HISTORIQUE",
-      value: { type: "STRING", value: "capitaine" },
-      observation: { source: "GM_NARRATION", method: "DIALOGUE_DIRECT", timestamp: 1 }
+    ["sneq__add_constraint", {
+      entityId: "le forgeron", attributeKey: "k", rule: {}, justification: "j",
+      role: { role: "REGLE_MONDE", ruleId: "r1" }
     }],
-    ["sneq__add_constraint", { entityId: "le forgeron", attributeKey: "k", rule: {}, justification: "j" }],
-    ["sneq__get_relevant_facts", { entityId: "le forgeron" }],
+    // The single write is where a free-text name would poison an append-only
+    // ledger, so every id in the bundle is swept before anything is written.
+    ["sneq__commit_narrative", {
+      operationId: "op-1", daysElapsed: 0,
+      event: {
+        eventId: "ev1", gravity: 1, circumstance: "le forgeron parle",
+        acts: [{ actorId: "le forgeron", verb: "SPEAKS" }],
+        participants: ["le forgeron"], surfaceTokens: []
+      }
+    }],
   ])("guards %s", async (tool, args) => {
     await expect(dispatchToolCall(tool, args, stubCtx())).rejects.toThrow(SneqUnknownEntityError);
   });
@@ -183,10 +195,12 @@ describe("advertised tools", () => {
     for (const name of ToolNames) {
       expect(toolDescriptions[name]?.length ?? 0).toBeGreaterThan(80);
     }
-    expect(toolDescriptions.sneq__get_entity).not.toMatch(/full set of figed|canonical attributes\b(?! or facts)/i);
-    expect(toolDescriptions.sneq__get_entity).toMatch(/does not return canonical attributes/i);
+    expect(toolDescriptions.sneq__get_entity).not.toMatch(/full set of figed/i);
+    expect(toolDescriptions.sneq__get_entity).toMatch(/does NOT return canonical attributes/);
+    // The read that replaces it has to say, in band, that "what is true" is unaskable.
+    expect(toolDescriptions.sneq__get_holder_context).toMatch(/no way to ask what is actually true/i);
     // The tools that reject a name must say which call produces an id.
-    for (const name of ["sneq__get_relevant_facts", "sneq__register_fact", "sneq__set_scene"] as const) {
+    for (const name of ["sneq__add_constraint", "sneq__set_scene"] as const) {
       expect(toolDescriptions[name]).toMatch(/mention_entity/);
     }
     // add_constraint is the one consumers read as "this propagates". It does not.

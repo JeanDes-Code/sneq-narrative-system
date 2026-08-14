@@ -1,13 +1,13 @@
-export const SNEQ_ENGINE_VERSION = "0.3.1";
+export const SNEQ_ENGINE_VERSION = "0.5.0";
 
 // Engine + CampaignContext
 export { Engine, type NewCampaignInput } from "./engine.js";
 export {
   CampaignContext,
+  type CampaignContextDeps,
   type ConfirmEntityMatchInput,
   type MentionInput,
   type MentionResult,
-  type RegisterFactInput,
 } from "./campaign.js";
 
 // Config + loading
@@ -26,6 +26,8 @@ export { ProviderHttpError } from "./router/interface.js";
 // Errors
 export {
   SneqValidationError,
+  SneqUnknownHolderError,
+  SneqEmbeddingDimError,
   SneqContradictionError,
   SneqProviderError,
   SneqCampaignNotFoundError,
@@ -41,7 +43,7 @@ export {
 // Repository (interface + types). Reference SQLite adapter is also exposed,
 // but lazy-loadable via sneq-engine/sqlite for consumers who don't want better-sqlite3.
 export type {
-  Repository, RepositoryAccess, CampaignMeta, FactQuery, VectorSearchOpts, EntityWithScore,
+  Repository, RepositoryAccess, CampaignMeta, VectorSearchOpts, EntityWithScore,
   CarriageQuery
 } from "./repository/interface.js";
 export { OPERATION_RETENTION } from "./repository/interface.js";
@@ -54,6 +56,7 @@ export type {
   AddConstraintResult,
   AddConstraintDecisionInput,
   AddConstraintDecision,
+  ConstraintRole,
   CreateEntityCommand,
   CreateEntityResult,
   CreateEntityDecisionInput,
@@ -63,16 +66,12 @@ export type {
   ConfirmEntityMatchResult,
   ConfirmEntityMatchDecisionInput,
   ConfirmEntityMatchDecision,
-  RegisterFactCommand,
-  RegisterFactResult,
   SetSceneCommand,
   SetSceneResult,
   AdvanceTurnCommand,
   AdvanceTurnResult,
   AdvanceTurnDecisionInput,
   AdvanceTurnDecision,
-  RegisterFactDecisionInput,
-  RegisterFactDecision,
   SetSceneDecisionInput,
   SetSceneDecision,
 } from "./atomic/types.js";
@@ -81,13 +80,12 @@ export {
   decideAdvanceTurn,
   decideConfirmEntityMatch,
   decideCreateEntity,
-  decideRegisterFact,
   decideSetScene,
 } from "./atomic/decisions.js";
 
 // Domain
 export type { Entity, EntityType, Alias, AliasSource } from "./domain/entity.js";
-export type { AttributValue, AttributFige, CategorieAttribut, CanonicalAttribute, CanonicalSource } from "./domain/attribute.js";
+export type { AttributValue, CategorieAttribut, CanonicalAttribute, CanonicalSource } from "./domain/attribute.js";
 export type { Observation, ObservationSource, ObservationMethod, Fiabilite } from "./domain/observation.js";
 export type {
   Potentialite, Contrainte, RegleContrainte, ContrainteSource, EtatAttribut, ConstraintStatus,
@@ -118,7 +116,7 @@ export {
   migrateLegacyCampaign,
   type LegacyCampaignInput, type LegacyMigrationOutput
 } from "./core/migrate-legacy.js";
-export type { MigrationFinding, MigrationFindingKind } from "./domain/migration.js";
+export type { MigrationFinding, MigrationFindingKind, LegacyFact } from "./domain/migration.js";
 
 // The perspective seam's engine room (0.5.0, slice 3)
 export type { Belief, BeliefCertainty, SalienceFactors } from "./domain/belief.js";
@@ -150,10 +148,21 @@ export {
 } from "./atomic/commit-narrative.js";
 export { tick, worldHealth, type WorldHealth, type WorldHealthInput } from "./core/tick.js";
 export {
-  bootstrapCampaign,
+  bootstrapCampaign, bootstrapPlan,
   DEFAULT_REALM_ENTITY_ID, DEFAULT_GROUP_HOLDER_ID,
-  type BootstrapResult, type BootstrapRepo
+  type BootstrapResult, type BootstrapPlan, type BootstrapRepo
 } from "./atomic/bootstrap.js";
+
+// The turn pipeline (0.5.0, slice 5 — §11's eight phases)
+export {
+  buildHolderContext, renderContextBlock, filterTranscript, detectPlayerUptake,
+  type HolderContext, type HolderContextInput, type IngestedPlayerInput,
+  type TranscriptEntry, type TranscriptFilterResult
+} from "./core/holder-context.js";
+export {
+  runDoctor,
+  type DoctorReport, type DoctorInput, type DoctorCheck, type CheckStatus
+} from "./core/doctor.js";
 
 // Resolver
 export type { ResolverThresholds } from "./resolver/thresholds.js";
@@ -165,7 +174,10 @@ export {
 export { ToolNames, type ToolName, schemas as toolSchemas, toolDescriptions } from "./tools/schemas.js";
 export { jsonSchemas as toolJsonSchemas } from "./tools/json-schema.js";
 export { anthropicTools, openAITools, geminiTools, genericTools, ADVERTISED_TOOL_NAMES } from "./tools/adapters.js";
-export { dispatchToolCall, type ToolCallContext } from "./tools/dispatcher.js";
+export {
+  dispatchToolCall,
+  type ToolCallContext, type ToolCommitBundle, type HolderContextArgs
+} from "./tools/dispatcher.js";
 
 // Hooks
 export type { AskUserFn, AskUserArgs } from "./hooks/user-prompt.js";
@@ -174,13 +186,13 @@ export type { PreGenerationHook, PredictionEvent } from "./hooks/pre-generation.
 export { PreGenerationRegistry, noopPreGenerationHook } from "./hooks/pre-generation.js";
 export type {
   NarrationGateHook, NarrationGateInput, NarrationGateContext,
-  NarrationIssue, ValidationReport
+  NarrationIssue, ValidationReport, NarrationVerdict
 } from "./hooks/narration-gate.js";
 export { NarrationGateRegistry } from "./hooks/narration-gate.js";
 
 // Narration validator (used by NarrationGateHook default impl + CLI validate-narration)
 export {
-  Validator, defaultNarrationGateHook,
+  Validator, defaultNarrationGateHook, applyContainment,
   type ValidatorOptions, type ResolvedCandidate
 } from "./core/validate-narration.js";
 
@@ -192,6 +204,3 @@ export {
   validateValue,
   type ValidationContext, type ValidationResult, type ValidationFailure, type Avertissement
 } from "./core/validation.js";
-
-// Propagation utility (for consumers composing manual propagation after fact registration)
-export { propagate, type PropagationInput, type PropagationResult, type ContraintePropagee } from "./core/propagation.js";

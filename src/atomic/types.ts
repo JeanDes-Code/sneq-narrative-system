@@ -1,7 +1,6 @@
-import type { AttributFige, AttributValue, CategorieAttribut } from "../domain/attribute.js";
+import type { AttributValue, CategorieAttribut } from "../domain/attribute.js";
 import type { Entity, EntityType } from "../domain/entity.js";
 import type { CampaignId, ConstraintId, EntityID, FactId, SceneId } from "../domain/ids.js";
-import type { Observation } from "../domain/observation.js";
 import type { Potentialite, RegleContrainte } from "../domain/potentialite.js";
 import type { Scene } from "../domain/scene.js";
 import type { Turn } from "../domain/turn.js";
@@ -17,21 +16,6 @@ export interface AtomicCommand {
    * that is what it is here for. Do not read it as a guarantee the engine provides.
    */
   operationId: string;
-}
-
-export interface RegisterFactCommand extends AtomicCommand {
-  campaignId: CampaignId;
-  factId: FactId;
-  entityId: EntityID;
-  attributeKey: string;
-  value: AttributValue;
-  category: CategorieAttribut;
-  observation: Observation;
-}
-
-export interface RegisterFactResult {
-  factId: FactId | null;
-  contradictions: AttributFige[];
 }
 
 export interface SetSceneCommand extends AtomicCommand {
@@ -80,6 +64,22 @@ export interface ConfirmEntityMatchDecision {
   result: ConfirmEntityMatchResult;
 }
 
+/**
+ * Who is speaking, in the payload rather than hardcoded (#19). 0.3 stamped
+ * every constraint `INFERENCE_IA`, so `REGLE_MONDE` — the declared world rule
+ * the promotion loop needs a producer for — could never be written, and the
+ * discriminator matched everything.
+ */
+export type ConstraintRole =
+  /** A declared rule of the world: authored, not guessed. Gates promotion at full weight. */
+  | { role: "REGLE_MONDE"; ruleId: string }
+  /** The model's inference. Carries its own confidence, and says so. */
+  | { role: "INFERENCE_IA"; confidence: number }
+  /** Derived from an established canonical fact. */
+  | { role: "FAIT_CANONIQUE"; factId: FactId }
+  /** Derived from a relation between two entities. */
+  | { role: "RELATION"; edgeKey: string };
+
 export interface AddConstraintCommand extends AtomicCommand {
   campaignId: CampaignId;
   constraintId: ConstraintId;
@@ -87,6 +87,8 @@ export interface AddConstraintCommand extends AtomicCommand {
   attributeKey: string;
   rule: RegleContrainte;
   justification: string;
+  /** REQUIRED (#19): the founding is explicit now, never inferred. */
+  role: ConstraintRole;
   createdAt: number;
 }
 
@@ -134,22 +136,11 @@ export interface CreateEntityDecision {
 }
 
 export interface AtomicWriteStrategy {
-  registerFact(command: RegisterFactCommand): Promise<RegisterFactResult>;
   addConstraint(command: AddConstraintCommand): Promise<AddConstraintResult>;
   createEntity(command: CreateEntityCommand): Promise<CreateEntityResult>;
   setScene(command: SetSceneCommand): Promise<SetSceneResult>;
   advanceTurn(command: AdvanceTurnCommand): Promise<AdvanceTurnResult>;
   confirmEntityMatch(command: ConfirmEntityMatchCommand): Promise<ConfirmEntityMatchResult>;
-}
-
-export interface RegisterFactDecisionInput extends RegisterFactCommand {
-  existing: AttributFige[];
-  latestTurnNumber: number;
-}
-
-export interface RegisterFactDecision {
-  fact: (AttributFige & { campaignId: CampaignId }) | null;
-  contradictions: AttributFige[];
 }
 
 export interface SetSceneDecisionInput extends SetSceneCommand {

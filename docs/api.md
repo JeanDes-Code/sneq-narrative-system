@@ -17,15 +17,19 @@
 - [SneqCampaignContextInvalidatedError](#class-sneqcampaigncontextinvalidatederror)
 - [SneqCampaignNotFoundError](#class-sneqcampaignnotfounderror)
 - [SneqConcurrentEntityCreationError](#class-sneqconcurrententitycreationerror)
+- [SneqContainmentError](#class-sneqcontainmenterror)
 - [SneqContradictionError](#class-sneqcontradictionerror)
+- [SneqEmbeddingDimError](#class-sneqembeddingdimerror)
 - [SneqProviderError](#class-sneqprovidererror)
 - [SneqUnknownEntityError](#class-snequnknownentityerror)
+- [SneqUnknownHolderError](#class-snequnknownholdererror)
 - [SneqValidationError](#class-sneqvalidationerror)
 - [UserPromptRegistry](#class-userpromptregistry)
 - [Validator](#class-validator)
 
 ## Interfaces
 
+- [ActEffect](#interface-acteffect)
 - [AddConstraintCommand](#interface-addconstraintcommand)
 - [AddConstraintDecision](#interface-addconstraintdecision)
 - [AddConstraintDecisionInput](#interface-addconstraintdecisioninput)
@@ -39,54 +43,89 @@
 - [AskUserArgs](#interface-askuserargs)
 - [AtomicCommand](#interface-atomiccommand)
 - [AtomicWriteStrategy](#interface-atomicwritestrategy)
-- [AttributFige](#interface-attributfige)
 - [Avertissement](#interface-avertissement)
+- [Belief](#interface-belief)
+- [BeliefWorld](#interface-beliefworld)
+- [BootstrapPlan](#interface-bootstrapplan)
+- [BootstrapResult](#interface-bootstrapresult)
+- [CampaignContextDeps](#interface-campaigncontextdeps)
 - [CampaignMeta](#interface-campaignmeta)
+- [CanonicalAttribute](#interface-canonicalattribute)
+- [Carriage](#interface-carriage)
+- [CarriageEffect](#interface-carriageeffect)
+- [CarriageQuery](#interface-carriagequery)
 - [ChatRequest](#interface-chatrequest)
 - [ChatResponse](#interface-chatresponse)
+- [CommitCarriageInput](#interface-commitcarriageinput)
+- [CommitContext](#interface-commitcontext)
+- [CommitEventInput](#interface-commiteventinput)
+- [CommitHealth](#interface-commithealth)
+- [CommitNarrativeBundle](#interface-commitnarrativebundle)
+- [CommitNarrativeOptions](#interface-commitnarrativeoptions)
+- [CommitNarrativeResult](#interface-commitnarrativeresult)
+- [CommitPlan](#interface-commitplan)
 - [ConfirmEntityMatchCommand](#interface-confirmentitymatchcommand)
 - [ConfirmEntityMatchDecision](#interface-confirmentitymatchdecision)
 - [ConfirmEntityMatchDecisionInput](#interface-confirmentitymatchdecisioninput)
 - [ConfirmEntityMatchInput](#interface-confirmentitymatchinput)
 - [ConfirmEntityMatchResult](#interface-confirmentitymatchresult)
+- [ContainmentResult](#interface-containmentresult)
 - [ContexteGeneratif](#interface-contextegeneratif)
 - [Contrainte](#interface-contrainte)
-- [ContraintePropagee](#interface-contraintepropagee)
 - [CreateEntityCommand](#interface-createentitycommand)
 - [CreateEntityDecision](#interface-createentitydecision)
 - [CreateEntityDecisionInput](#interface-createentitydecisioninput)
 - [DefaultDepsOptions](#interface-defaultdepsoptions)
+- [DispatchPolicy](#interface-dispatchpolicy)
+- [DispatchRoute](#interface-dispatchroute)
+- [DispatchRule](#interface-dispatchrule)
+- [DoctorCheck](#interface-doctorcheck)
+- [DoctorInput](#interface-doctorinput)
+- [DoctorReport](#interface-doctorreport)
 - [Embedder](#interface-embedder)
 - [EmbeddingRequest](#interface-embeddingrequest)
 - [EmbeddingResponse](#interface-embeddingresponse)
 - [EngineConfig](#interface-engineconfig)
 - [Entity](#interface-entity)
 - [EntityCandidateSummary](#interface-entitycandidatesummary)
+- [EntityLike](#interface-entitylike)
 - [EntityWithScore](#interface-entitywithscore)
-- [FactQuery](#interface-factquery)
+- [EventAct](#interface-eventact)
+- [GroupHolder](#interface-groupholder)
+- [HolderContext](#interface-holdercontext)
+- [HolderContextArgs](#interface-holdercontextargs)
+- [HolderContextInput](#interface-holdercontextinput)
+- [HolderResolution](#interface-holderresolution)
+- [HolderResolutionInput](#interface-holderresolutioninput)
+- [IndividualHolder](#interface-individualholder)
+- [IngestedPlayerInput](#interface-ingestedplayerinput)
+- [IntraCommitConflict](#interface-intracommitconflict)
+- [InventionTransition](#interface-inventiontransition)
+- [LegacyCampaignInput](#interface-legacycampaigninput)
+- [LegacyFact](#interface-legacyfact)
+- [LegacyMigrationOutput](#interface-legacymigrationoutput)
 - [Logger](#interface-logger)
 - [MentionInput](#interface-mentioninput)
+- [MigrationFinding](#interface-migrationfinding)
 - [NarrationGateContext](#interface-narrationgatecontext)
 - [NarrationGateHook](#interface-narrationgatehook)
 - [NarrationGateInput](#interface-narrationgateinput)
 - [NarrationIssue](#interface-narrationissue)
+- [NarrativeEvent](#interface-narrativeevent)
 - [NewCampaignInput](#interface-newcampaigninput)
 - [NoeudGCN](#interface-noeudgcn)
 - [Observation](#interface-observation)
+- [OfficialRecord](#interface-officialrecord)
 - [Potentialite](#interface-potentialite)
 - [PredictionEvent](#interface-predictionevent)
 - [PreGenerationHook](#interface-pregenerationhook)
-- [PropagationInput](#interface-propagationinput)
-- [PropagationResult](#interface-propagationresult)
+- [ProjectionInputs](#interface-projectioninputs)
+- [PromotionContext](#interface-promotioncontext)
 - [Provider](#interface-provider)
 - [ProviderChain](#interface-providerchain)
 - [ProviderRef](#interface-providerref)
 - [ProviderUsage](#interface-providerusage)
-- [RegisterFactCommand](#interface-registerfactcommand)
-- [RegisterFactDecision](#interface-registerfactdecision)
-- [RegisterFactDecisionInput](#interface-registerfactdecisioninput)
-- [RegisterFactInput](#interface-registerfactinput)
-- [RegisterFactResult](#interface-registerfactresult)
+- [ProvisionalInvention](#interface-provisionalinvention)
 - [ReglePropagation](#interface-reglepropagation)
 - [Repository](#interface-repository)
 - [ResolutionResult](#interface-resolutionresult)
@@ -96,6 +135,7 @@
 - [RouterConfig](#interface-routerconfig)
 - [RouterDeps](#interface-routerdeps)
 - [RouterTiers](#interface-routertiers)
+- [SalienceFactors](#interface-saliencefactors)
 - [Scene](#interface-scene)
 - [SetSceneCommand](#interface-setscenecommand)
 - [SetSceneDecision](#interface-setscenedecision)
@@ -103,7 +143,10 @@
 - [SetSceneResult](#interface-setsceneresult)
 - [SuggestionResult](#interface-suggestionresult)
 - [Tendance](#interface-tendance)
+- [TokenWorld](#interface-tokenworld)
 - [ToolCallContext](#interface-toolcallcontext)
+- [TranscriptEntry](#interface-transcriptentry)
+- [TranscriptFilterResult](#interface-transcriptfilterresult)
 - [Turn](#interface-turn)
 - [ValidationContext](#interface-validationcontext)
 - [ValidationFailure](#interface-validationfailure)
@@ -112,41 +155,70 @@
 - [ValidationResult](#interface-validationresult)
 - [ValidatorOptions](#interface-validatoroptions)
 - [VectorSearchOpts](#interface-vectorsearchopts)
+- [WorldHealth](#interface-worldhealth)
+- [WorldHealthInput](#interface-worldhealthinput)
 
 ## Type Aliases
 
 - [AliasSource](#type-alias-aliassource)
 - [AskUserFn](#type-alias-askuserfn)
 - [AttributValue](#type-alias-attributvalue)
+- [BeliefCertainty](#type-alias-beliefcertainty)
+- [BootstrapRepo](#type-alias-bootstraprepo)
 - [CampaignContextInvalidationReason](#type-alias-campaigncontextinvalidationreason)
 - [CampaignId](#type-alias-campaignid)
+- [CanonicalSource](#type-alias-canonicalsource)
+- [CarriageId](#type-alias-carriageid)
+- [CarriageRoute](#type-alias-carriageroute)
 - [CategorieAttribut](#type-alias-categorieattribut)
+- [CheckStatus](#type-alias-checkstatus)
 - [ConstraintId](#type-alias-constraintid)
+- [ConstraintRole](#type-alias-constraintrole)
+- [ConstraintStatus](#type-alias-constraintstatus)
 - [ContrainteSource](#type-alias-contraintesource)
 - [CreateEntityResult](#type-alias-createentityresult)
+- [DerogationReason](#type-alias-derogationreason)
 - [EntityID](#type-alias-entityid)
 - [EntityType](#type-alias-entitytype)
 - [EtatAttribut](#type-alias-etatattribut)
+- [EventId](#type-alias-eventid)
 - [FactId](#type-alias-factid)
 - [Fiabilite](#type-alias-fiabilite)
+- [Holder](#type-alias-holder)
+- [HolderId](#type-alias-holderid)
+- [InventionId](#type-alias-inventionid)
+- [InventionStatus](#type-alias-inventionstatus)
 - [MentionResult](#type-alias-mentionresult)
+- [MigrationFindingKind](#type-alias-migrationfindingkind)
+- [NarrationVerdict](#type-alias-narrationverdict)
 - [ObservationMethod](#type-alias-observationmethod)
 - [ObservationSource](#type-alias-observationsource)
+- [PromotionDecision](#type-alias-promotiondecision)
+- [PromotionEvidence](#type-alias-promotionevidence)
 - [ProviderErrorCode](#type-alias-providererrorcode)
 - [ProviderKind](#type-alias-providerkind)
+- [RecordId](#type-alias-recordid)
 - [RegleContrainte](#type-alias-reglecontrainte)
 - [RepositoryAccess](#type-alias-repositoryaccess)
+- [ResolutionRoad](#type-alias-resolutionroad)
+- [SalienceWeights](#type-alias-salienceweights)
 - [SceneId](#type-alias-sceneid)
 - [Tier](#type-alias-tier)
+- [ToolCommitBundle](#type-alias-toolcommitbundle)
 - [ToolName](#type-alias-toolname)
 - [TypeRelation](#type-alias-typerelation)
 
 ## Variables
 
 - [ADVERTISED\_TOOL\_NAMES](#variable-advertised_tool_names)
+- [DEFAULT\_GROUP\_HOLDER\_ID](#variable-default_group_holder_id)
+- [DEFAULT\_MAX\_DISPATCH\_FANOUT](#variable-default_max_dispatch_fanout)
+- [DEFAULT\_REALM\_ENTITY\_ID](#variable-default_realm_entity_id)
+- [DEFAULT\_SALIENCE\_WEIGHTS](#variable-default_salience_weights)
 - [defaultNarrationGateHook](#variable-defaultnarrationgatehook)
 - [noopLogger](#variable-nooplogger)
 - [noopPreGenerationHook](#variable-nooppregenerationhook)
+- [OPERATION\_RETENTION](#variable-operation_retention)
 - [SNEQ\_ENGINE\_VERSION](#variable-sneq_engine_version)
 - [toolDescriptions](#variable-tooldescriptions)
 - [toolJsonSchemas](#variable-tooljsonschemas)
@@ -156,26 +228,53 @@
 ## Functions
 
 - [anthropicTools](#function-anthropictools)
+- [applyContainment](#function-applycontainment)
 - [asCampaignId](#function-ascampaignid)
+- [asCarriageId](#function-ascarriageid)
 - [asConstraintId](#function-asconstraintid)
 - [asEntityID](#function-asentityid)
+- [asEventId](#function-aseventid)
 - [asFactId](#function-asfactid)
+- [asHolderId](#function-asholderid)
+- [asInventionId](#function-asinventionid)
+- [asRecordId](#function-asrecordid)
 - [asSceneId](#function-assceneid)
+- [assertContainment](#function-assertcontainment)
+- [bootstrapCampaign](#function-bootstrapcampaign)
+- [bootstrapPlan](#function-bootstrapplan)
+- [buildHolderContext](#function-buildholdercontext)
+- [checkContainment](#function-checkcontainment)
+- [commitNarrative](#function-commitnarrative)
+- [computeSalience](#function-computesalience)
 - [createDefaultDeps](#function-createdefaultdeps)
 - [decideAddConstraint](#function-decideaddconstraint)
 - [decideAdvanceTurn](#function-decideadvanceturn)
+- [decideCommitNarrative](#function-decidecommitnarrative)
 - [decideConfirmEntityMatch](#function-decideconfirmentitymatch)
 - [decideCreateEntity](#function-decidecreateentity)
-- [decideRegisterFact](#function-decideregisterfact)
+- [decidePromotion](#function-decidepromotion)
 - [decideSetScene](#function-decidesetscene)
 - [defaultRouterConfig](#function-defaultrouterconfig)
+- [deriveBeliefs](#function-derivebeliefs)
+- [detectPlayerUptake](#function-detectplayeruptake)
+- [detectUptake](#function-detectuptake)
 - [dispatchToolCall](#function-dispatchtoolcall)
+- [filterTranscript](#function-filtertranscript)
+- [forbiddenTokensFor](#function-forbiddentokensfor)
 - [geminiTools](#function-geminitools)
 - [genericTools](#function-generictools)
 - [loadConfigFromFile](#function-loadconfigfromfile)
+- [migrateLegacyCampaign](#function-migratelegacycampaign)
 - [openAITools](#function-openaitools)
-- [propagate](#function-propagate)
+- [rebuildProjection](#function-rebuildprojection)
+- [renderContextBlock](#function-rendercontextblock)
+- [resolveHolder](#function-resolveholder)
+- [runDoctor](#function-rundoctor)
+- [surfaceTokensOf](#function-surfacetokensof)
+- [tick](#function-tick)
+- [validateSuppliedTokens](#function-validatesuppliedtokens)
 - [validateValue](#function-validatevalue)
+- [worldHealth](#function-worldhealth)
 
 
 ## classes
@@ -202,7 +301,7 @@
 
 ##### deps
 
-`CampaignContextDeps`
+[`CampaignContextDeps`](#interface-campaigncontextdeps)
 
 #### Returns
 
@@ -236,6 +335,10 @@
 
 `string`
 
+###### role
+
+[`ConstraintRole`](#type-alias-constraintrole)
+
 ###### rule
 
 [`RegleContrainte`](#type-alias-reglecontrainte)
@@ -252,21 +355,94 @@
 
 ### advanceTurn()
 
-> **advanceTurn**(`summary?`): `Promise`\<\{ `turnNumber`: `number`; \}\>
+> **advanceTurn**(`input?`): `Promise`\<\{ `health`: [`WorldHealth`](#interface-worldhealth); `turnNumber`: `number`; `worldDay`: `number`; \}\>
+
+Phase H (§11), and the out-of-band clock road (#20). `days` is downtime and
+session breaks — the fiction's own elapsed time rides on
+`commitNarrative.daysElapsed`, because that is the call carrying the events
+the time applies to. Moving the clock here also lands the carriages whose
+journeys end in the interval, which is why the health report comes back
+with the turn number: somebody has to run the world, and if that somebody
+is the GM model, a deaf world is the default outcome (§6.1).
 
 #### Parameters
 
-##### summary?
+##### input?
+
+###### days?
+
+`number`
+
+###### summary?
 
 `string`
 
 #### Returns
 
-`Promise`\<\{ `turnNumber`: `number`; \}\>
+`Promise`\<\{ `health`: [`WorldHealth`](#interface-worldhealth); `turnNumber`: `number`; `worldDay`: `number`; \}\>
 
 #### Implementation of
 
 [`ToolCallContext`](#interface-toolcallcontext).[`advanceTurn`](#interface-toolcallcontext)
+
+***
+
+### assertContainment()
+
+> **assertContainment**(`input`): `Promise`\<[`ContainmentResult`](#interface-containmentresult)\>
+
+Phase D (§11) — the decisive seam. The host composes whatever it wants and
+submits the final string; SNEQ answers whether it carries a token this
+holder cannot hold. Default posture is to throw, because a containment
+failure is an engine bug, not a gameplay outcome. Pass `throwOnFail: false`
+when you want the report instead.
+
+#### Parameters
+
+##### input
+
+###### entityId?
+
+[`EntityID`](#type-alias-entityid)
+
+###### holderId?
+
+[`HolderId`](#type-alias-holderid)
+
+###### text
+
+`string`
+
+###### throwOnFail?
+
+`boolean`
+
+#### Returns
+
+`Promise`\<[`ContainmentResult`](#interface-containmentresult)\>
+
+***
+
+### commitNarrative()
+
+> **commitNarrative**(`bundle`): `Promise`\<[`CommitNarrativeResult`](#interface-commitnarrativeresult)\>
+
+The single write (§5.1), on the campaign. Idempotent by `operationId`: a
+retry replays the recorded result rather than writing twice.
+
+#### Parameters
+
+##### bundle
+
+[`ToolCommitBundle`](#type-alias-toolcommitbundle)
+
+#### Returns
+
+`Promise`\<[`CommitNarrativeResult`](#interface-commitnarrativeresult)\>
+
+#### Implementation of
+
+[`ToolCallContext`](#interface-toolcallcontext).[`commitNarrative`](#interface-toolcallcontext)
 
 ***
 
@@ -296,6 +472,84 @@
 
 ***
 
+### doctor()
+
+> **doctor**(`opts?`): `Promise`\<[`DoctorReport`](#interface-doctorreport)\>
+
+§12.4's conformance harness, over this campaign's persisted state.
+
+#### Parameters
+
+##### opts?
+
+###### staleAfterTurns?
+
+`number`
+
+#### Returns
+
+`Promise`\<[`DoctorReport`](#interface-doctorreport)\>
+
+***
+
+### filterTranscript()
+
+> **filterTranscript**(`input`): `Promise`\<[`TranscriptFilterResult`](#interface-transcriptfilterresult)\>
+
+Phase C (§11) — which transcript entries this holder may still see. Without
+it the guarantee expires after one turn: turn 2's prompt replays turn 1's
+prose, and no per-call filter can help.
+
+#### Parameters
+
+##### input
+
+###### entityId?
+
+[`EntityID`](#type-alias-entityid)
+
+###### entries
+
+[`TranscriptEntry`](#interface-transcriptentry)[]
+
+###### holderId?
+
+[`HolderId`](#type-alias-holderid)
+
+#### Returns
+
+`Promise`\<[`TranscriptFilterResult`](#interface-transcriptfilterresult)\>
+
+***
+
+### gateNarration()
+
+> **gateNarration**(`input`): `Promise`\<[`ValidationReport`](#interface-validationreport)\>
+
+Phase F's spelling for hosts that read the pipeline names rather than the 0.3 ones.
+
+#### Parameters
+
+##### input
+
+[`NarrationGateInput`](#interface-narrationgateinput)
+
+#### Returns
+
+`Promise`\<[`ValidationReport`](#interface-validationreport)\>
+
+***
+
+### getDispatchPolicy()
+
+> **getDispatchPolicy**(): `Promise`\<[`DispatchPolicy`](#interface-dispatchpolicy)\>
+
+#### Returns
+
+`Promise`\<[`DispatchPolicy`](#interface-dispatchpolicy)\>
+
+***
+
 ### getEntity()
 
 > **getEntity**(`entityId`): `Promise`\<[`Entity`](#interface-entity) \| `null`\>
@@ -316,33 +570,25 @@
 
 ***
 
-### getRelevantFacts()
+### getHolderContext()
 
-> **getRelevantFacts**(`entityId`, `opts?`): `Promise`\<[`AttributFige`](#interface-attributfige)[]\>
+> **getHolderContext**(`args`): `Promise`\<[`HolderContext`](#interface-holdercontext)\>
+
+Phase B (§11), the only read of world knowledge on the surface — and it is always somebody's.
 
 #### Parameters
 
-##### entityId
+##### args
 
-[`EntityID`](#type-alias-entityid)
-
-##### opts?
-
-###### attributeKeys?
-
-`string`[]
-
-###### depth?
-
-`0` \| `1`
+[`HolderContextArgs`](#interface-holdercontextargs)
 
 #### Returns
 
-`Promise`\<[`AttributFige`](#interface-attributfige)[]\>
+`Promise`\<[`HolderContext`](#interface-holdercontext)\>
 
 #### Implementation of
 
-[`ToolCallContext`](#interface-toolcallcontext).[`getRelevantFacts`](#interface-toolcallcontext)
+[`ToolCallContext`](#interface-toolcallcontext).[`getHolderContext`](#interface-toolcallcontext)
 
 ***
 
@@ -363,6 +609,51 @@
 #### Returns
 
 `Promise`\<`unknown`\>
+
+***
+
+### ingestPlayerInput()
+
+> **ingestPlayerInput**(`input`): `Promise`\<[`IngestedPlayerInput`](#interface-ingestedplayerinput)\>
+
+Phase A (§11) — the ingress that closes §2.6's hole. Before this, nothing
+ever handed SNEQ the raw player utterance, so `promotionEvidence[]` was
+supplied by the caller and the model decided its own promotions: exactly
+what §2.6 forbids.
+
+What comes back is a preview. The detection that counts runs again inside
+`commitNarrative` from `playerUtterance`, where it cannot be edited on the
+way.
+
+#### Parameters
+
+##### input
+
+###### entityId?
+
+[`EntityID`](#type-alias-entityid)
+
+###### holderId?
+
+[`HolderId`](#type-alias-holderid)
+
+###### text
+
+`string`
+
+#### Returns
+
+`Promise`\<[`IngestedPlayerInput`](#interface-ingestedplayerinput)\>
+
+***
+
+### listHolders()
+
+> **listHolders**(): `Promise`\<[`Holder`](#type-alias-holder)[]\>
+
+#### Returns
+
+`Promise`\<[`Holder`](#type-alias-holder)[]\>
 
 ***
 
@@ -388,31 +679,36 @@
 
 ### prepareTurn()
 
-> **prepareTurn**(): `Promise`\<\{ `presentEntities`: `object`[]; `scene`: [`Scene`](#interface-scene) \| `null`; \}\>
+> **prepareTurn**(`opts?`): `Promise`\<\{ `day`: `number`; `holder`: [`HolderContext`](#interface-holdercontext) \| `null`; `presentEntities`: [`Entity`](#interface-entity)[]; `scene`: [`Scene`](#interface-scene) \| `null`; `turn`: `number`; \}\>
 
-#### Returns
+The wake-up probe (#21). Holderless it returns the **frame** the host
+authored and nothing else — day, turn, scene, who is present by identity.
+No holder knowledge, so no way to read the world sideways through it.
+With a holder or an entity it also carries that holder's context, so a
+turn starts in one call.
 
-`Promise`\<\{ `presentEntities`: `object`[]; `scene`: [`Scene`](#interface-scene) \| `null`; \}\>
-
-***
-
-### registerFact()
-
-> **registerFact**(`input`): `Promise`\<\{ `contradictions`: [`AttributFige`](#interface-attributfige)[]; `factId`: [`FactId`](#type-alias-factid) \| `null`; \}\>
+`scene: null` is a literal, distinct answer: nobody has said where the
+player is. Ask the human — never guess.
 
 #### Parameters
 
-##### input
+##### opts?
 
-[`RegisterFactInput`](#interface-registerfactinput)
+###### entityId?
+
+[`EntityID`](#type-alias-entityid)
+
+###### holderId?
+
+[`HolderId`](#type-alias-holderid)
+
+###### topK?
+
+`number`
 
 #### Returns
 
-`Promise`\<\{ `contradictions`: [`AttributFige`](#interface-attributfige)[]; `factId`: [`FactId`](#type-alias-factid) \| `null`; \}\>
-
-#### Implementation of
-
-[`ToolCallContext`](#interface-toolcallcontext).[`registerFact`](#interface-toolcallcontext)
+`Promise`\<\{ `day`: `number`; `holder`: [`HolderContext`](#interface-holdercontext) \| `null`; `presentEntities`: [`Entity`](#interface-entity)[]; `scene`: [`Scene`](#interface-scene) \| `null`; `turn`: `number`; \}\>
 
 ***
 
@@ -514,6 +810,24 @@
 
 ***
 
+### setDispatchPolicy()
+
+> **setDispatchPolicy**(`patch`): `Promise`\<[`DispatchPolicy`](#interface-dispatchpolicy)\>
+
+Additive, like the bundle's `policy` (#15): routes and rules accrete, they never replace.
+
+#### Parameters
+
+##### patch
+
+`Partial`\<[`DispatchPolicy`](#interface-dispatchpolicy)\>
+
+#### Returns
+
+`Promise`\<[`DispatchPolicy`](#interface-dispatchpolicy)\>
+
+***
+
 ### setScene()
 
 > **setScene**(`input`): `Promise`\<\{ `sceneId`: [`SceneId`](#type-alias-sceneid); `turnNumber`: `number`; \}\>
@@ -568,9 +882,30 @@
 
 ***
 
+### upsertHolder()
+
+> **upsertHolder**(`holder`): `Promise`\<`void`\>
+
+#### Parameters
+
+##### holder
+
+[`Holder`](#type-alias-holder)
+
+#### Returns
+
+`Promise`\<`void`\>
+
+***
+
 ### validateNarration()
 
 > **validateNarration**(`input`): `Promise`\<[`ValidationReport`](#interface-validationreport)\>
+
+Phase F (§11) — holder-aware, and able to withhold. Without `holderId` this
+is 0.3's behaviour and says so: proper nouns only, nothing about
+entitlement. With one, the narration is also run through containment, and
+a leak comes back `BLOCK`.
 
 #### Parameters
 
@@ -630,7 +965,7 @@
 
 #### jsonSchema
 
-> `readonly` **jsonSchema**: `Record`\<`"sneq__lookup_entity"` \| `"sneq__get_entity"` \| `"sneq__get_relevant_facts"` \| `"sneq__suggest_existing"` \| `"sneq__mention_entity"` \| `"sneq__register_fact"` \| `"sneq__add_constraint"` \| `"sneq__set_scene"` \| `"sneq__advance_turn"` \| `"sneq__validate_narration"`, `object`\> = `jsonSchemas`
+> `readonly` **jsonSchema**: `Record`\<`"sneq__lookup_entity"` \| `"sneq__get_entity"` \| `"sneq__get_holder_context"` \| `"sneq__suggest_existing"` \| `"sneq__mention_entity"` \| `"sneq__commit_narrative"` \| `"sneq__add_constraint"` \| `"sneq__set_scene"` \| `"sneq__advance_turn"` \| `"sneq__validate_narration"`, `object`\> = `jsonSchemas`
 
 #### openai
 
@@ -642,19 +977,23 @@
 
 ##### zod.sneq\_\_add\_constraint
 
-> `readonly` **sneq\_\_add\_constraint**: `ZodObject`\<\{ `attributeKey`: `ZodString`; `entityId`: `ZodString`; `justification`: `ZodString`; `rule`: `ZodUnknown`; \}, `$strip`\>
+> `readonly` **sneq\_\_add\_constraint**: `ZodObject`\<\{ `attributeKey`: `ZodString`; `entityId`: `ZodString`; `justification`: `ZodString`; `role`: `ZodUnion`\<readonly \[`ZodObject`\<\{ `role`: `ZodLiteral`\<`"REGLE_MONDE"`\>; `ruleId`: `ZodString`; \}, `$strip`\>, `ZodObject`\<\{ `confidence`: `ZodNumber`; `role`: `ZodLiteral`\<`"INFERENCE_IA"`\>; \}, `$strip`\>, `ZodObject`\<\{ `factId`: `ZodString`; `role`: `ZodLiteral`\<`"FAIT_CANONIQUE"`\>; \}, `$strip`\>, `ZodObject`\<\{ `edgeKey`: `ZodString`; `role`: `ZodLiteral`\<`"RELATION"`\>; \}, `$strip`\>\]\>; `rule`: `ZodUnknown`; \}, `$strip`\>
 
 ##### zod.sneq\_\_advance\_turn
 
-> `readonly` **sneq\_\_advance\_turn**: `ZodObject`\<\{ `summary`: `ZodOptional`\<`ZodString`\>; \}, `$strip`\>
+> `readonly` **sneq\_\_advance\_turn**: `ZodObject`\<\{ `days`: `ZodOptional`\<`ZodNumber`\>; `summary`: `ZodOptional`\<`ZodString`\>; \}, `$strip`\>
+
+##### zod.sneq\_\_commit\_narrative
+
+> `readonly` **sneq\_\_commit\_narrative**: `ZodObject`\<\{ `carriageEffects`: `ZodOptional`\<`ZodArray`\<`ZodObject`\<\{ `carriageId`: `ZodString`; `declaredOnDay`: `ZodNumber`; `effect`: `ZodUnion`\<readonly \[`ZodObject`\<..., ...\>, `ZodObject`\<..., ...\>, `ZodObject`\<..., ...\>\]\>; \}, `$strip`\>\>\>; `carriages`: `ZodOptional`\<`ZodArray`\<`ZodObject`\<\{ `carriageId`: `ZodString`; `carrier`: `ZodString`; `fromPlaceId`: `ZodString`; `minStanding`: `ZodOptional`\<`ZodNumber`\>; `route`: `ZodEnum`\<\{ `OFFICIAL`: `"OFFICIAL"`; `RUMOUR`: `"RUMOUR"`; \}\>; `subject`: `ZodUnion`\<readonly \[`ZodObject`\<..., ...\>, `ZodObject`\<..., ...\>\]\>; `toPlaceId`: `ZodString`; `travelDays`: `ZodNumber`; \}, `$strip`\>\>\>; `daysElapsed`: `ZodNumber`; `event`: `ZodOptional`\<`ZodObject`\<\{ `acts`: `ZodArray`\<`ZodObject`\<\{ `actorId`: `ZodString`; `objectId`: `ZodOptional`\<...\>; `sets`: `ZodOptional`\<...\>; `value`: `ZodOptional`\<...\>; `verb`: `ZodString`; \}, `$strip`\>\>; `circumstance`: `ZodString`; `eventId`: `ZodString`; `gravity`: `ZodUnion`\<readonly \[`ZodLiteral`\<`0`\>, `ZodLiteral`\<`1`\>, `ZodLiteral`\<`2`\>, `ZodLiteral`\<`3`\>\]\>; `participants`: `ZodArray`\<`ZodString`\>; `placeId`: `ZodOptional`\<`ZodString`\>; `surfaceTokens`: `ZodArray`\<`ZodString`\>; \}, `$strip`\>\>; `holders`: `ZodOptional`\<`ZodArray`\<`ZodUnion`\<readonly \[`ZodObject`\<\{ `community`: `ZodString`; `holderId`: `ZodString`; `kind`: `ZodLiteral`\<...\>; `placeId`: `ZodString`; `realmId`: `ZodString`; `standing`: `ZodNumber`; `stratum`: `ZodString`; \}, `$strip`\>, `ZodObject`\<\{ `baseGroupId`: `ZodString`; `derogationReason`: `ZodEnum`\<...\>; `entityId`: `ZodString`; `holderId`: `ZodString`; `kind`: `ZodLiteral`\<...\>; `standingOverride`: `ZodOptional`\<...\>; \}, `$strip`\>\]\>\>\>; `inventions`: `ZodOptional`\<`ZodArray`\<`ZodObject`\<\{ `attributeKey`: `ZodString`; `category`: `ZodEnum`\<\{ `COMPETENCE`: `"COMPETENCE"`; `ETAT`: `"ETAT"`; `HISTORIQUE`: `"HISTORIQUE"`; `IDENTITE`: `"IDENTITE"`; `POSSESSION`: `"POSSESSION"`; `PSYCHOLOGIE`: `"PSYCHOLOGIE"`; `SECRET`: `"SECRET"`; `SOCIAL`: `"SOCIAL"`; \}\>; `confidence`: `ZodNumber`; `entityId`: `ZodString`; `inventionId`: `ZodString`; `sourceNarration`: `ZodString`; `surfaceTokens`: `ZodArray`\<`ZodString`\>; `value`: `ZodType`\<`unknown`, `unknown`, `$ZodTypeInternals`\<`unknown`, `unknown`\>\>; \}, `$strip`\>\>\>; `operationId`: `ZodString`; `playerUtterance`: `ZodOptional`\<`ZodString`\>; `policy`: `ZodOptional`\<`ZodObject`\<\{ `routes`: `ZodOptional`\<`ZodArray`\<`ZodObject`\<\{ `fromPlaceId`: ...; `minStanding`: ...; `route`: ...; `toPlaceId`: ...; `travelDays`: ...; \}, `$strip`\>\>\>; `rules`: `ZodOptional`\<`ZodArray`\<`ZodObject`\<\{ `carrierLabel`: ...; `minGravity`: ...; `route`: ...; `targets`: ...; \}, `$strip`\>\>\>; \}, `$strip`\>\>; `promotionEvidence`: `ZodOptional`\<`ZodArray`\<`ZodObject`\<\{ `evidence`: `ZodUnion`\<readonly \[`ZodObject`\<..., ...\>, `ZodObject`\<..., ...\>, `ZodObject`\<..., ...\>, `ZodObject`\<..., ...\>\]\>; `inventionId`: `ZodString`; \}, `$strip`\>\>\>; `records`: `ZodOptional`\<`ZodArray`\<`ZodObject`\<\{ `aboutEventId`: `ZodOptional`\<`ZodString`\>; `authoredBy`: `ZodString`; `category`: `ZodEnum`\<\{ `COMPETENCE`: `"COMPETENCE"`; `ETAT`: `"ETAT"`; `HISTORIQUE`: `"HISTORIQUE"`; `IDENTITE`: `"IDENTITE"`; `POSSESSION`: `"POSSESSION"`; `PSYCHOLOGIE`: `"PSYCHOLOGIE"`; `SECRET`: `"SECRET"`; `SOCIAL`: `"SOCIAL"`; \}\>; `entityId`: `ZodString`; `key`: `ZodString`; `observation`: `ZodObject`\<\{ `emittedBy`: `ZodOptional`\<...\>; `excerpt`: `ZodOptional`\<...\>; `method`: `ZodEnum`\<...\>; `sceneId`: `ZodOptional`\<...\>; `source`: `ZodEnum`\<...\>; `timestamp`: `ZodNumber`; \}, `$strict`\>; `recordId`: `ZodString`; `route`: `ZodEnum`\<\{ `OFFICIAL`: `"OFFICIAL"`; `RUMOUR`: `"RUMOUR"`; \}\>; `surfaceTokens`: `ZodArray`\<`ZodString`\>; `value`: `ZodType`\<`unknown`, `unknown`, `$ZodTypeInternals`\<`unknown`, `unknown`\>\>; \}, `$strip`\>\>\>; \}, `$strip`\>
 
 ##### zod.sneq\_\_get\_entity
 
 > `readonly` **sneq\_\_get\_entity**: `ZodObject`\<\{ `entityId`: `ZodString`; \}, `$strip`\>
 
-##### zod.sneq\_\_get\_relevant\_facts
+##### zod.sneq\_\_get\_holder\_context
 
-> `readonly` **sneq\_\_get\_relevant\_facts**: `ZodObject`\<\{ `attributeKeys`: `ZodOptional`\<`ZodArray`\<`ZodString`\>\>; `depth`: `ZodOptional`\<`ZodUnion`\<readonly \[`ZodLiteral`\<`0`\>, `ZodLiteral`\<`1`\>\]\>\>; `entityId`: `ZodString`; \}, `$strip`\>
+> `readonly` **sneq\_\_get\_holder\_context**: `ZodObject`\<\{ `about`: `ZodOptional`\<`ZodString`\>; `entityId`: `ZodOptional`\<`ZodString`\>; `holderId`: `ZodOptional`\<`ZodString`\>; `topK`: `ZodOptional`\<`ZodNumber`\>; \}, `$strip`\> = `holderContextArgs`
 
 ##### zod.sneq\_\_lookup\_entity
 
@@ -663,10 +1002,6 @@
 ##### zod.sneq\_\_mention\_entity
 
 > `readonly` **sneq\_\_mention\_entity**: `ZodObject`\<\{ `aliases`: `ZodOptional`\<`ZodArray`\<`ZodString`\>\>; `canonicalName`: `ZodString`; `description`: `ZodString`; `force`: `ZodOptional`\<`ZodBoolean`\>; `type`: `ZodEnum`\<\{ `EVENEMENT`: `"EVENEMENT"`; `FACTION`: `"FACTION"`; `LIEU`: `"LIEU"`; `OBJET`: `"OBJET"`; `PERSONNAGE`: `"PERSONNAGE"`; `RELATION`: `"RELATION"`; `SCENE`: `"SCENE"`; `WORLD`: `"WORLD"`; \}\>; \}, `$strip`\>
-
-##### zod.sneq\_\_register\_fact
-
-> `readonly` **sneq\_\_register\_fact**: `ZodObject`\<\{ `attributeKey`: `ZodString`; `category`: `ZodEnum`\<\{ `COMPETENCE`: `"COMPETENCE"`; `ETAT`: `"ETAT"`; `HISTORIQUE`: `"HISTORIQUE"`; `IDENTITE`: `"IDENTITE"`; `POSSESSION`: `"POSSESSION"`; `PSYCHOLOGIE`: `"PSYCHOLOGIE"`; `SECRET`: `"SECRET"`; `SOCIAL`: `"SOCIAL"`; \}\>; `entityId`: `ZodString`; `observation`: `ZodObject`\<\{ `emittedBy`: `ZodOptional`\<`ZodString`\>; `excerpt`: `ZodOptional`\<`ZodString`\>; `fiabilite`: `ZodEnum`\<\{ `CERTAINE`: `"CERTAINE"`; `RUMEUR_CONFIRMEE`: `"RUMEUR_CONFIRMEE"`; `TEMOIGNAGE`: `"TEMOIGNAGE"`; \}\>; `method`: `ZodEnum`\<\{ `AVEU`: `"AVEU"`; `DEDUCTION_CONFIRMEE`: `"DEDUCTION_CONFIRMEE"`; `DEMONSTRATION`: `"DEMONSTRATION"`; `DIALOGUE_DIRECT`: `"DIALOGUE_DIRECT"`; `DOCUMENT`: `"DOCUMENT"`; `OBSERVATION_VISUELLE`: `"OBSERVATION_VISUELLE"`; \}\>; `sceneId`: `ZodOptional`\<`ZodString`\>; `source`: `ZodEnum`\<\{ `DICE_ROLL`: `"DICE_ROLL"`; `GM_NARRATION`: `"GM_NARRATION"`; `PLAYER_UTTERANCE`: `"PLAYER_UTTERANCE"`; `SYSTEM`: `"SYSTEM"`; \}\>; `timestamp`: `ZodNumber`; \}, `$strip`\>; `value`: `ZodType`\<`unknown`, `unknown`, `$ZodTypeInternals`\<`unknown`, `unknown`\>\>; \}, `$strip`\>
 
 ##### zod.sneq\_\_set\_scene
 
@@ -678,7 +1013,7 @@
 
 ##### zod.sneq\_\_validate\_narration
 
-> `readonly` **sneq\_\_validate\_narration**: `ZodObject`\<\{ `narration`: `ZodString`; `strict`: `ZodOptional`\<`ZodBoolean`\>; `type`: `ZodOptional`\<`ZodEnum`\<\{ `EVENEMENT`: `"EVENEMENT"`; `FACTION`: `"FACTION"`; `LIEU`: `"LIEU"`; `OBJET`: `"OBJET"`; `PERSONNAGE`: `"PERSONNAGE"`; `RELATION`: `"RELATION"`; `SCENE`: `"SCENE"`; `WORLD`: `"WORLD"`; \}\>\>; \}, `$strip`\>
+> `readonly` **sneq\_\_validate\_narration**: `ZodObject`\<\{ `holderId`: `ZodOptional`\<`ZodString`\>; `narration`: `ZodString`; `strict`: `ZodOptional`\<`ZodBoolean`\>; `type`: `ZodOptional`\<`ZodEnum`\<\{ `EVENEMENT`: `"EVENEMENT"`; `FACTION`: `"FACTION"`; `LIEU`: `"LIEU"`; `OBJET`: `"OBJET"`; `PERSONNAGE`: `"PERSONNAGE"`; `RELATION`: `"RELATION"`; `SCENE`: `"SCENE"`; `WORLD`: `"WORLD"`; \}\>\>; \}, `$strip`\>
 
 ## Methods
 
@@ -2092,6 +2427,224 @@ https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 
 ***
 
+[sneq-engine API](#sneq-engine-api) / SneqContainmentError
+
+# Class: SneqContainmentError
+
+A composed payload contains a token this holder cannot hold (§11 phase D).
+Default posture: throw — "the engine is broken, stop". A containment failure
+is an engine bug, never a gameplay outcome.
+
+## Extends
+
+- `Error`
+
+## Constructors
+
+### Constructor
+
+> **new SneqContainmentError**(`holderId`, `forbidden`, `present`): `SneqContainmentError`
+
+#### Parameters
+
+##### holderId
+
+`string`
+
+##### forbidden
+
+`string`[]
+
+##### present
+
+`string`[]
+
+#### Returns
+
+`SneqContainmentError`
+
+#### Overrides
+
+`Error.constructor`
+
+## Properties
+
+### cause?
+
+> `optional` **cause?**: `unknown`
+
+#### Inherited from
+
+`Error.cause`
+
+***
+
+### forbidden
+
+> `readonly` **forbidden**: `string`[]
+
+***
+
+### holderId
+
+> `readonly` **holderId**: `string`
+
+***
+
+### message
+
+> **message**: `string`
+
+#### Inherited from
+
+`Error.message`
+
+***
+
+### name
+
+> **name**: `string`
+
+#### Inherited from
+
+`Error.name`
+
+***
+
+### present
+
+> `readonly` **present**: `string`[]
+
+***
+
+### stack?
+
+> `optional` **stack?**: `string`
+
+#### Inherited from
+
+`Error.stack`
+
+***
+
+### stackTraceLimit
+
+> `static` **stackTraceLimit**: `number`
+
+The `Error.stackTraceLimit` property specifies the number of stack frames
+collected by a stack trace (whether generated by `new Error().stack` or
+`Error.captureStackTrace(obj)`).
+
+The default value is `10` but may be set to any valid JavaScript number. Changes
+will affect any stack trace captured _after_ the value has been changed.
+
+If set to a non-number value, or set to a negative number, stack traces will
+not capture any frames.
+
+#### Inherited from
+
+`Error.stackTraceLimit`
+
+## Methods
+
+### captureStackTrace()
+
+> `static` **captureStackTrace**(`targetObject`, `constructorOpt?`): `void`
+
+Creates a `.stack` property on `targetObject`, which when accessed returns
+a string representing the location in the code at which
+`Error.captureStackTrace()` was called.
+
+```js
+const myObject = {};
+Error.captureStackTrace(myObject);
+myObject.stack;  // Similar to `new Error().stack`
+```
+
+The first line of the trace will be prefixed with
+`${myObject.name}: ${myObject.message}`.
+
+The optional `constructorOpt` argument accepts a function. If given, all frames
+above `constructorOpt`, including `constructorOpt`, will be omitted from the
+generated stack trace.
+
+The `constructorOpt` argument is useful for hiding implementation
+details of error generation from the user. For instance:
+
+```js
+function a() {
+  b();
+}
+
+function b() {
+  c();
+}
+
+function c() {
+  // Create an error without stack trace to avoid calculating the stack trace twice.
+  const { stackTraceLimit } = Error;
+  Error.stackTraceLimit = 0;
+  const error = new Error();
+  Error.stackTraceLimit = stackTraceLimit;
+
+  // Capture the stack trace above function b
+  Error.captureStackTrace(error, b); // Neither function c, nor b is included in the stack trace
+  throw error;
+}
+
+a();
+```
+
+#### Parameters
+
+##### targetObject
+
+`object`
+
+##### constructorOpt?
+
+`Function`
+
+#### Returns
+
+`void`
+
+#### Inherited from
+
+`Error.captureStackTrace`
+
+***
+
+### prepareStackTrace()
+
+> `static` **prepareStackTrace**(`err`, `stackTraces`): `any`
+
+#### Parameters
+
+##### err
+
+`Error`
+
+##### stackTraces
+
+`CallSite`[]
+
+#### Returns
+
+`any`
+
+#### See
+
+https://v8.dev/docs/stack-trace-api#customizing-stack-traces
+
+#### Inherited from
+
+`Error.prepareStackTrace`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
 [sneq-engine API](#sneq-engine-api) / SneqContradictionError
 
 # Class: SneqContradictionError
@@ -2104,13 +2657,17 @@ https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 
 ### Constructor
 
-> **new SneqContradictionError**(`contradictions`): `SneqContradictionError`
+> **new SneqContradictionError**(`contradictions`, `message?`): `SneqContradictionError`
 
 #### Parameters
 
 ##### contradictions
 
-[`AttributFige`](#interface-attributfige)[]
+[`CanonicalAttribute`](#interface-canonicalattribute)[] \| [`IntraCommitConflict`](#interface-intracommitconflict)[]
+
+##### message?
+
+`string`
 
 #### Returns
 
@@ -2134,7 +2691,7 @@ https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 
 ### contradictions
 
-> `readonly` **contradictions**: [`AttributFige`](#interface-attributfige)[]
+> `readonly` **contradictions**: [`CanonicalAttribute`](#interface-canonicalattribute)[] \| [`IntraCommitConflict`](#interface-intracommitconflict)[]
 
 ***
 
@@ -2165,6 +2722,225 @@ https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 #### Inherited from
 
 `Error.stack`
+
+***
+
+### stackTraceLimit
+
+> `static` **stackTraceLimit**: `number`
+
+The `Error.stackTraceLimit` property specifies the number of stack frames
+collected by a stack trace (whether generated by `new Error().stack` or
+`Error.captureStackTrace(obj)`).
+
+The default value is `10` but may be set to any valid JavaScript number. Changes
+will affect any stack trace captured _after_ the value has been changed.
+
+If set to a non-number value, or set to a negative number, stack traces will
+not capture any frames.
+
+#### Inherited from
+
+`Error.stackTraceLimit`
+
+## Methods
+
+### captureStackTrace()
+
+> `static` **captureStackTrace**(`targetObject`, `constructorOpt?`): `void`
+
+Creates a `.stack` property on `targetObject`, which when accessed returns
+a string representing the location in the code at which
+`Error.captureStackTrace()` was called.
+
+```js
+const myObject = {};
+Error.captureStackTrace(myObject);
+myObject.stack;  // Similar to `new Error().stack`
+```
+
+The first line of the trace will be prefixed with
+`${myObject.name}: ${myObject.message}`.
+
+The optional `constructorOpt` argument accepts a function. If given, all frames
+above `constructorOpt`, including `constructorOpt`, will be omitted from the
+generated stack trace.
+
+The `constructorOpt` argument is useful for hiding implementation
+details of error generation from the user. For instance:
+
+```js
+function a() {
+  b();
+}
+
+function b() {
+  c();
+}
+
+function c() {
+  // Create an error without stack trace to avoid calculating the stack trace twice.
+  const { stackTraceLimit } = Error;
+  Error.stackTraceLimit = 0;
+  const error = new Error();
+  Error.stackTraceLimit = stackTraceLimit;
+
+  // Capture the stack trace above function b
+  Error.captureStackTrace(error, b); // Neither function c, nor b is included in the stack trace
+  throw error;
+}
+
+a();
+```
+
+#### Parameters
+
+##### targetObject
+
+`object`
+
+##### constructorOpt?
+
+`Function`
+
+#### Returns
+
+`void`
+
+#### Inherited from
+
+`Error.captureStackTrace`
+
+***
+
+### prepareStackTrace()
+
+> `static` **prepareStackTrace**(`err`, `stackTraces`): `any`
+
+#### Parameters
+
+##### err
+
+`Error`
+
+##### stackTraces
+
+`CallSite`[]
+
+#### Returns
+
+`any`
+
+#### See
+
+https://v8.dev/docs/stack-trace-api#customizing-stack-traces
+
+#### Inherited from
+
+`Error.prepareStackTrace`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / SneqEmbeddingDimError
+
+# Class: SneqEmbeddingDimError
+
+A vector does not match the campaign's stored dimension (§14.5). The old
+message said *what* to do ("use a fresh database file") and never *why*, and
+it arrived after the campaign was already unusable. There is a migration
+now, so the message names it.
+
+## Extends
+
+- `Error`
+
+## Constructors
+
+### Constructor
+
+> **new SneqEmbeddingDimError**(`campaignId`, `stored`, `got`): `SneqEmbeddingDimError`
+
+#### Parameters
+
+##### campaignId
+
+`string`
+
+##### stored
+
+`number`
+
+##### got
+
+`number`
+
+#### Returns
+
+`SneqEmbeddingDimError`
+
+#### Overrides
+
+`Error.constructor`
+
+## Properties
+
+### campaignId
+
+> `readonly` **campaignId**: `string`
+
+***
+
+### cause?
+
+> `optional` **cause?**: `unknown`
+
+#### Inherited from
+
+`Error.cause`
+
+***
+
+### got
+
+> `readonly` **got**: `number`
+
+***
+
+### message
+
+> **message**: `string`
+
+#### Inherited from
+
+`Error.message`
+
+***
+
+### name
+
+> **name**: `string`
+
+#### Inherited from
+
+`Error.name`
+
+***
+
+### stack?
+
+> `optional` **stack?**: `string`
+
+#### Inherited from
+
+`Error.stack`
+
+***
+
+### stored
+
+> `readonly` **stored**: `number`
 
 ***
 
@@ -2713,6 +3489,205 @@ https://v8.dev/docs/stack-trace-api#customizing-stack-traces
 
 ***
 
+[sneq-engine API](#sneq-engine-api) / SneqUnknownHolderError
+
+# Class: SneqUnknownHolderError
+
+A holder id reached the engine and no holder answers to it. Distinct from
+"this holder knows nothing", which is an empty belief list plus an explain
+line — the #21 null doctrine keeps the three states apart, and conflating
+them is the Cassius Vorentius bug.
+
+## Extends
+
+- `Error`
+
+## Constructors
+
+### Constructor
+
+> **new SneqUnknownHolderError**(`holderId`): `SneqUnknownHolderError`
+
+#### Parameters
+
+##### holderId
+
+`string`
+
+#### Returns
+
+`SneqUnknownHolderError`
+
+#### Overrides
+
+`Error.constructor`
+
+## Properties
+
+### cause?
+
+> `optional` **cause?**: `unknown`
+
+#### Inherited from
+
+`Error.cause`
+
+***
+
+### holderId
+
+> `readonly` **holderId**: `string`
+
+***
+
+### message
+
+> **message**: `string`
+
+#### Inherited from
+
+`Error.message`
+
+***
+
+### name
+
+> **name**: `string`
+
+#### Inherited from
+
+`Error.name`
+
+***
+
+### stack?
+
+> `optional` **stack?**: `string`
+
+#### Inherited from
+
+`Error.stack`
+
+***
+
+### stackTraceLimit
+
+> `static` **stackTraceLimit**: `number`
+
+The `Error.stackTraceLimit` property specifies the number of stack frames
+collected by a stack trace (whether generated by `new Error().stack` or
+`Error.captureStackTrace(obj)`).
+
+The default value is `10` but may be set to any valid JavaScript number. Changes
+will affect any stack trace captured _after_ the value has been changed.
+
+If set to a non-number value, or set to a negative number, stack traces will
+not capture any frames.
+
+#### Inherited from
+
+`Error.stackTraceLimit`
+
+## Methods
+
+### captureStackTrace()
+
+> `static` **captureStackTrace**(`targetObject`, `constructorOpt?`): `void`
+
+Creates a `.stack` property on `targetObject`, which when accessed returns
+a string representing the location in the code at which
+`Error.captureStackTrace()` was called.
+
+```js
+const myObject = {};
+Error.captureStackTrace(myObject);
+myObject.stack;  // Similar to `new Error().stack`
+```
+
+The first line of the trace will be prefixed with
+`${myObject.name}: ${myObject.message}`.
+
+The optional `constructorOpt` argument accepts a function. If given, all frames
+above `constructorOpt`, including `constructorOpt`, will be omitted from the
+generated stack trace.
+
+The `constructorOpt` argument is useful for hiding implementation
+details of error generation from the user. For instance:
+
+```js
+function a() {
+  b();
+}
+
+function b() {
+  c();
+}
+
+function c() {
+  // Create an error without stack trace to avoid calculating the stack trace twice.
+  const { stackTraceLimit } = Error;
+  Error.stackTraceLimit = 0;
+  const error = new Error();
+  Error.stackTraceLimit = stackTraceLimit;
+
+  // Capture the stack trace above function b
+  Error.captureStackTrace(error, b); // Neither function c, nor b is included in the stack trace
+  throw error;
+}
+
+a();
+```
+
+#### Parameters
+
+##### targetObject
+
+`object`
+
+##### constructorOpt?
+
+`Function`
+
+#### Returns
+
+`void`
+
+#### Inherited from
+
+`Error.captureStackTrace`
+
+***
+
+### prepareStackTrace()
+
+> `static` **prepareStackTrace**(`err`, `stackTraces`): `any`
+
+#### Parameters
+
+##### err
+
+`Error`
+
+##### stackTraces
+
+`CallSite`[]
+
+#### Returns
+
+`any`
+
+#### See
+
+https://v8.dev/docs/stack-trace-api#customizing-stack-traces
+
+#### Inherited from
+
+`Error.prepareStackTrace`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
 [sneq-engine API](#sneq-engine-api) / SneqValidationError
 
 # Class: SneqValidationError
@@ -3110,6 +4085,41 @@ Full pipeline: extract → resolve → llm → assemble.
 
 ***
 
+[sneq-engine API](#sneq-engine-api) / ActEffect
+
+# Interface: ActEffect
+
+The act's declared canonical effect (#27): an act projects into
+`CanonicalAttribute` ONLY through this — the engine never interprets `verb`.
+
+## Properties
+
+### category
+
+> **category**: [`CategorieAttribut`](#type-alias-categorieattribut)
+
+***
+
+### entityId
+
+> **entityId**: [`EntityID`](#type-alias-entityid)
+
+***
+
+### key
+
+> **key**: `string`
+
+***
+
+### value
+
+> **value**: [`AttributValue`](#type-alias-attributvalue)
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
 [sneq-engine API](#sneq-engine-api) / AddConstraintCommand
 
 # Interface: AddConstraintCommand
@@ -3175,6 +4185,14 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 #### Inherited from
 
 [`AtomicCommand`](#interface-atomiccommand).[`operationId`](#interface-atomiccommand)
+
+***
+
+### role
+
+> **role**: [`ConstraintRole`](#type-alias-constraintrole)
+
+REQUIRED (#19): the founding is explicit now, never inferred.
 
 ***
 
@@ -3297,6 +4315,18 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 #### Inherited from
 
 [`AddConstraintCommand`](#interface-addconstraintcommand).[`operationId`](#interface-addconstraintcommand)
+
+***
+
+### role
+
+> **role**: [`ConstraintRole`](#type-alias-constraintrole)
+
+REQUIRED (#19): the founding is explicit now, never inferred.
+
+#### Inherited from
+
+[`AddConstraintCommand`](#interface-addconstraintcommand).[`role`](#interface-addconstraintcommand)
 
 ***
 
@@ -3583,7 +4613,6 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 - [`AddConstraintCommand`](#interface-addconstraintcommand)
 - [`CreateEntityCommand`](#interface-createentitycommand)
 - [`ConfirmEntityMatchCommand`](#interface-confirmentitymatchcommand)
-- [`RegisterFactCommand`](#interface-registerfactcommand)
 - [`SetSceneCommand`](#interface-setscenecommand)
 - [`AdvanceTurnCommand`](#interface-advanceturncommand)
 
@@ -3675,22 +4704,6 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 
 ***
 
-### registerFact()
-
-> **registerFact**(`command`): `Promise`\<[`RegisterFactResult`](#interface-registerfactresult)\>
-
-#### Parameters
-
-##### command
-
-[`RegisterFactCommand`](#interface-registerfactcommand)
-
-#### Returns
-
-`Promise`\<[`RegisterFactResult`](#interface-registerfactresult)\>
-
-***
-
 ### setScene()
 
 > **setScene**(`command`): `Promise`\<[`SetSceneResult`](#interface-setsceneresult)\>
@@ -3704,56 +4717,6 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 #### Returns
 
 `Promise`\<[`SetSceneResult`](#interface-setsceneresult)\>
-
-[**sneq-engine API**](#sneq-engine-api)
-
-***
-
-[sneq-engine API](#sneq-engine-api) / AttributFige
-
-# Interface: AttributFige
-
-## Properties
-
-### category
-
-> **category**: [`CategorieAttribut`](#type-alias-categorieattribut)
-
-***
-
-### entityId
-
-> **entityId**: [`EntityID`](#type-alias-entityid)
-
-***
-
-### factId
-
-> **factId**: [`FactId`](#type-alias-factid)
-
-***
-
-### key
-
-> **key**: `string`
-
-***
-
-### observation
-
-> **observation**: [`Observation`](#interface-observation)
-
-***
-
-### turn
-
-> **turn**: `number`
-
-***
-
-### value
-
-> **value**: [`AttributValue`](#type-alias-attributvalue)
 
 [**sneq-engine API**](#sneq-engine-api)
 
@@ -3780,6 +4743,300 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 ### type
 
 > **type**: `"CONTRAINTE_SOUPLE"`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / Belief
+
+# Interface: Belief
+
+What a holder knows (§2.5) — derived, NEVER stored. A pure function of
+(events, records, carriages, effects, holders, today). WITNESSED beliefs are
+not negotiable by later records: the player floor generalized to every NPC.
+
+## Properties
+
+### certainty
+
+> **certainty**: [`BeliefCertainty`](#type-alias-beliefcertainty)
+
+From event.participants — "you were there" is not negotiable.
+
+***
+
+### content
+
+> **content**: `string`
+
+***
+
+### factors
+
+> **factors**: [`SalienceFactors`](#interface-saliencefactors)
+
+***
+
+### fiabilite
+
+> **fiabilite**: [`Fiabilite`](#type-alias-fiabilite)
+
+The 0.3 vocabulary, finally on the right object (#18).
+
+***
+
+### holderId
+
+> **holderId**: [`HolderId`](#type-alias-holderid)
+
+***
+
+### learnedOnDay
+
+> **learnedOnDay**: `number`
+
+***
+
+### method
+
+> **method**: [`ObservationMethod`](#type-alias-observationmethod)
+
+***
+
+### salience
+
+> **salience**: `number`
+
+***
+
+### subject
+
+> **subject**: \{ `id`: [`EventId`](#type-alias-eventid); `kind`: `"EVENT"`; \} \| \{ `id`: [`RecordId`](#type-alias-recordid); `kind`: `"RECORD"`; \}
+
+***
+
+### viaCarrier?
+
+> `optional` **viaCarrier?**: `string`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / BeliefWorld
+
+# Interface: BeliefWorld
+
+## Properties
+
+### carriageEffects
+
+> **carriageEffects**: [`CarriageEffect`](#interface-carriageeffect)[]
+
+***
+
+### carriages
+
+> **carriages**: [`Carriage`](#interface-carriage)[]
+
+***
+
+### defaultGroupId
+
+> **defaultGroupId**: [`HolderId`](#type-alias-holderid)
+
+The bootstrap default group (§2.3) — LEGACY_CANON events are known here (#17).
+
+***
+
+### events
+
+> **events**: [`NarrativeEvent`](#interface-narrativeevent)[]
+
+***
+
+### holders
+
+> **holders**: [`Holder`](#type-alias-holder)[]
+
+***
+
+### records
+
+> **records**: [`OfficialRecord`](#interface-officialrecord)[]
+
+***
+
+### salienceWeights?
+
+> `optional` **salienceWeights?**: [`SalienceFactors`](#interface-saliencefactors)
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / BootstrapPlan
+
+# Interface: BootstrapPlan
+
+## Extends
+
+- [`BootstrapResult`](#interface-bootstrapresult)
+
+## Properties
+
+### defaultGroup
+
+> **defaultGroup**: [`GroupHolder`](#interface-groupholder)
+
+***
+
+### defaultGroupId
+
+> **defaultGroupId**: [`HolderId`](#type-alias-holderid)
+
+#### Inherited from
+
+[`BootstrapResult`](#interface-bootstrapresult).[`defaultGroupId`](#interface-bootstrapresult)
+
+***
+
+### defaultRealmId
+
+> **defaultRealmId**: [`EntityID`](#type-alias-entityid)
+
+#### Inherited from
+
+[`BootstrapResult`](#interface-bootstrapresult).[`defaultRealmId`](#interface-bootstrapresult)
+
+***
+
+### policy
+
+> **policy**: [`DispatchPolicy`](#interface-dispatchpolicy)
+
+***
+
+### realmEntity
+
+> **realmEntity**: [`Entity`](#interface-entity)
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / BootstrapResult
+
+# Interface: BootstrapResult
+
+## Extended by
+
+- [`BootstrapPlan`](#interface-bootstrapplan)
+
+## Properties
+
+### defaultGroupId
+
+> **defaultGroupId**: [`HolderId`](#type-alias-holderid)
+
+***
+
+### defaultRealmId
+
+> **defaultRealmId**: [`EntityID`](#type-alias-entityid)
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / CampaignContextDeps
+
+# Interface: CampaignContextDeps
+
+## Properties
+
+### campaignId
+
+> **campaignId**: [`CampaignId`](#type-alias-campaignid)
+
+***
+
+### embedder
+
+> **embedder**: [`Embedder`](#interface-embedder) \| `null`
+
+null = keyless mode (no embeddings tier): entities are stored without vectors.
+
+***
+
+### lifecycle?
+
+> `optional` **lifecycle?**: `CampaignLifecycle`
+
+***
+
+### logger
+
+> **logger**: [`Logger`](#interface-logger)
+
+***
+
+### maxDispatchFanout?
+
+> `optional` **maxDispatchFanout?**: `number`
+
+Fan-out cap for ALL_KNOWN_COMMUNITIES dispatch (#15).
+
+***
+
+### narrationGate
+
+> **narrationGate**: [`NarrationGateRegistry`](#class-narrationgateregistry)
+
+***
+
+### preGen
+
+> **preGen**: [`PreGenerationRegistry`](#class-pregenerationregistry)
+
+***
+
+### repo
+
+> **repo**: [`RepositoryAccess`](#type-alias-repositoryaccess)
+
+***
+
+### resolver
+
+> **resolver**: [`Resolver`](#class-resolver)
+
+***
+
+### router
+
+> **router**: [`Router`](#class-router)
+
+***
+
+### salienceWeights?
+
+> `optional` **salienceWeights?**: [`SalienceFactors`](#interface-saliencefactors)
+
+Salience weights override (§2.5) — the factor list itself is fixed.
+
+***
+
+### userPrompt
+
+> **userPrompt**: [`UserPromptRegistry`](#class-userpromptregistry)
+
+***
+
+### writeStrategy?
+
+> `optional` **writeStrategy?**: [`AtomicWriteStrategy`](#interface-atomicwritestrategy)
 
 [**sneq-engine API**](#sneq-engine-api)
 
@@ -3812,6 +5069,237 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 ### name
 
 > **name**: `string`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / CanonicalAttribute
+
+# Interface: CanonicalAttribute
+
+Current-state projection over the ledger (§2.6, #27) — replace-on-key is
+state evolution; history lives in events and invention transitions.
+Written only by the projection fold, never directly.
+
+## Properties
+
+### category
+
+> **category**: [`CategorieAttribut`](#type-alias-categorieattribut)
+
+***
+
+### day
+
+> **day**: `number`
+
+***
+
+### entityId
+
+> **entityId**: [`EntityID`](#type-alias-entityid)
+
+***
+
+### factId
+
+> **factId**: [`FactId`](#type-alias-factid)
+
+***
+
+### key
+
+> **key**: `string`
+
+***
+
+### observation?
+
+> `optional` **observation?**: [`Observation`](#interface-observation)
+
+Present on LEGACY_FACT copies; EVENT/PROMOTED_INVENTION rows carry provenance in `source`.
+
+***
+
+### source
+
+> **source**: [`CanonicalSource`](#type-alias-canonicalsource)
+
+***
+
+### turn
+
+> **turn**: `number`
+
+***
+
+### value
+
+> **value**: [`AttributValue`](#type-alias-attributvalue)
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / Carriage
+
+# Interface: Carriage
+
+What travels (§2.4). An OFFICIAL carriage with originRealm !==
+destinationRealm delivers nothing — a structural halt, not an attenuation.
+
+## Properties
+
+### campaignId
+
+> **campaignId**: [`CampaignId`](#type-alias-campaignid)
+
+***
+
+### carriageId
+
+> **carriageId**: [`CarriageId`](#type-alias-carriageid)
+
+***
+
+### carrier
+
+> **carrier**: `string`
+
+NAMED → traceable, interceptable.
+
+***
+
+### departedDay
+
+> **departedDay**: `number`
+
+***
+
+### destinationRealm
+
+> **destinationRealm**: [`EntityID`](#type-alias-entityid)
+
+Engine-stamped at dispatch from toPlaceId (#26).
+
+***
+
+### fromPlaceId
+
+> **fromPlaceId**: [`EntityID`](#type-alias-entityid)
+
+***
+
+### minStanding?
+
+> `optional` **minStanding?**: `number`
+
+***
+
+### originRealm
+
+> **originRealm**: [`EntityID`](#type-alias-entityid)
+
+Engine-stamped at dispatch from fromPlaceId (#26) — never caller-supplied.
+
+***
+
+### route
+
+> **route**: [`CarriageRoute`](#type-alias-carriageroute)
+
+***
+
+### subject
+
+> **subject**: \{ `id`: [`EventId`](#type-alias-eventid); `kind`: `"EVENT"`; \} \| \{ `id`: [`RecordId`](#type-alias-recordid); `kind`: `"RECORD"`; \}
+
+***
+
+### toPlaceId
+
+> **toPlaceId**: [`EntityID`](#type-alias-entityid)
+
+***
+
+### travelDays
+
+> **travelDays**: `number`
+
+The GAME supplies this number; SNEQ owns no map.
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / CarriageEffect
+
+# Interface: CarriageEffect
+
+Append-only — interception is gameplay, with provenance. Arrival is
+derived: departedDay + travelDays + Σ delays; CANCEL never arrives;
+DISCREDIT degrades reliability without touching arrival.
+
+## Properties
+
+### campaignId
+
+> **campaignId**: [`CampaignId`](#type-alias-campaignid)
+
+***
+
+### carriageId
+
+> **carriageId**: [`CarriageId`](#type-alias-carriageid)
+
+***
+
+### causedByEventId
+
+> **causedByEventId**: [`EventId`](#type-alias-eventid)
+
+The bribe/ambush IS an event.
+
+***
+
+### day
+
+> **day**: `number`
+
+***
+
+### effect
+
+> **effect**: \{ `days`: `number`; `kind`: `"DELAY"`; \} \| \{ `kind`: `"CANCEL"`; \} \| \{ `kind`: `"DISCREDIT"`; \}
+
+***
+
+### effectId
+
+> **effectId**: `string`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / CarriageQuery
+
+# Interface: CarriageQuery
+
+## Properties
+
+### arrivedBy?
+
+> `optional` **arrivedBy?**: `number`
+
+Derived arrival ≤ this day: departedDay + travelDays + Σ DELAY; CANCEL never arrives.
+
+***
+
+### toPlaceId?
+
+> `optional` **toPlaceId?**: [`EntityID`](#type-alias-entityid)
 
 [**sneq-engine API**](#sneq-engine-api)
 
@@ -3922,6 +5410,517 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 ### usage?
 
 > `optional` **usage?**: [`ProviderUsage`](#interface-providerusage)
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / CommitCarriageInput
+
+# Interface: CommitCarriageInput
+
+## Properties
+
+### carriageId
+
+> **carriageId**: [`CarriageId`](#type-alias-carriageid)
+
+***
+
+### carrier
+
+> **carrier**: `string`
+
+***
+
+### fromPlaceId
+
+> **fromPlaceId**: [`EntityID`](#type-alias-entityid)
+
+***
+
+### minStanding?
+
+> `optional` **minStanding?**: `number`
+
+***
+
+### route
+
+> **route**: [`CarriageRoute`](#type-alias-carriageroute)
+
+***
+
+### subject
+
+> **subject**: \{ `id`: [`EventId`](#type-alias-eventid); `kind`: `"EVENT"`; \} \| \{ `id`: [`RecordId`](#type-alias-recordid); `kind`: `"RECORD"`; \}
+
+***
+
+### toPlaceId
+
+> **toPlaceId**: [`EntityID`](#type-alias-entityid)
+
+***
+
+### travelDays
+
+> **travelDays**: `number`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / CommitContext
+
+# Interface: CommitContext
+
+## Properties
+
+### campaignId
+
+> **campaignId**: [`CampaignId`](#type-alias-campaignid)
+
+***
+
+### canon
+
+> **canon**: [`CanonicalAttribute`](#interface-canonicalattribute)[]
+
+***
+
+### communities
+
+> **communities**: [`GroupHolder`](#interface-groupholder)[]
+
+Known community groups — ALL_KNOWN_COMMUNITIES targets.
+
+***
+
+### defaultRealmId
+
+> **defaultRealmId**: [`EntityID`](#type-alias-entityid)
+
+***
+
+### inventions
+
+> **inventions**: [`ProvisionalInvention`](#interface-provisionalinvention)[]
+
+All PROVISIONAL inventions (for promotion + competition).
+
+***
+
+### latestTurn
+
+> **latestTurn**: `number`
+
+***
+
+### maxDispatchFanout
+
+> **maxDispatchFanout**: `number`
+
+***
+
+### places
+
+> **places**: `object`[]
+
+Realm membership of known places (#26); absent place → default realm.
+
+#### id
+
+> **id**: [`EntityID`](#type-alias-entityid)
+
+#### realmId?
+
+> `optional` **realmId?**: [`EntityID`](#type-alias-entityid)
+
+***
+
+### policy
+
+> **policy**: [`DispatchPolicy`](#interface-dispatchpolicy)
+
+***
+
+### potentialites
+
+> **potentialites**: [`Potentialite`](#interface-potentialite)[]
+
+***
+
+### worldDay
+
+> **worldDay**: `number`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / CommitEventInput
+
+# Interface: CommitEventInput
+
+## Properties
+
+### acts
+
+> **acts**: [`EventAct`](#interface-eventact)[]
+
+***
+
+### circumstance
+
+> **circumstance**: `string`
+
+***
+
+### eventId
+
+> **eventId**: [`EventId`](#type-alias-eventid)
+
+***
+
+### gravity
+
+> **gravity**: `0` \| `1` \| `2` \| `3`
+
+***
+
+### participants
+
+> **participants**: [`EntityID`](#type-alias-entityid)[]
+
+***
+
+### placeId?
+
+> `optional` **placeId?**: [`EntityID`](#type-alias-entityid)
+
+***
+
+### surfaceTokens
+
+> **surfaceTokens**: `string`[]
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / CommitHealth
+
+# Interface: CommitHealth
+
+## Properties
+
+### truncated
+
+> **truncated**: `number`
+
+Targets dropped by the fan-out cap (#15) — counted, never silent.
+
+***
+
+### uncovered
+
+> **uncovered**: `boolean`
+
+No rule matched the event — a policy hole (§6.1).
+
+***
+
+### unroutable
+
+> **unroutable**: `object`[]
+
+A rule fired but no route reaches the target — a map hole (§6.1).
+
+#### carrierLabel
+
+> **carrierLabel**: `string`
+
+#### toPlaceId
+
+> **toPlaceId**: [`EntityID`](#type-alias-entityid)
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / CommitNarrativeBundle
+
+# Interface: CommitNarrativeBundle
+
+## Properties
+
+### campaignId
+
+> **campaignId**: [`CampaignId`](#type-alias-campaignid)
+
+***
+
+### carriageEffects?
+
+> `optional` **carriageEffects?**: `Omit`\<[`CarriageEffect`](#interface-carriageeffect), `"campaignId"`\>[]
+
+***
+
+### carriages?
+
+> `optional` **carriages?**: [`CommitCarriageInput`](#interface-commitcarriageinput)[]
+
+***
+
+### daysElapsed
+
+> **daysElapsed**: `number`
+
+REQUIRED (#20): the fiction declares its own elapsed time, every turn. 0 is legal.
+
+***
+
+### event?
+
+> `optional` **event?**: [`CommitEventInput`](#interface-commiteventinput)
+
+***
+
+### holders?
+
+> `optional` **holders?**: [`Holder`](#type-alias-holder)[]
+
+***
+
+### inventions?
+
+> `optional` **inventions?**: `Omit`\<[`ProvisionalInvention`](#interface-provisionalinvention), `"campaignId"` \| `"introducedAtTurn"` \| `"introducedOnDay"` \| `"status"` \| `"lastReferencedTurn"`\>[]
+
+***
+
+### operationId
+
+> **operationId**: `string`
+
+***
+
+### playerUtterance?
+
+> `optional` **playerUtterance?**: `string`
+
+The player's raw text this turn (§11 phase A). The engine substring-searches
+it for every provisional invention's known `surfaceTokens` and adds the
+`PLAYER_UPTAKE` evidence itself (#25) — promotion is detected at commit
+time, never claimed by the model (§2.6).
+
+Uptake needs an event to point at, so this only fires when the bundle
+carries one: the utterance belongs on the ledger before it can promote
+anything. Before 0.5.0 no tool, CLI command or bundle field ever handed
+SNEQ this text, which is what made the model the judge of its own
+inventions.
+
+***
+
+### policy?
+
+> `optional` **policy?**: `Partial`\<[`DispatchPolicy`](#interface-dispatchpolicy)\>
+
+Additive (#15): routes and rules accrete, they never replace.
+
+***
+
+### promotionEvidence?
+
+> `optional` **promotionEvidence?**: `object`[]
+
+#### evidence
+
+> **evidence**: [`PromotionEvidence`](#type-alias-promotionevidence)
+
+#### inventionId
+
+> **inventionId**: [`InventionId`](#type-alias-inventionid)
+
+***
+
+### records?
+
+> `optional` **records?**: `Omit`\<[`OfficialRecord`](#interface-officialrecord), `"campaignId"` \| `"day"` \| `"turn"`\>[]
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / CommitNarrativeOptions
+
+# Interface: CommitNarrativeOptions
+
+## Properties
+
+### defaultRealmId?
+
+> `optional` **defaultRealmId?**: [`EntityID`](#type-alias-entityid)
+
+The campaign's default realm entity (#26). Bootstrap creates it as `realm_default`.
+
+***
+
+### maxDispatchFanout?
+
+> `optional` **maxDispatchFanout?**: `number`
+
+***
+
+### now?
+
+> `optional` **now?**: () => `number`
+
+#### Returns
+
+`number`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / CommitNarrativeResult
+
+# Interface: CommitNarrativeResult
+
+## Properties
+
+### carriages
+
+> **carriages**: `number`
+
+***
+
+### eventId?
+
+> `optional` **eventId?**: [`EventId`](#type-alias-eventid)
+
+***
+
+### health
+
+> **health**: [`CommitHealth`](#interface-commithealth)
+
+***
+
+### newWorldDay
+
+> **newWorldDay**: `number`
+
+***
+
+### promoted
+
+> **promoted**: `number`
+
+***
+
+### quarantined
+
+> **quarantined**: `string`[]
+
+***
+
+### replayed
+
+> **replayed**: `boolean`
+
+***
+
+### turn
+
+> **turn**: `number`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / CommitPlan
+
+# Interface: CommitPlan
+
+## Properties
+
+### canonicalUpdates
+
+> **canonicalUpdates**: [`CanonicalAttribute`](#interface-canonicalattribute)[]
+
+***
+
+### carriageEffects
+
+> **carriageEffects**: [`CarriageEffect`](#interface-carriageeffect)[]
+
+***
+
+### carriages
+
+> **carriages**: [`Carriage`](#interface-carriage)[]
+
+***
+
+### event?
+
+> `optional` **event?**: [`NarrativeEvent`](#interface-narrativeevent)
+
+***
+
+### health
+
+> **health**: [`CommitHealth`](#interface-commithealth)
+
+***
+
+### holders
+
+> **holders**: [`Holder`](#type-alias-holder)[]
+
+***
+
+### inventions
+
+> **inventions**: [`ProvisionalInvention`](#interface-provisionalinvention)[]
+
+***
+
+### newWorldDay
+
+> **newWorldDay**: `number`
+
+***
+
+### policyUpdate?
+
+> `optional` **policyUpdate?**: [`DispatchPolicy`](#interface-dispatchpolicy)
+
+***
+
+### quarantined
+
+> **quarantined**: [`ConstraintId`](#type-alias-constraintid)[]
+
+***
+
+### records
+
+> **records**: [`OfficialRecord`](#interface-officialrecord)[]
+
+***
+
+### transitions
+
+> **transitions**: [`InventionTransition`](#interface-inventiontransition)[]
+
+***
+
+### turn
+
+> **turn**: `number`
 
 [**sneq-engine API**](#sneq-engine-api)
 
@@ -4143,6 +6142,32 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 
 ***
 
+[sneq-engine API](#sneq-engine-api) / ContainmentResult
+
+# Interface: ContainmentResult
+
+## Properties
+
+### forbidden
+
+> **forbidden**: `string`[]
+
+***
+
+### pass
+
+> **pass**: `boolean`
+
+***
+
+### present
+
+> **present**: `string`[]
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
 [sneq-engine API](#sneq-engine-api) / ContexteGeneratif
 
 # Interface: ContexteGeneratif
@@ -4197,43 +6222,13 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 
 > **source**: [`ContrainteSource`](#type-alias-contraintesource)
 
-[**sneq-engine API**](#sneq-engine-api)
-
 ***
 
-[sneq-engine API](#sneq-engine-api) / ContraintePropagee
+### status?
 
-# Interface: ContraintePropagee
+> `optional` **status?**: [`ConstraintStatus`](#type-alias-constraintstatus)
 
-## Properties
-
-### attributCible
-
-> **attributCible**: `string`
-
-***
-
-### contrainte
-
-> **contrainte**: [`Contrainte`](#interface-contrainte)
-
-***
-
-### entityId
-
-> **entityId**: [`EntityID`](#type-alias-entityid)
-
-***
-
-### forceAccumulee
-
-> **forceAccumulee**: `number`
-
-***
-
-### hopDistance
-
-> **hopDistance**: `number`
+Absent = ACTIVE. Only the quarantine path (#23) ever writes QUARANTINED.
 
 [**sneq-engine API**](#sneq-engine-api)
 
@@ -4435,6 +6430,269 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 
 ***
 
+[sneq-engine API](#sneq-engine-api) / DispatchPolicy
+
+# Interface: DispatchPolicy
+
+Auto-dispatch by game rule (§2.4). Lives in campaign state (#15); evolves
+via additive bundle policy and the show/set-dispatch-policy CLI pair.
+
+## Properties
+
+### routes
+
+> **routes**: [`DispatchRoute`](#interface-dispatchroute)[]
+
+***
+
+### rules
+
+> **rules**: [`DispatchRule`](#interface-dispatchrule)[]
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / DispatchRoute
+
+# Interface: DispatchRoute
+
+Game-owned distances; lazy — a route exists once the fiction establishes it (#15).
+
+## Properties
+
+### fromPlaceId
+
+> **fromPlaceId**: [`EntityID`](#type-alias-entityid)
+
+***
+
+### route
+
+> **route**: [`CarriageRoute`](#type-alias-carriageroute)
+
+***
+
+### toPlaceId
+
+> **toPlaceId**: [`EntityID`](#type-alias-entityid)
+
+***
+
+### travelDays
+
+> **travelDays**: `number`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / DispatchRule
+
+# Interface: DispatchRule
+
+## Properties
+
+### carrierLabel
+
+> **carrierLabel**: `string`
+
+***
+
+### minGravity
+
+> **minGravity**: `1` \| `2` \| `3`
+
+***
+
+### route
+
+> **route**: [`CarriageRoute`](#type-alias-carriageroute)
+
+***
+
+### targets
+
+> **targets**: [`EntityID`](#type-alias-entityid)[] \| `"ALL_KNOWN_COMMUNITIES"`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / DoctorCheck
+
+# Interface: DoctorCheck
+
+## Properties
+
+### id
+
+> **id**: `string`
+
+***
+
+### message
+
+> **message**: `string`
+
+One line, written for whoever has to act on it. Names the fix when there is one.
+
+***
+
+### status
+
+> **status**: [`CheckStatus`](#type-alias-checkstatus)
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / DoctorInput
+
+# Interface: DoctorInput
+
+## Properties
+
+### campaignId
+
+> **campaignId**: `string`
+
+***
+
+### day
+
+> **day**: `number`
+
+***
+
+### dispatch?
+
+> `optional` **dispatch?**: `object`
+
+From the last commit's `CommitHealth`, when the campaign has committed at all.
+
+#### truncated
+
+> **truncated**: `number`
+
+#### uncovered
+
+> **uncovered**: `number`
+
+#### unroutable
+
+> **unroutable**: `number`
+
+***
+
+### events
+
+> **events**: [`NarrativeEvent`](#interface-narrativeevent)[]
+
+***
+
+### health
+
+> **health**: [`WorldHealth`](#interface-worldhealth)
+
+***
+
+### holders
+
+> **holders**: [`Holder`](#type-alias-holder)[]
+
+***
+
+### migrationFindings
+
+> **migrationFindings**: [`MigrationFinding`](#interface-migrationfinding)[]
+
+***
+
+### potentialites
+
+> **potentialites**: [`Potentialite`](#interface-potentialite)[]
+
+***
+
+### scene
+
+> **scene**: [`Scene`](#interface-scene) \| `null`
+
+***
+
+### sceneEntityResolution
+
+> **sceneEntityResolution**: `object`[]
+
+Every entity id the scene names, with whether the campaign actually knows it.
+
+#### entityId
+
+> **entityId**: [`EntityID`](#type-alias-entityid)
+
+#### known
+
+> **known**: `boolean`
+
+***
+
+### staleAfterTurns?
+
+> `optional` **staleAfterTurns?**: `number`
+
+Turns without an appended event before the ledger is called stale (§6.2).
+
+***
+
+### turn
+
+> **turn**: `number`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / DoctorReport
+
+# Interface: DoctorReport
+
+## Properties
+
+### campaignId
+
+> **campaignId**: `string`
+
+***
+
+### checks
+
+> **checks**: [`DoctorCheck`](#interface-doctorcheck)[]
+
+***
+
+### day
+
+> **day**: `number`
+
+***
+
+### status
+
+> **status**: [`CheckStatus`](#type-alias-checkstatus)
+
+FAIL if any check failed, else WARN if any warned, else PASS.
+
+***
+
+### turn
+
+> **turn**: `number`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
 [sneq-engine API](#sneq-engine-api) / Embedder
 
 # Interface: Embedder
@@ -4531,6 +6789,16 @@ Optional override for router provider resolution (useful in tests).
 
 ***
 
+### maxDispatchFanout?
+
+> `optional` **maxDispatchFanout?**: `number`
+
+Fan-out cap for ALL_KNOWN_COMMUNITIES dispatch (#15). The Convex bundle is
+one transaction with a document-write ceiling; truncation is deterministic
+(nearest declared travelDays first) and always counted, never silent.
+
+***
+
 ### repository
 
 > **repository**: [`Repository`](#interface-repository) \| [`RepositoryAccess`](#type-alias-repositoryaccess)
@@ -4554,6 +6822,14 @@ Optional override for router provider resolution (useful in tests).
 > `optional` **routerInstance?**: [`Router`](#class-router)
 
 Optional prebuilt Router shared with another consumer such as a GM brain.
+
+***
+
+### salienceWeights?
+
+> `optional` **salienceWeights?**: [`SalienceFactors`](#interface-saliencefactors)
+
+Salience weights override (§2.5) — the factor list itself is fixed.
 
 ***
 
@@ -4629,6 +6905,16 @@ Human-readable description, persisted at mention time. Feeds the judge prompt an
 
 ***
 
+### realmId?
+
+> `optional` **realmId?**: [`EntityID`](#type-alias-entityid)
+
+For place entities: the realm entity this place belongs to (#26). Entity
+metadata, not a canonical attribute — conquest is a metadata update.
+Absent = the campaign's default realm (`realmOf` fallback).
+
+***
+
 ### tags
 
 > **tags**: `string`[]
@@ -4669,6 +6955,34 @@ Human-readable description, persisted at mention time. Feeds the judge prompt an
 
 ***
 
+[sneq-engine API](#sneq-engine-api) / EntityLike
+
+# Interface: EntityLike
+
+The identity surface the engine can floor without NLP (#25).
+
+## Properties
+
+### aliases
+
+> **aliases**: `string`[]
+
+***
+
+### id
+
+> **id**: [`EntityID`](#type-alias-entityid)
+
+***
+
+### name
+
+> **name**: `string`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
 [sneq-engine API](#sneq-engine-api) / EntityWithScore
 
 # Interface: EntityWithScore
@@ -4689,21 +7003,193 @@ Human-readable description, persisted at mention time. Feeds the judge prompt an
 
 ***
 
-[sneq-engine API](#sneq-engine-api) / FactQuery
+[sneq-engine API](#sneq-engine-api) / EventAct
 
-# Interface: FactQuery
+# Interface: EventAct
 
 ## Properties
 
-### attributeKey?
+### actorId
 
-> `optional` **attributeKey?**: `string`
+> **actorId**: [`EntityID`](#type-alias-entityid)
 
 ***
 
-### category?
+### objectId?
 
-> `optional` **category?**: [`CategorieAttribut`](#type-alias-categorieattribut)
+> `optional` **objectId?**: [`EntityID`](#type-alias-entityid)
+
+***
+
+### sets?
+
+> `optional` **sets?**: [`ActEffect`](#interface-acteffect)
+
+***
+
+### value?
+
+> `optional` **value?**: [`AttributValue`](#type-alias-attributvalue)
+
+***
+
+### verb
+
+> **verb**: `string`
+
+Structured, never prose. Carries no projection semantics (#27).
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / GroupHolder
+
+# Interface: GroupHolder
+
+Groups are the default (§2.3): a town has strata, not three hundred
+memories. Holders are created lazily, never authored upfront.
+
+## Properties
+
+### campaignId
+
+> **campaignId**: [`CampaignId`](#type-alias-campaignid)
+
+***
+
+### community
+
+> **community**: `string`
+
+***
+
+### holderId
+
+> **holderId**: [`HolderId`](#type-alias-holderid)
+
+***
+
+### kind
+
+> **kind**: `"GROUP"`
+
+***
+
+### placeId
+
+> **placeId**: [`EntityID`](#type-alias-entityid)
+
+***
+
+### realmId
+
+> **realmId**: [`EntityID`](#type-alias-entityid)
+
+The realm entity (#26) — realms are entities, not strings.
+
+***
+
+### standing
+
+> **standing**: `number`
+
+0..1
+
+***
+
+### stratum
+
+> **stratum**: `string`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / HolderContext
+
+# Interface: HolderContext
+
+Phase B's answer (§11). Everything an agent needs to write one turn for one
+holder, and nothing it needs to write the turn for somebody else.
+
+The three states of #21's null doctrine are distinguishable here and never
+conflated: an unknown id throws before this type is built; no scene is a
+literal `scene: null` on the frame; a holder who knows nothing is
+`beliefs: []` **plus** an `explain` line that says so. The Cassius Vorentius
+bug was a plausible-empty standing in for a null.
+
+## Properties
+
+### beliefs
+
+> **beliefs**: [`Belief`](#interface-belief)[]
+
+Ranked by salience, highest first. Empty is an answer, not a failure.
+
+***
+
+### day
+
+> **day**: `number`
+
+***
+
+### explain
+
+> **explain**: `string`
+
+Why the list looks the way it does, in one sentence. Always present.
+
+***
+
+### holderId
+
+> **holderId**: [`HolderId`](#type-alias-holderid)
+
+***
+
+### omitted
+
+> **omitted**: `number`
+
+How many beliefs `topK` dropped — a truncated read is never silent.
+
+***
+
+### resolvedFrom?
+
+> `optional` **resolvedFrom?**: [`EntityID`](#type-alias-entityid)
+
+Present when the caller asked by entity: the entity the cascade started from.
+
+***
+
+### road
+
+> **road**: [`ResolutionRoad`](#type-alias-resolutionroad)
+
+Which road of the §2.3 cascade answered — the reply always names it (#21).
+
+***
+
+### turn
+
+> **turn**: `number`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / HolderContextArgs
+
+# Interface: HolderContextArgs
+
+## Properties
+
+### about?
+
+> `optional` **about?**: [`EntityID`](#type-alias-entityid)
 
 ***
 
@@ -4713,15 +7199,460 @@ Human-readable description, persisted at mention time. Feeds the judge prompt an
 
 ***
 
-### maxTurn?
+### holderId?
 
-> `optional` **maxTurn?**: `number`
+> `optional` **holderId?**: [`HolderId`](#type-alias-holderid)
 
 ***
 
-### minTurn?
+### topK?
 
-> `optional` **minTurn?**: `number`
+> `optional` **topK?**: `number`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / HolderContextInput
+
+# Interface: HolderContextInput
+
+## Properties
+
+### about?
+
+> `optional` **about?**: [`EntityID`](#type-alias-entityid)
+
+***
+
+### beliefs
+
+> **beliefs**: [`Belief`](#interface-belief)[]
+
+***
+
+### day
+
+> **day**: `number`
+
+***
+
+### events
+
+> **events**: [`NarrativeEvent`](#interface-narrativeevent)[]
+
+***
+
+### holderId
+
+> **holderId**: [`HolderId`](#type-alias-holderid)
+
+***
+
+### records
+
+> **records**: [`OfficialRecord`](#interface-officialrecord)[]
+
+***
+
+### resolvedFrom?
+
+> `optional` **resolvedFrom?**: [`EntityID`](#type-alias-entityid)
+
+***
+
+### road
+
+> **road**: [`ResolutionRoad`](#type-alias-resolutionroad)
+
+***
+
+### topK?
+
+> `optional` **topK?**: `number`
+
+***
+
+### turn
+
+> **turn**: `number`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / HolderResolution
+
+# Interface: HolderResolution
+
+## Properties
+
+### holder
+
+> **holder**: [`Holder`](#type-alias-holder)
+
+***
+
+### materialized?
+
+> `optional` **materialized?**: [`IndividualHolder`](#interface-individualholder)
+
+Present only on AUTO_PARTICIPANT: the lazily created holder, for the caller to persist.
+
+***
+
+### road
+
+> **road**: [`ResolutionRoad`](#type-alias-resolutionroad)
+
+The reply always names the road (#21) — the agent knows who answered and why.
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / HolderResolutionInput
+
+# Interface: HolderResolutionInput
+
+## Properties
+
+### defaultGroupId
+
+> **defaultGroupId**: [`HolderId`](#type-alias-holderid)
+
+***
+
+### events
+
+> **events**: [`NarrativeEvent`](#interface-narrativeevent)[]
+
+***
+
+### holders
+
+> **holders**: [`Holder`](#type-alias-holder)[]
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / IndividualHolder
+
+# Interface: IndividualHolder
+
+An individual inherits their base group and adds only what their declared
+derogation justifies. PARTICIPANT holders are auto-materialized lazily at
+cascade time (#28); PERSONAL_STAKE is always an authoring act.
+
+## Properties
+
+### baseGroupId
+
+> **baseGroupId**: [`HolderId`](#type-alias-holderid)
+
+***
+
+### campaignId
+
+> **campaignId**: [`CampaignId`](#type-alias-campaignid)
+
+***
+
+### derogationReason
+
+> **derogationReason**: [`DerogationReason`](#type-alias-derogationreason)
+
+***
+
+### entityId
+
+> **entityId**: [`EntityID`](#type-alias-entityid)
+
+***
+
+### holderId
+
+> **holderId**: [`HolderId`](#type-alias-holderid)
+
+***
+
+### kind
+
+> **kind**: `"INDIVIDUAL"`
+
+***
+
+### standingOverride?
+
+> `optional` **standingOverride?**: `number`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / IngestedPlayerInput
+
+# Interface: IngestedPlayerInput
+
+## Properties
+
+### holderId
+
+> **holderId**: [`HolderId`](#type-alias-holderid)
+
+***
+
+### mentions
+
+> **mentions**: `object`[]
+
+Free-text mentions resolved against canon; `entityId: null` = unresolved, which is normal.
+
+#### confidence
+
+> **confidence**: `number`
+
+#### entityId
+
+> **entityId**: [`EntityID`](#type-alias-entityid) \| `null`
+
+#### mention
+
+> **mention**: `string`
+
+***
+
+### road
+
+> **road**: [`ResolutionRoad`](#type-alias-resolutionroad)
+
+***
+
+### uptake
+
+> **uptake**: [`InventionId`](#type-alias-inventionid)[]
+
+Provisional inventions this utterance takes up (§2.6) — detected here by
+the engine, never claimed by the model. Hand them to `commit_narrative` as
+`playerUtterance` and the same detection runs again at commit, which is
+the one that counts.
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / IntraCommitConflict
+
+# Interface: IntraCommitConflict
+
+Two `sets` on the same key with different values inside one commit (#27).
+
+## Properties
+
+### entityId
+
+> **entityId**: [`EntityID`](#type-alias-entityid)
+
+***
+
+### eventId
+
+> **eventId**: [`EventId`](#type-alias-eventid)
+
+***
+
+### key
+
+> **key**: `string`
+
+***
+
+### values
+
+> **values**: \[[`AttributValue`](#type-alias-attributvalue), [`AttributValue`](#type-alias-attributvalue)\]
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / InventionTransition
+
+# Interface: InventionTransition
+
+Append-only audit.
+
+## Properties
+
+### atDay
+
+> **atDay**: `number`
+
+World day of the transition — the fold orders promotions by (atDay, atTurn) (#27).
+
+***
+
+### atTurn
+
+> **atTurn**: `number`
+
+***
+
+### campaignId
+
+> **campaignId**: [`CampaignId`](#type-alias-campaignid)
+
+***
+
+### evidence?
+
+> `optional` **evidence?**: [`PromotionEvidence`](#type-alias-promotionevidence)
+
+***
+
+### from
+
+> **from**: [`InventionStatus`](#type-alias-inventionstatus)
+
+***
+
+### inventionId
+
+> **inventionId**: [`InventionId`](#type-alias-inventionid)
+
+***
+
+### supersededBy?
+
+> `optional` **supersededBy?**: [`InventionId`](#type-alias-inventionid)
+
+***
+
+### to
+
+> **to**: `"PROMOTED"` \| `"REJECTED"` \| `"SUPERSEDED"`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / LegacyCampaignInput
+
+# Interface: LegacyCampaignInput
+
+## Properties
+
+### campaignId
+
+> **campaignId**: [`CampaignId`](#type-alias-campaignid)
+
+***
+
+### facts
+
+> **facts**: [`LegacyFact`](#interface-legacyfact) & `object`[]
+
+0.3-era facts; observation blobs may still carry the stale `fiabilite` key.
+
+***
+
+### potentialites
+
+> **potentialites**: [`Potentialite`](#interface-potentialite)[]
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / LegacyFact
+
+# Interface: LegacyFact
+
+The 0.3-era `AttributFige` row, kept only as the shape the migration reads
+off an old store (§2.6 — one release, one break: the live contract holds
+`CanonicalAttribute` and nothing else, and there is no alias). Nothing writes
+this type after the migration epoch.
+
+## Properties
+
+### category
+
+> **category**: [`CategorieAttribut`](#type-alias-categorieattribut)
+
+***
+
+### entityId
+
+> **entityId**: [`EntityID`](#type-alias-entityid)
+
+***
+
+### factId
+
+> **factId**: [`FactId`](#type-alias-factid)
+
+***
+
+### key
+
+> **key**: `string`
+
+***
+
+### observation
+
+> **observation**: [`Observation`](#interface-observation)
+
+***
+
+### turn
+
+> **turn**: `number`
+
+***
+
+### value
+
+> **value**: [`AttributValue`](#type-alias-attributvalue)
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / LegacyMigrationOutput
+
+# Interface: LegacyMigrationOutput
+
+## Properties
+
+### canonicalAttributes
+
+> **canonicalAttributes**: [`CanonicalAttribute`](#interface-canonicalattribute)[]
+
+One LEGACY_FACT row per fact, at the day-0 migration epoch (§4).
+
+***
+
+### cleanedFacts
+
+> **cleanedFacts**: [`LegacyFact`](#interface-legacyfact) & `object`[]
+
+The same facts with the stale `fiabilite` key stripped (#18).
+
+***
+
+### findings
+
+> **findings**: [`MigrationFinding`](#interface-migrationfinding)[]
+
+***
+
+### legacyEvents
+
+> **legacyEvents**: [`NarrativeEvent`](#interface-narrativeevent)[]
+
+One day-0 LEGACY_CANON event per entity (#17) — the ledger backing that
+ keeps `rebuild(ledger) === projection` free of a LEGACY_FACT special case.
 
 [**sneq-engine API**](#sneq-engine-api)
 
@@ -4855,6 +7786,53 @@ Create even when resolution is ambiguous (after the caller adjudicated).
 
 ***
 
+[sneq-engine API](#sneq-engine-api) / MigrationFinding
+
+# Interface: MigrationFinding
+
+A mis-encoded constraint found by the migration audit (#23). Flagged, never
+auto-fixed (guessing) and never deleted (data loss); `doctor` re-reads these.
+
+## Properties
+
+### attributeKey
+
+> **attributeKey**: `string`
+
+***
+
+### campaignId
+
+> **campaignId**: [`CampaignId`](#type-alias-campaignid)
+
+***
+
+### constraintId
+
+> **constraintId**: `string`
+
+***
+
+### detail
+
+> **detail**: `string`
+
+***
+
+### entityId
+
+> **entityId**: [`EntityID`](#type-alias-entityid)
+
+***
+
+### kind
+
+> **kind**: [`MigrationFindingKind`](#type-alias-migrationfindingkind)
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
 [sneq-engine API](#sneq-engine-api) / NarrationGateContext
 
 # Interface: NarrationGateContext
@@ -4921,6 +7899,16 @@ Create even when resolution is ambiguous (after the caller adjudicated).
 
 ## Properties
 
+### holderId?
+
+> `optional` **holderId?**: [`HolderId`](#type-alias-holderid)
+
+The holder this narration is FOR (§11 phase F). With it the gate also runs
+containment over the narration and can BLOCK. Without it the gate keeps its
+0.3 job — entity resolution — and is honest that it checked nothing else.
+
+***
+
 ### narration
 
 > **narration**: `string`
@@ -4930,6 +7918,11 @@ Create even when resolution is ambiguous (after the caller adjudicated).
 ### strict?
 
 > `optional` **strict?**: `boolean`
+
+Read at last (§5.2): `strict` was accepted at the schema and the hook and
+consulted nowhere in the Validator — an empty shell for two releases. It
+now decides whether unresolved proper nouns downgrade the verdict to
+`REPAIR` instead of merely being reported.
 
 ***
 
@@ -4980,6 +7973,84 @@ Create even when resolution is ambiguous (after the caller adjudicated).
 #### entityId
 
 > **entityId**: `string`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / NarrativeEvent
+
+# Interface: NarrativeEvent
+
+## Properties
+
+### acts
+
+> **acts**: [`EventAct`](#interface-eventact)[]
+
+THE ACTS — immutable; the repository exposes no mutation path (§2.1).
+
+***
+
+### campaignId
+
+> **campaignId**: [`CampaignId`](#type-alias-campaignid)
+
+***
+
+### circumstance
+
+> **circumstance**: `string`
+
+THE SCENE — prose; the only thing REINTERPRETATION may reframe.
+
+***
+
+### day
+
+> **day**: `number`
+
+World clock (§4).
+
+***
+
+### eventId
+
+> **eventId**: [`EventId`](#type-alias-eventid)
+
+***
+
+### gravity
+
+> **gravity**: `0` \| `1` \| `2` \| `3`
+
+***
+
+### participants
+
+> **participants**: [`EntityID`](#type-alias-entityid)[]
+
+***
+
+### placeId?
+
+> `optional` **placeId?**: [`EntityID`](#type-alias-entityid)
+
+***
+
+### surfaceTokens
+
+> **surfaceTokens**: `string`[]
+
+The containment/canary alphabet — model-supplied + engine floor (#25).
+
+***
+
+### turn
+
+> **turn**: `number`
+
+Ordering within a day.
 
 [**sneq-engine API**](#sneq-engine-api)
 
@@ -5053,6 +8124,8 @@ Create even when resolution is ambiguous (after the caller adjudicated).
 
 # Interface: Observation
 
+Provenance ONLY (#18). The tool boundary rejects a stray `fiabilite` key.
+
 ## Properties
 
 ### emittedBy?
@@ -5064,12 +8137,6 @@ Create even when resolution is ambiguous (after the caller adjudicated).
 ### excerpt?
 
 > `optional` **excerpt?**: `string`
-
-***
-
-### fiabilite
-
-> **fiabilite**: [`Fiabilite`](#type-alias-fiabilite)
 
 ***
 
@@ -5094,6 +8161,105 @@ Create even when resolution is ambiguous (after the caller adjudicated).
 ### timestamp
 
 > **timestamp**: `number`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / OfficialRecord
+
+# Interface: OfficialRecord
+
+What power claims (§2.2). A record contradicting its event is legal data,
+not an error — the gap is the game. Records accumulate; never replaced.
+Records never project into canon (#27): their only road is
+OFFICIAL_RECORD promotion evidence.
+
+## Properties
+
+### aboutEventId?
+
+> `optional` **aboutEventId?**: [`EventId`](#type-alias-eventid)
+
+Absent = pure assertion.
+
+***
+
+### authoredBy
+
+> **authoredBy**: [`EntityID`](#type-alias-entityid)
+
+The power that issued it.
+
+***
+
+### campaignId
+
+> **campaignId**: [`CampaignId`](#type-alias-campaignid)
+
+***
+
+### category
+
+> **category**: [`CategorieAttribut`](#type-alias-categorieattribut)
+
+***
+
+### day
+
+> **day**: `number`
+
+***
+
+### entityId
+
+> **entityId**: [`EntityID`](#type-alias-entityid)
+
+***
+
+### key
+
+> **key**: `string`
+
+***
+
+### observation
+
+> **observation**: [`Observation`](#interface-observation)
+
+Provenance only — fiabilite lives on Belief (#18).
+
+***
+
+### recordId
+
+> **recordId**: [`RecordId`](#type-alias-recordid)
+
+***
+
+### route
+
+> **route**: [`CarriageRoute`](#type-alias-carriageroute)
+
+***
+
+### surfaceTokens
+
+> **surfaceTokens**: `string`[]
+
+Containment alphabet, same producer rule as events (#25).
+
+***
+
+### turn
+
+> **turn**: `number`
+
+***
+
+### value
+
+> **value**: [`AttributValue`](#type-alias-attributvalue)
 
 [**sneq-engine API**](#sneq-engine-api)
 
@@ -5195,77 +8361,91 @@ Create even when resolution is ambiguous (after the caller adjudicated).
 
 ***
 
-[sneq-engine API](#sneq-engine-api) / PropagationInput
+[sneq-engine API](#sneq-engine-api) / ProjectionInputs
 
-# Interface: PropagationInput
+# Interface: ProjectionInputs
 
 ## Properties
 
-### campaignId
+### events
 
-> **campaignId**: [`CampaignId`](#type-alias-campaignid)
+> **events**: [`NarrativeEvent`](#interface-narrativeevent)[]
 
-***
-
-### createdAt?
-
-> `optional` **createdAt?**: `number`
+In ledger order — as `getEvents` returns them: (day, turn, seq).
 
 ***
 
-### edges
+### legacy
 
-> **edges**: readonly [`AreteGCN`](#interface-aretegcn)[]
+> **legacy**: [`CanonicalAttribute`](#interface-canonicalattribute)[]
 
-***
-
-### fact
-
-> **fact**: [`AttributFige`](#interface-attributfige)
+LEGACY_FACT rows from migration — the epoch floor, overridden by any later producer.
 
 ***
 
-### maxDepth
+### promotions
 
-> **maxDepth**: `number`
+> **promotions**: `object`[]
 
-***
+Promotion transitions with their inventions; non-PROMOTED transitions are ignored.
 
-### minForce
+#### invention
 
-> **minForce**: `number`
+> **invention**: [`ProvisionalInvention`](#interface-provisionalinvention)
 
-***
+#### transition
 
-### rules
-
-> **rules**: readonly [`ReglePropagation`](#interface-reglepropagation)[]
+> **transition**: [`InventionTransition`](#interface-inventiontransition)
 
 [**sneq-engine API**](#sneq-engine-api)
 
 ***
 
-[sneq-engine API](#sneq-engine-api) / PropagationResult
+[sneq-engine API](#sneq-engine-api) / PromotionContext
 
-# Interface: PropagationResult
+# Interface: PromotionContext
 
 ## Properties
 
-### contraintesPropagees
+### atDay
 
-> **contraintesPropagees**: [`ContraintePropagee`](#interface-contraintepropagee)[]
-
-***
-
-### entitesImpactees
-
-> **entitesImpactees**: [`EntityID`](#type-alias-entityid)[]
+> **atDay**: `number`
 
 ***
 
-### faitSource
+### atTurn
 
-> **faitSource**: [`AttributFige`](#interface-attributfige)
+> **atTurn**: `number`
+
+***
+
+### canon
+
+> **canon**: [`CanonicalAttribute`](#interface-canonicalattribute)[]
+
+Canon rows for the invention's entity (at minimum its attributeKey).
+
+***
+
+### competing?
+
+> `optional` **competing?**: [`ProvisionalInvention`](#interface-provisionalinvention)[]
+
+Other PROVISIONAL inventions on the same (entity, key) — first uptake wins.
+
+***
+
+### constraints
+
+> **constraints**: [`Contrainte`](#interface-contrainte)[]
+
+Constraints on (entity, attributeKey). QUARANTINED ones never gate.
+
+***
+
+### evidence
+
+> **evidence**: [`PromotionEvidence`](#type-alias-promotionevidence)
 
 [**sneq-engine API**](#sneq-engine-api)
 
@@ -5464,17 +8644,13 @@ Token-usage metadata reported by the provider, camelCased from the wire format.
 
 ***
 
-[sneq-engine API](#sneq-engine-api) / RegisterFactCommand
+[sneq-engine API](#sneq-engine-api) / ProvisionalInvention
 
-# Interface: RegisterFactCommand
+# Interface: ProvisionalInvention
 
-## Extends
-
-- [`AtomicCommand`](#interface-atomiccommand)
-
-## Extended by
-
-- [`RegisterFactDecisionInput`](#interface-registerfactdecisioninput)
+What the GM invents without warrant (§2.6). Promotes to canon only when
+something comes to depend on it. No evaporation by deletion: a stale
+provisional falls out of prompts by salience, not out of storage.
 
 ## Properties
 
@@ -5496,107 +8672,11 @@ Token-usage metadata reported by the provider, camelCased from the wire format.
 
 ***
 
-### entityId
+### confidence
 
-> **entityId**: [`EntityID`](#type-alias-entityid)
+> **confidence**: `number`
 
-***
-
-### factId
-
-> **factId**: [`FactId`](#type-alias-factid)
-
-***
-
-### observation
-
-> **observation**: [`Observation`](#interface-observation)
-
-***
-
-### operationId
-
-> **operationId**: `string`
-
-Stable token identifying one logical write, generated once per engine call and
-reused across its retries.
-
-The engine does NOT deduplicate on it. The built-in repository-backed strategy
-ignores this field entirely; a distributed `AtomicWriteStrategy` that needs
-exactly-once semantics has to implement the dedup itself, keyed on this token —
-that is what it is here for. Do not read it as a guarantee the engine provides.
-
-#### Inherited from
-
-[`AtomicCommand`](#interface-atomiccommand).[`operationId`](#interface-atomiccommand)
-
-***
-
-### value
-
-> **value**: [`AttributValue`](#type-alias-attributvalue)
-
-[**sneq-engine API**](#sneq-engine-api)
-
-***
-
-[sneq-engine API](#sneq-engine-api) / RegisterFactDecision
-
-# Interface: RegisterFactDecision
-
-## Properties
-
-### contradictions
-
-> **contradictions**: [`AttributFige`](#interface-attributfige)[]
-
-***
-
-### fact
-
-> **fact**: [`AttributFige`](#interface-attributfige) & `object` \| `null`
-
-[**sneq-engine API**](#sneq-engine-api)
-
-***
-
-[sneq-engine API](#sneq-engine-api) / RegisterFactDecisionInput
-
-# Interface: RegisterFactDecisionInput
-
-## Extends
-
-- [`RegisterFactCommand`](#interface-registerfactcommand)
-
-## Properties
-
-### attributeKey
-
-> **attributeKey**: `string`
-
-#### Inherited from
-
-[`RegisterFactCommand`](#interface-registerfactcommand).[`attributeKey`](#interface-registerfactcommand)
-
-***
-
-### campaignId
-
-> **campaignId**: [`CampaignId`](#type-alias-campaignid)
-
-#### Inherited from
-
-[`RegisterFactCommand`](#interface-registerfactcommand).[`campaignId`](#interface-registerfactcommand)
-
-***
-
-### category
-
-> **category**: [`CategorieAttribut`](#type-alias-categorieattribut)
-
-#### Inherited from
-
-[`RegisterFactCommand`](#interface-registerfactcommand).[`category`](#interface-registerfactcommand)
+Provenance, NEVER a promotion threshold.
 
 ***
 
@@ -5604,59 +8684,49 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 
 > **entityId**: [`EntityID`](#type-alias-entityid)
 
-#### Inherited from
+***
 
-[`RegisterFactCommand`](#interface-registerfactcommand).[`entityId`](#interface-registerfactcommand)
+### introducedAtTurn
+
+> **introducedAtTurn**: `number`
 
 ***
 
-### existing
+### introducedOnDay
 
-> **existing**: [`AttributFige`](#interface-attributfige)[]
-
-***
-
-### factId
-
-> **factId**: [`FactId`](#type-alias-factid)
-
-#### Inherited from
-
-[`RegisterFactCommand`](#interface-registerfactcommand).[`factId`](#interface-registerfactcommand)
+> **introducedOnDay**: `number`
 
 ***
 
-### latestTurnNumber
+### inventionId
 
-> **latestTurnNumber**: `number`
-
-***
-
-### observation
-
-> **observation**: [`Observation`](#interface-observation)
-
-#### Inherited from
-
-[`RegisterFactCommand`](#interface-registerfactcommand).[`observation`](#interface-registerfactcommand)
+> **inventionId**: [`InventionId`](#type-alias-inventionid)
 
 ***
 
-### operationId
+### lastReferencedTurn
 
-> **operationId**: `string`
+> **lastReferencedTurn**: `number`
 
-Stable token identifying one logical write, generated once per engine call and
-reused across its retries.
+***
 
-The engine does NOT deduplicate on it. The built-in repository-backed strategy
-ignores this field entirely; a distributed `AtomicWriteStrategy` that needs
-exactly-once semantics has to implement the dedup itself, keyed on this token —
-that is what it is here for. Do not read it as a guarantee the engine provides.
+### sourceNarration
 
-#### Inherited from
+> **sourceNarration**: `string`
 
-[`RegisterFactCommand`](#interface-registerfactcommand).[`operationId`](#interface-registerfactcommand)
+***
+
+### status
+
+> **status**: [`InventionStatus`](#type-alias-inventionstatus)
+
+***
+
+### surfaceTokens
+
+> **surfaceTokens**: `string`[]
+
+Uptake alphabet: known-token substring search over player utterances (#25).
 
 ***
 
@@ -5664,67 +8734,7 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 
 > **value**: [`AttributValue`](#type-alias-attributvalue)
 
-#### Inherited from
-
-[`RegisterFactCommand`](#interface-registerfactcommand).[`value`](#interface-registerfactcommand)
-
-[**sneq-engine API**](#sneq-engine-api)
-
-***
-
-[sneq-engine API](#sneq-engine-api) / RegisterFactInput
-
-# Interface: RegisterFactInput
-
-## Properties
-
-### attributeKey
-
-> **attributeKey**: `string`
-
-***
-
-### category
-
-> **category**: [`CategorieAttribut`](#type-alias-categorieattribut)
-
-***
-
-### entityId
-
-> **entityId**: [`EntityID`](#type-alias-entityid)
-
-***
-
-### observation
-
-> **observation**: [`Observation`](#interface-observation)
-
-***
-
-### value
-
-> **value**: [`AttributValue`](#type-alias-attributvalue)
-
-[**sneq-engine API**](#sneq-engine-api)
-
-***
-
-[sneq-engine API](#sneq-engine-api) / RegisterFactResult
-
-# Interface: RegisterFactResult
-
-## Properties
-
-### contradictions
-
-> **contradictions**: [`AttributFige`](#interface-attributfige)[]
-
-***
-
-### factId
-
-> **factId**: [`FactId`](#type-alias-factid) \| `null`
+Value-bearing — the thing Potentialite structurally cannot hold.
 
 [**sneq-engine API**](#sneq-engine-api)
 
@@ -5786,19 +8796,117 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 
 ## Methods
 
-### appendFact()
+### appendCarriage()
 
-> **appendFact**(`f`): `Promise`\<\{ `factId`: [`FactId`](#type-alias-factid); \}\>
+> **appendCarriage**(`c`): `Promise`\<`void`\>
 
 #### Parameters
 
-##### f
+##### c
 
-[`AttributFige`](#interface-attributfige) & `object`
+[`Carriage`](#interface-carriage)
 
 #### Returns
 
-`Promise`\<\{ `factId`: [`FactId`](#type-alias-factid); \}\>
+`Promise`\<`void`\>
+
+***
+
+### appendCarriageEffect()
+
+> **appendCarriageEffect**(`fx`): `Promise`\<`void`\>
+
+#### Parameters
+
+##### fx
+
+[`CarriageEffect`](#interface-carriageeffect)
+
+#### Returns
+
+`Promise`\<`void`\>
+
+***
+
+### appendEvent()
+
+> **appendEvent**(`e`): `Promise`\<`void`\>
+
+#### Parameters
+
+##### e
+
+[`NarrativeEvent`](#interface-narrativeevent)
+
+#### Returns
+
+`Promise`\<`void`\>
+
+***
+
+### appendInvention()
+
+> **appendInvention**(`i`): `Promise`\<`void`\>
+
+#### Parameters
+
+##### i
+
+[`ProvisionalInvention`](#interface-provisionalinvention)
+
+#### Returns
+
+`Promise`\<`void`\>
+
+***
+
+### appendInventionTransition()
+
+> **appendInventionTransition**(`t`): `Promise`\<`void`\>
+
+Also updates the invention row's status — transitions are the only status writer.
+
+#### Parameters
+
+##### t
+
+[`InventionTransition`](#interface-inventiontransition)
+
+#### Returns
+
+`Promise`\<`void`\>
+
+***
+
+### appendMigrationFindings()
+
+> **appendMigrationFindings**(`findings`): `Promise`\<`void`\>
+
+#### Parameters
+
+##### findings
+
+[`MigrationFinding`](#interface-migrationfinding)[]
+
+#### Returns
+
+`Promise`\<`void`\>
+
+***
+
+### appendRecord()
+
+> **appendRecord**(`r`): `Promise`\<`void`\>
+
+#### Parameters
+
+##### r
+
+[`OfficialRecord`](#interface-officialrecord)
+
+#### Returns
+
+`Promise`\<`void`\>
 
 ***
 
@@ -5916,6 +9024,62 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 
 ***
 
+### findOperation()
+
+> **findOperation**(`campaignId`, `operationId`): `Promise`\<`unknown`\>
+
+#### Parameters
+
+##### campaignId
+
+[`CampaignId`](#type-alias-campaignid)
+
+##### operationId
+
+`string`
+
+#### Returns
+
+`Promise`\<`unknown`\>
+
+***
+
+### getCanonicalAttributes()
+
+> **getCanonicalAttributes**(`campaignId`, `entityId?`): `Promise`\<[`CanonicalAttribute`](#interface-canonicalattribute)[]\>
+
+#### Parameters
+
+##### campaignId
+
+[`CampaignId`](#type-alias-campaignid)
+
+##### entityId?
+
+[`EntityID`](#type-alias-entityid)
+
+#### Returns
+
+`Promise`\<[`CanonicalAttribute`](#interface-canonicalattribute)[]\>
+
+***
+
+### getDispatchPolicy()
+
+> **getDispatchPolicy**(`campaignId`): `Promise`\<[`DispatchPolicy`](#interface-dispatchpolicy)\>
+
+#### Parameters
+
+##### campaignId
+
+[`CampaignId`](#type-alias-campaignid)
+
+#### Returns
+
+`Promise`\<[`DispatchPolicy`](#interface-dispatchpolicy)\>
+
+***
+
 ### getEntity()
 
 > **getEntity**(`campaignId`, `entityId`): `Promise`\<[`Entity`](#interface-entity) \| `null`\>
@@ -5936,9 +9100,9 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 
 ***
 
-### getFigedAttributes()
+### getEvents()
 
-> **getFigedAttributes**(`campaignId`, `entityId`): `Promise`\<[`AttributFige`](#interface-attributfige)[]\>
+> **getEvents**(`campaignId`): `Promise`\<[`NarrativeEvent`](#interface-narrativeevent)[]\>
 
 #### Parameters
 
@@ -5946,13 +9110,9 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 
 [`CampaignId`](#type-alias-campaignid)
 
-##### entityId
-
-[`EntityID`](#type-alias-entityid)
-
 #### Returns
 
-`Promise`\<[`AttributFige`](#interface-attributfige)[]\>
+`Promise`\<[`NarrativeEvent`](#interface-narrativeevent)[]\>
 
 ***
 
@@ -5977,6 +9137,38 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 #### Returns
 
 `Promise`\<[`Potentialite`](#interface-potentialite) \| `null`\>
+
+***
+
+### getRecords()
+
+> **getRecords**(`campaignId`): `Promise`\<[`OfficialRecord`](#interface-officialrecord)[]\>
+
+#### Parameters
+
+##### campaignId
+
+[`CampaignId`](#type-alias-campaignid)
+
+#### Returns
+
+`Promise`\<[`OfficialRecord`](#interface-officialrecord)[]\>
+
+***
+
+### getWorldDay()
+
+> **getWorldDay**(`campaignId`): `Promise`\<`number`\>
+
+#### Parameters
+
+##### campaignId
+
+[`CampaignId`](#type-alias-campaignid)
+
+#### Returns
+
+`Promise`\<`number`\>
 
 ***
 
@@ -6006,6 +9198,118 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 
 ***
 
+### listCarriageEffects()
+
+> **listCarriageEffects**(`campaignId`, `carriageId?`): `Promise`\<[`CarriageEffect`](#interface-carriageeffect)[]\>
+
+#### Parameters
+
+##### campaignId
+
+[`CampaignId`](#type-alias-campaignid)
+
+##### carriageId?
+
+[`CarriageId`](#type-alias-carriageid)
+
+#### Returns
+
+`Promise`\<[`CarriageEffect`](#interface-carriageeffect)[]\>
+
+***
+
+### listCarriages()
+
+> **listCarriages**(`campaignId`, `q`): `Promise`\<[`Carriage`](#interface-carriage)[]\>
+
+#### Parameters
+
+##### campaignId
+
+[`CampaignId`](#type-alias-campaignid)
+
+##### q
+
+[`CarriageQuery`](#interface-carriagequery)
+
+#### Returns
+
+`Promise`\<[`Carriage`](#interface-carriage)[]\>
+
+***
+
+### listHolders()
+
+> **listHolders**(`campaignId`): `Promise`\<[`Holder`](#type-alias-holder)[]\>
+
+#### Parameters
+
+##### campaignId
+
+[`CampaignId`](#type-alias-campaignid)
+
+#### Returns
+
+`Promise`\<[`Holder`](#type-alias-holder)[]\>
+
+***
+
+### listInventions()
+
+> **listInventions**(`campaignId`, `status?`): `Promise`\<[`ProvisionalInvention`](#interface-provisionalinvention)[]\>
+
+#### Parameters
+
+##### campaignId
+
+[`CampaignId`](#type-alias-campaignid)
+
+##### status?
+
+[`InventionStatus`](#type-alias-inventionstatus)
+
+#### Returns
+
+`Promise`\<[`ProvisionalInvention`](#interface-provisionalinvention)[]\>
+
+***
+
+### listInventionTransitions()
+
+> **listInventionTransitions**(`campaignId`, `inventionId?`): `Promise`\<[`InventionTransition`](#interface-inventiontransition)[]\>
+
+#### Parameters
+
+##### campaignId
+
+[`CampaignId`](#type-alias-campaignid)
+
+##### inventionId?
+
+[`InventionId`](#type-alias-inventionid)
+
+#### Returns
+
+`Promise`\<[`InventionTransition`](#interface-inventiontransition)[]\>
+
+***
+
+### listMigrationFindings()
+
+> **listMigrationFindings**(`campaignId`): `Promise`\<[`MigrationFinding`](#interface-migrationfinding)[]\>
+
+#### Parameters
+
+##### campaignId
+
+[`CampaignId`](#type-alias-campaignid)
+
+#### Returns
+
+`Promise`\<[`MigrationFinding`](#interface-migrationfinding)[]\>
+
+***
+
 ### neighbors()
 
 > **neighbors**(`campaignId`, `entityId`): `Promise`\<`object`[]\>
@@ -6026,9 +9330,9 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 
 ***
 
-### queryFacts()
+### recordOperation()
 
-> **queryFacts**(`campaignId`, `query`): `Promise`\<[`AttributFige`](#interface-attributfige)[]\>
+> **recordOperation**(`campaignId`, `operationId`, `result`): `Promise`\<`void`\>
 
 #### Parameters
 
@@ -6036,13 +9340,37 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 
 [`CampaignId`](#type-alias-campaignid)
 
-##### query
+##### operationId
 
-[`FactQuery`](#interface-factquery)
+`string`
+
+##### result
+
+`unknown`
 
 #### Returns
 
-`Promise`\<[`AttributFige`](#interface-attributfige)[]\>
+`Promise`\<`void`\>
+
+***
+
+### reindexEmbeddings()
+
+> **reindexEmbeddings**(`campaignId`, `vectors`): `Promise`\<`void`\>
+
+#### Parameters
+
+##### campaignId
+
+[`CampaignId`](#type-alias-campaignid)
+
+##### vectors
+
+`object`[]
+
+#### Returns
+
+`Promise`\<`void`\>
 
 ***
 
@@ -6094,6 +9422,66 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 
 ***
 
+### setDispatchPolicy()
+
+> **setDispatchPolicy**(`campaignId`, `p`): `Promise`\<`void`\>
+
+#### Parameters
+
+##### campaignId
+
+[`CampaignId`](#type-alias-campaignid)
+
+##### p
+
+[`DispatchPolicy`](#interface-dispatchpolicy)
+
+#### Returns
+
+`Promise`\<`void`\>
+
+***
+
+### setEmbeddingDim()
+
+> **setEmbeddingDim**(`campaignId`, `dim`): `Promise`\<`void`\>
+
+#### Parameters
+
+##### campaignId
+
+[`CampaignId`](#type-alias-campaignid)
+
+##### dim
+
+`number`
+
+#### Returns
+
+`Promise`\<`void`\>
+
+***
+
+### setWorldDay()
+
+> **setWorldDay**(`campaignId`, `day`): `Promise`\<`void`\>
+
+#### Parameters
+
+##### campaignId
+
+[`CampaignId`](#type-alias-campaignid)
+
+##### day
+
+`number`
+
+#### Returns
+
+`Promise`\<`void`\>
+
+***
+
 ### topEntities()
 
 > **topEntities**(`campaignId`, `k`): `Promise`\<[`Entity`](#interface-entity)[]\>
@@ -6138,6 +9526,26 @@ Return up to `k` entities for the campaign, ordered by `embeddingRefreshedAt` de
 
 ***
 
+### upsertCanonicalAttribute()
+
+> **upsertCanonicalAttribute**(`campaignId`, `row`): `Promise`\<`void`\>
+
+#### Parameters
+
+##### campaignId
+
+[`CampaignId`](#type-alias-campaignid)
+
+##### row
+
+[`CanonicalAttribute`](#interface-canonicalattribute)
+
+#### Returns
+
+`Promise`\<`void`\>
+
+***
+
 ### upsertEdge()
 
 > **upsertEdge**(`campaignId`, `a`): `Promise`\<`void`\>
@@ -6167,6 +9575,22 @@ Return up to `k` entities for the campaign, ordered by `embeddingRefreshedAt` de
 ##### e
 
 [`Entity`](#interface-entity)
+
+#### Returns
+
+`Promise`\<`void`\>
+
+***
+
+### upsertHolder()
+
+> **upsertHolder**(`h`): `Promise`\<`void`\>
+
+#### Parameters
+
+##### h
+
+[`Holder`](#type-alias-holder)
 
 #### Returns
 
@@ -6488,6 +9912,44 @@ Optional: omit entirely to run keyless / alias-only (no vector resolution).
 
 ***
 
+[sneq-engine API](#sneq-engine-api) / SalienceFactors
+
+# Interface: SalienceFactors
+
+## Properties
+
+### gravity
+
+> **gravity**: `number`
+
+***
+
+### personalInvolvement
+
+> **personalInvolvement**: `number`
+
+***
+
+### propagationDelay
+
+> **propagationDelay**: `number`
+
+***
+
+### recency
+
+> **recency**: `number`
+
+***
+
+### socialPosition
+
+> **socialPosition**: `number`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
 [sneq-engine API](#sneq-engine-api) / Scene
 
 # Interface: Scene
@@ -6778,6 +10240,32 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 
 ***
 
+[sneq-engine API](#sneq-engine-api) / TokenWorld
+
+# Interface: TokenWorld
+
+## Properties
+
+### entities
+
+> **entities**: [`EntityLike`](#interface-entitylike)[]
+
+***
+
+### events
+
+> **events**: [`NarrativeEvent`](#interface-narrativeevent)[]
+
+***
+
+### records
+
+> **records**: [`OfficialRecord`](#interface-officialrecord)[]
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
 [sneq-engine API](#sneq-engine-api) / ToolCallContext
 
 # Interface: ToolCallContext
@@ -6804,6 +10292,10 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 
 `string`
 
+###### role
+
+[`ConstraintRole`](#type-alias-constraintrole)
+
 ###### rule
 
 [`RegleContrainte`](#type-alias-reglecontrainte)
@@ -6816,17 +10308,39 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 
 ### advanceTurn()
 
-> **advanceTurn**(`summary?`): `Promise`\<\{ `turnNumber`: `number`; \}\>
+> **advanceTurn**(`input`): `Promise`\<\{ `health`: [`WorldHealth`](#interface-worldhealth); `turnNumber`: `number`; `worldDay`: `number`; \}\>
 
 #### Parameters
 
-##### summary?
+##### input
+
+###### days?
+
+`number`
+
+###### summary?
 
 `string`
 
 #### Returns
 
-`Promise`\<\{ `turnNumber`: `number`; \}\>
+`Promise`\<\{ `health`: [`WorldHealth`](#interface-worldhealth); `turnNumber`: `number`; `worldDay`: `number`; \}\>
+
+***
+
+### commitNarrative()
+
+> **commitNarrative**(`bundle`): `Promise`\<[`CommitNarrativeResult`](#interface-commitnarrativeresult)\>
+
+#### Parameters
+
+##### bundle
+
+[`ToolCommitBundle`](#type-alias-toolcommitbundle)
+
+#### Returns
+
+`Promise`\<[`CommitNarrativeResult`](#interface-commitnarrativeresult)\>
 
 ***
 
@@ -6846,29 +10360,19 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 
 ***
 
-### getRelevantFacts()
+### getHolderContext()
 
-> **getRelevantFacts**(`entityId`, `opts?`): `Promise`\<[`AttributFige`](#interface-attributfige)[]\>
+> **getHolderContext**(`args`): `Promise`\<[`HolderContext`](#interface-holdercontext)\>
 
 #### Parameters
 
-##### entityId
+##### args
 
-[`EntityID`](#type-alias-entityid)
-
-##### opts?
-
-###### attributeKeys?
-
-`string`[]
-
-###### depth?
-
-`0` \| `1`
+[`HolderContextArgs`](#interface-holdercontextargs)
 
 #### Returns
 
-`Promise`\<[`AttributFige`](#interface-attributfige)[]\>
+`Promise`\<[`HolderContext`](#interface-holdercontext)\>
 
 ***
 
@@ -6903,40 +10407,6 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 #### Returns
 
 `Promise`\<[`MentionResult`](#type-alias-mentionresult)\>
-
-***
-
-### registerFact()
-
-> **registerFact**(`input`): `Promise`\<\{ `contradictions`: [`AttributFige`](#interface-attributfige)[]; `factId`: [`FactId`](#type-alias-factid) \| `null`; \}\>
-
-#### Parameters
-
-##### input
-
-###### attributeKey
-
-`string`
-
-###### category
-
-[`CategorieAttribut`](#type-alias-categorieattribut)
-
-###### entityId
-
-[`EntityID`](#type-alias-entityid)
-
-###### observation
-
-[`Observation`](#interface-observation)
-
-###### value
-
-[`AttributValue`](#type-alias-attributvalue)
-
-#### Returns
-
-`Promise`\<\{ `contradictions`: [`AttributFige`](#interface-attributfige)[]; `factId`: [`FactId`](#type-alias-factid) \| `null`; \}\>
 
 ***
 
@@ -7016,6 +10486,10 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 
 ##### input
 
+###### holderId?
+
+[`HolderId`](#type-alias-holderid)
+
 ###### narration
 
 `string`
@@ -7031,6 +10505,56 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 #### Returns
 
 `Promise`\<[`ValidationReport`](#interface-validationreport)\>
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / TranscriptEntry
+
+# Interface: TranscriptEntry
+
+## Properties
+
+### id
+
+> **id**: `string`
+
+***
+
+### text
+
+> **text**: `string`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / TranscriptFilterResult
+
+# Interface: TranscriptFilterResult
+
+## Properties
+
+### dropped
+
+> **dropped**: `object`[]
+
+Each dropped entry with the tokens that condemned it — a redaction that explains itself.
+
+#### entry
+
+> **entry**: [`TranscriptEntry`](#interface-transcriptentry)
+
+#### present
+
+> **present**: `string`[]
+
+***
+
+### kept
+
+> **kept**: [`TranscriptEntry`](#interface-transcriptentry)[]
 
 [**sneq-engine API**](#sneq-engine-api)
 
@@ -7080,9 +10604,13 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 
 ## Properties
 
-### existingFiged
+### existingCanon
 
-> **existingFiged**: readonly [`AttributFige`](#interface-attributfige)[]
+> **existingCanon**: readonly [`CanonicalAttribute`](#interface-canonicalattribute)[]
+
+Canon rows for the same (entity, key). Reserved for `CONTRADICTION_RC`,
+which nothing produces yet — `decidePromotion` runs its own canon check
+(§2.6) and passes `[]` here.
 
 ***
 
@@ -7150,7 +10678,34 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 
 # Interface: ValidationReport
 
+The gate's answer. 0.3's shape was `{ ok, partial, extractedNames, issues }`
+— it reported and could never withhold, so all three live consumers invented
+block, redaction and a repair loop on top of it (grimoire twice, including a
+`blocked → partial` downgrade). Those three now live here, once.
+
 ## Properties
+
+### containment?
+
+> `optional` **containment?**: `object`
+
+Present when a `holderId` was supplied: the tokens this holder has not
+learned, and which of them the narration used. `pass: false` is what makes
+the verdict `BLOCK`.
+
+#### forbidden
+
+> **forbidden**: `string`[]
+
+#### pass
+
+> **pass**: `boolean`
+
+#### present
+
+> **present**: `string`[]
+
+***
 
 ### extractedNames
 
@@ -7168,11 +10723,27 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 
 > **ok**: `boolean`
 
+True only on `PASS`. Kept for callers that read nothing else.
+
 ***
 
 ### partial?
 
 > `optional` **partial?**: `boolean`
+
+***
+
+### repairHint?
+
+> `optional` **repairHint?**: `string`
+
+Present on `REPAIR` and `BLOCK`: what to tell the model, in its own terms.
+
+***
+
+### verdict
+
+> **verdict**: [`NarrationVerdict`](#type-alias-narrationverdict)
 
 [**sneq-engine API**](#sneq-engine-api)
 
@@ -7252,6 +10823,87 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 
 > **topK**: `number`
 
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / WorldHealth
+
+# Interface: WorldHealth
+
+## Properties
+
+### frozenClock
+
+> **frozenClock**: `boolean`
+
+`day` unchanged across the last K commits while ≥ 1 carriage is in
+transit (#20) — carriages exist and never land, invisible to a
+zero-carriage count; also catches a model that habitually answers
+`daysElapsed: 0`.
+
+***
+
+### inTransit
+
+> **inTransit**: `number`
+
+Carriages neither arrived nor cancelled as of worldDay.
+
+***
+
+### outOfBandRecords
+
+> **outOfBandRecords**: `number`
+
+#22 — the escape hatch is audited, not locked.
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / WorldHealthInput
+
+# Interface: WorldHealthInput
+
+## Properties
+
+### carriageEffects
+
+> **carriageEffects**: [`CarriageEffect`](#interface-carriageeffect)[]
+
+***
+
+### carriages
+
+> **carriages**: [`Carriage`](#interface-carriage)[]
+
+***
+
+### events
+
+> **events**: [`NarrativeEvent`](#interface-narrativeevent)[]
+
+***
+
+### k?
+
+> `optional` **k?**: `number`
+
+Consecutive same-day commits before the frozen-clock detector trips.
+
+***
+
+### records
+
+> **records**: [`OfficialRecord`](#interface-officialrecord)[]
+
+***
+
+### worldDay
+
+> **worldDay**: `number`
+
 
 ## type-aliases
 
@@ -7299,6 +10951,28 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 
 ***
 
+[sneq-engine API](#sneq-engine-api) / BeliefCertainty
+
+# Type Alias: BeliefCertainty
+
+> **BeliefCertainty** = `"WITNESSED"` \| `"TOLD"` \| `"INFERRED"`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / BootstrapRepo
+
+# Type Alias: BootstrapRepo
+
+> **BootstrapRepo** = `Pick`\<[`Repository`](#interface-repository), `"getEntity"` \| `"upsertEntity"` \| `"upsertHolder"` \| `"setDispatchPolicy"`\>
+
+The slice of the repository bootstrap needs — RepositoryAccess qualifies.
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
 [sneq-engine API](#sneq-engine-api) / CampaignContextInvalidationReason
 
 # Type Alias: CampaignContextInvalidationReason
@@ -7325,11 +10999,63 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 
 ***
 
+[sneq-engine API](#sneq-engine-api) / CanonicalSource
+
+# Type Alias: CanonicalSource
+
+> **CanonicalSource** = \{ `eventId`: [`EventId`](#type-alias-eventid); `kind`: `"EVENT"`; \} \| \{ `inventionId`: [`InventionId`](#type-alias-inventionid); `kind`: `"PROMOTED_INVENTION"`; \} \| \{ `kind`: `"LEGACY_FACT"`; \}
+
+Exactly the three producers of the projection rule (#27).
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / CarriageId
+
+# Type Alias: CarriageId
+
+> **CarriageId** = `string` & `object`
+
+## Type Declaration
+
+### \[brand\]
+
+> `readonly` **\[brand\]**: `"CarriageId"`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / CarriageRoute
+
+# Type Alias: CarriageRoute
+
+> **CarriageRoute** = `"OFFICIAL"` \| `"RUMOUR"`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
 [sneq-engine API](#sneq-engine-api) / CategorieAttribut
 
 # Type Alias: CategorieAttribut
 
 > **CategorieAttribut** = `"IDENTITE"` \| `"PSYCHOLOGIE"` \| `"HISTORIQUE"` \| `"SOCIAL"` \| `"COMPETENCE"` \| `"SECRET"` \| `"ETAT"` \| `"POSSESSION"`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / CheckStatus
+
+# Type Alias: CheckStatus
+
+> **CheckStatus** = `"PASS"` \| `"WARN"` \| `"FAIL"` \| `"INFO"`
+
+`INFO` is a checklist line §12.4 asks for that nothing persisted can answer.
+It reports and never judges, so it stays out of the roll-up — a permanent
+WARN would just teach the reader to ignore warnings.
 
 [**sneq-engine API**](#sneq-engine-api)
 
@@ -7351,6 +11077,65 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 
 ***
 
+[sneq-engine API](#sneq-engine-api) / ConstraintRole
+
+# Type Alias: ConstraintRole
+
+> **ConstraintRole** = \{ `role`: `"REGLE_MONDE"`; `ruleId`: `string`; \} \| \{ `confidence`: `number`; `role`: `"INFERENCE_IA"`; \} \| \{ `factId`: [`FactId`](#type-alias-factid); `role`: `"FAIT_CANONIQUE"`; \} \| \{ `edgeKey`: `string`; `role`: `"RELATION"`; \}
+
+Who is speaking, in the payload rather than hardcoded (#19). 0.3 stamped
+every constraint `INFERENCE_IA`, so `REGLE_MONDE` — the declared world rule
+the promotion loop needs a producer for — could never be written, and the
+discriminator matched everything.
+
+## Union Members
+
+### Type Literal
+
+\{ `role`: `"REGLE_MONDE"`; `ruleId`: `string`; \}
+
+A declared rule of the world: authored, not guessed. Gates promotion at full weight.
+
+***
+
+### Type Literal
+
+\{ `confidence`: `number`; `role`: `"INFERENCE_IA"`; \}
+
+The model's inference. Carries its own confidence, and says so.
+
+***
+
+### Type Literal
+
+\{ `factId`: [`FactId`](#type-alias-factid); `role`: `"FAIT_CANONIQUE"`; \}
+
+Derived from an established canonical fact.
+
+***
+
+### Type Literal
+
+\{ `edgeKey`: `string`; `role`: `"RELATION"`; \}
+
+Derived from a relation between two entities.
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / ConstraintStatus
+
+# Type Alias: ConstraintStatus
+
+> **ConstraintStatus** = `"ACTIVE"` \| `"QUARANTINED"`
+
+#23: quarantined constraints stop gating; the transition is auditable.
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
 [sneq-engine API](#sneq-engine-api) / ContrainteSource
 
 # Type Alias: ContrainteSource
@@ -7366,6 +11151,16 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 # Type Alias: CreateEntityResult
 
 > **CreateEntityResult** = \{ `status`: `"stale"`; \} \| \{ `entityId`: [`EntityID`](#type-alias-entityid); `isNew`: `true`; `status`: `"created"`; \} \| \{ `entityId`: [`EntityID`](#type-alias-entityid); `isNew`: `false`; `resolvedTo`: [`EntityID`](#type-alias-entityid); `status`: `"existing"`; \} \| \{ `candidates`: [`EntityCandidateSummary`](#interface-entitycandidatesummary)[]; `status`: `"conflict"`; \}
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / DerogationReason
+
+# Type Alias: DerogationReason
+
+> **DerogationReason** = `"PARTICIPANT"` \| `"PERSONAL_STAKE"` \| `"PLAYER"`
 
 [**sneq-engine API**](#sneq-engine-api)
 
@@ -7407,6 +11202,22 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 
 ***
 
+[sneq-engine API](#sneq-engine-api) / EventId
+
+# Type Alias: EventId
+
+> **EventId** = `string` & `object`
+
+## Type Declaration
+
+### \[brand\]
+
+> `readonly` **\[brand\]**: `"EventId"`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
 [sneq-engine API](#sneq-engine-api) / FactId
 
 # Type Alias: FactId
@@ -7429,6 +11240,62 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 
 > **Fiabilite** = `"CERTAINE"` \| `"TEMOIGNAGE"` \| `"RUMEUR_CONFIRMEE"`
 
+Reliability vocabulary. Lives on Belief (derived, §2.5) — deleted from
+Observation itself (#18): provenance says where a claim came from, never
+how much a holder should trust it.
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / Holder
+
+# Type Alias: Holder
+
+> **Holder** = [`GroupHolder`](#interface-groupholder) \| [`IndividualHolder`](#interface-individualholder)
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / HolderId
+
+# Type Alias: HolderId
+
+> **HolderId** = `string` & `object`
+
+## Type Declaration
+
+### \[brand\]
+
+> `readonly` **\[brand\]**: `"HolderId"`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / InventionId
+
+# Type Alias: InventionId
+
+> **InventionId** = `string` & `object`
+
+## Type Declaration
+
+### \[brand\]
+
+> `readonly` **\[brand\]**: `"InventionId"`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / InventionStatus
+
+# Type Alias: InventionStatus
+
+> **InventionStatus** = `"PROVISIONAL"` \| `"PROMOTED"` \| `"REJECTED"` \| `"SUPERSEDED"`
+
 [**sneq-engine API**](#sneq-engine-api)
 
 ***
@@ -7438,6 +11305,36 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 # Type Alias: MentionResult
 
 > **MentionResult** = \{ `entityId`: [`EntityID`](#type-alias-entityid); `isNew`: `boolean`; `needsAdjudication?`: `false`; `resolvedTo?`: [`EntityID`](#type-alias-entityid); \} \| \{ `candidates`: `object`[]; `entityId`: `null`; `isNew`: `false`; `needsAdjudication`: `true`; `reason?`: `"ambiguous"` \| `"unavailable"`; \}
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / MigrationFindingKind
+
+# Type Alias: MigrationFindingKind
+
+> **MigrationFindingKind** = `"TYPE_MISMATCH_WITH_CANON"` \| `"EMPTY_DOIT_ETRE"` \| `"MIXED_VALUE_TYPES"` \| `"RANGE_ON_NON_NUMBER"` \| `"REGEX_ON_NON_STRING"`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / NarrationVerdict
+
+# Type Alias: NarrationVerdict
+
+> **NarrationVerdict** = `"PASS"` \| `"REPAIR"` \| `"BLOCK"`
+
+What the host must do with this narration.
+
+- `PASS` — show it.
+- `REPAIR` — hand `repairHint` back to the model and ask for one rewrite.
+  Bounded by the host: SNEQ states the problem, it does not run the loop.
+- `BLOCK` — do not show it, and do not ask for a rewrite either. Reserved
+  for a containment failure: the narration says something this holder cannot
+  know, so the payload or the derivation is wrong and a reworded version of
+  the same leak is still a leak.
 
 [**sneq-engine API**](#sneq-engine-api)
 
@@ -7457,7 +11354,27 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 
 # Type Alias: ObservationSource
 
-> **ObservationSource** = `"GM_NARRATION"` \| `"PLAYER_UTTERANCE"` \| `"DICE_ROLL"` \| `"SYSTEM"`
+> **ObservationSource** = `"GM_NARRATION"` \| `"PLAYER_UTTERANCE"` \| `"DICE_ROLL"` \| `"SYSTEM"` \| `"OUT_OF_BAND"`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / PromotionDecision
+
+# Type Alias: PromotionDecision
+
+> **PromotionDecision** = \{ `outcome`: `"PROMOTED"`; `quarantined`: [`ConstraintId`](#type-alias-constraintid)[]; `superseded`: [`InventionTransition`](#interface-inventiontransition)[]; `transition`: [`InventionTransition`](#interface-inventiontransition); \} \| \{ `outcome`: `"REJECTED"`; `quarantined`: [`ConstraintId`](#type-alias-constraintid)[]; `transition`: [`InventionTransition`](#interface-inventiontransition); \}
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / PromotionEvidence
+
+# Type Alias: PromotionEvidence
+
+> **PromotionEvidence** = \{ `eventId`: [`EventId`](#type-alias-eventid); `kind`: `"PLAYER_UPTAKE"`; \} \| \{ `eventId`: [`EventId`](#type-alias-eventid); `kind`: `"WORLD_CONSEQUENCE"`; \} \| \{ `eventId`: [`EventId`](#type-alias-eventid); `kind`: `"RECONFIRMATION"`; \} \| \{ `kind`: `"OFFICIAL_RECORD"`; `recordId`: [`RecordId`](#type-alias-recordid); \}
 
 [**sneq-engine API**](#sneq-engine-api)
 
@@ -7478,6 +11395,22 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 # Type Alias: ProviderKind
 
 > **ProviderKind** = `"openai-compatible"` \| `"anthropic"` \| `"google-genai"` \| `"custom"`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / RecordId
+
+# Type Alias: RecordId
+
+> **RecordId** = `string` & `object`
+
+## Type Declaration
+
+### \[brand\]
+
+> `readonly` **\[brand\]**: `"RecordId"`
 
 [**sneq-engine API**](#sneq-engine-api)
 
@@ -7505,6 +11438,26 @@ Repository surface usable by distributed stores; atomic writes are injected sepa
 
 ***
 
+[sneq-engine API](#sneq-engine-api) / ResolutionRoad
+
+# Type Alias: ResolutionRoad
+
+> **ResolutionRoad** = `"DECLARED_INDIVIDUAL"` \| `"AUTO_PARTICIPANT"` \| `"DEFAULT_GROUP"`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / SalienceWeights
+
+# Type Alias: SalienceWeights
+
+> **SalienceWeights** = [`SalienceFactors`](#interface-saliencefactors)
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
 [sneq-engine API](#sneq-engine-api) / SceneId
 
 # Type Alias: SceneId
@@ -7526,6 +11479,18 @@ Repository surface usable by distributed stores; atomic writes are injected sepa
 # Type Alias: Tier
 
 > **Tier** = `"heavy"` \| `"light"` \| `"embeddings"`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / ToolCommitBundle
+
+# Type Alias: ToolCommitBundle
+
+> **ToolCommitBundle** = `Omit`\<[`CommitNarrativeBundle`](#interface-commitnarrativebundle), `"campaignId"`\>
+
+The bundle minus what the engine owns: campaign, day and turn are never caller-set.
 
 [**sneq-engine API**](#sneq-engine-api)
 
@@ -7568,6 +11533,44 @@ Repository surface usable by distributed stores; atomic writes are injected sepa
 
 ***
 
+[sneq-engine API](#sneq-engine-api) / applyContainment
+
+# Function: applyContainment()
+
+> **applyContainment**(`report`, `containment`): [`ValidationReport`](#interface-validationreport)
+
+Fold a containment result into a gate report (§11 phase F). Containment
+outranks everything: a narration that leaks is BLOCKed even when every proper
+noun in it resolves perfectly.
+
+## Parameters
+
+### report
+
+[`ValidationReport`](#interface-validationreport)
+
+### containment
+
+#### forbidden
+
+`string`[]
+
+#### pass
+
+`boolean`
+
+#### present
+
+`string`[]
+
+## Returns
+
+[`ValidationReport`](#interface-validationreport)
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
 [sneq-engine API](#sneq-engine-api) / asCampaignId
 
 # Function: asCampaignId()
@@ -7583,6 +11586,26 @@ Repository surface usable by distributed stores; atomic writes are injected sepa
 ## Returns
 
 [`CampaignId`](#type-alias-campaignid)
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / asCarriageId
+
+# Function: asCarriageId()
+
+> **asCarriageId**(`s`): [`CarriageId`](#type-alias-carriageid)
+
+## Parameters
+
+### s
+
+`string`
+
+## Returns
+
+[`CarriageId`](#type-alias-carriageid)
 
 [**sneq-engine API**](#sneq-engine-api)
 
@@ -7628,6 +11651,26 @@ Repository surface usable by distributed stores; atomic writes are injected sepa
 
 ***
 
+[sneq-engine API](#sneq-engine-api) / asEventId
+
+# Function: asEventId()
+
+> **asEventId**(`s`): [`EventId`](#type-alias-eventid)
+
+## Parameters
+
+### s
+
+`string`
+
+## Returns
+
+[`EventId`](#type-alias-eventid)
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
 [sneq-engine API](#sneq-engine-api) / asFactId
 
 # Function: asFactId()
@@ -7648,6 +11691,66 @@ Repository surface usable by distributed stores; atomic writes are injected sepa
 
 ***
 
+[sneq-engine API](#sneq-engine-api) / asHolderId
+
+# Function: asHolderId()
+
+> **asHolderId**(`s`): [`HolderId`](#type-alias-holderid)
+
+## Parameters
+
+### s
+
+`string`
+
+## Returns
+
+[`HolderId`](#type-alias-holderid)
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / asInventionId
+
+# Function: asInventionId()
+
+> **asInventionId**(`s`): [`InventionId`](#type-alias-inventionid)
+
+## Parameters
+
+### s
+
+`string`
+
+## Returns
+
+[`InventionId`](#type-alias-inventionid)
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / asRecordId
+
+# Function: asRecordId()
+
+> **asRecordId**(`s`): [`RecordId`](#type-alias-recordid)
+
+## Parameters
+
+### s
+
+`string`
+
+## Returns
+
+[`RecordId`](#type-alias-recordid)
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
 [sneq-engine API](#sneq-engine-api) / asSceneId
 
 # Function: asSceneId()
@@ -7663,6 +11766,217 @@ Repository surface usable by distributed stores; atomic writes are injected sepa
 ## Returns
 
 [`SceneId`](#type-alias-sceneid)
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / assertContainment
+
+# Function: assertContainment()
+
+> **assertContainment**(`world`, `beliefs`, `holderId`, `text`): [`ContainmentResult`](#interface-containmentresult)
+
+§11 phase D — the pre-flight assertion over the composed payload. The host
+composes whatever it wants and submits the final string; SNEQ answers
+whether it contains a token this holder cannot hold. Default posture: throw.
+
+## Parameters
+
+### world
+
+[`TokenWorld`](#interface-tokenworld)
+
+### beliefs
+
+[`Belief`](#interface-belief)[]
+
+### holderId
+
+[`HolderId`](#type-alias-holderid)
+
+### text
+
+`string`
+
+## Returns
+
+[`ContainmentResult`](#interface-containmentresult)
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / bootstrapCampaign
+
+# Function: bootstrapCampaign()
+
+> **bootstrapCampaign**(`repo`, `campaignId`, `opts?`): `Promise`\<[`BootstrapResult`](#interface-bootstrapresult)\>
+
+Campaign bootstrap (§2.3, decided at #15/#26): seed one default realm
+ENTITY (realms are entities, not strings), one default community with a
+single stratum (so `get_holder_context` never returns empty for lack of
+authoring), and the default dispatch rules with ZERO routes — SNEQ owns no
+map, so until the fiction declares its first route, rules fire and find
+nothing, and that state is counted (§6.1 unroutable), never silent.
+
+## Parameters
+
+### repo
+
+[`BootstrapRepo`](#type-alias-bootstraprepo)
+
+### campaignId
+
+[`CampaignId`](#type-alias-campaignid)
+
+### opts?
+
+#### now?
+
+() => `number`
+
+## Returns
+
+`Promise`\<[`BootstrapResult`](#interface-bootstrapresult)\>
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / bootstrapPlan
+
+# Function: bootstrapPlan()
+
+> **bootstrapPlan**(`campaignId`, `now?`): [`BootstrapPlan`](#interface-bootstrapplan)
+
+The bootstrap as pure data, so the three places that have to seed a campaign
+— `createCampaign`, the SQLite v3→v5 migration and the JSON v1 loader —
+write the same rows instead of three hand-copied versions that drift. Same
+reason `migrateLegacyCampaign` is a pure core.
+
+## Parameters
+
+### campaignId
+
+[`CampaignId`](#type-alias-campaignid)
+
+### now?
+
+`number` = `...`
+
+## Returns
+
+[`BootstrapPlan`](#interface-bootstrapplan)
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / buildHolderContext
+
+# Function: buildHolderContext()
+
+> **buildHolderContext**(`input`): [`HolderContext`](#interface-holdercontext)
+
+Filter, rank and explain — the pure half of phase B. `deriveBeliefs` has
+already decided what this holder knows; this decides what to hand over.
+
+`about` filters on an event→entity walk done here rather than through an
+index: `Belief.subject` is EVENT | RECORD, and the contract has no
+event→entity index (a gap §13 names). Over a campaign's ledger the walk is
+cheap; if it ever stops being cheap, that index is the fix, not a cache.
+
+## Parameters
+
+### input
+
+[`HolderContextInput`](#interface-holdercontextinput)
+
+## Returns
+
+[`HolderContext`](#interface-holdercontext)
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / checkContainment
+
+# Function: checkContainment()
+
+> **checkContainment**(`forbidden`, `text`): [`ContainmentResult`](#interface-containmentresult)
+
+## Parameters
+
+### forbidden
+
+`string`[]
+
+### text
+
+`string`
+
+## Returns
+
+[`ContainmentResult`](#interface-containmentresult)
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / commitNarrative
+
+# Function: commitNarrative()
+
+> **commitNarrative**(`repo`, `bundle`, `opts?`): `Promise`\<[`CommitNarrativeResult`](#interface-commitnarrativeresult)\>
+
+The single atomic write (§5.1): gather → decide (pure, shared rules) →
+apply, all inside one repository transaction. Idempotent by `operationId`
+(#29): a retry replays the recorded result — exactly one event, one time
+advance, one transition set, however many times the caller retries.
+
+## Parameters
+
+### repo
+
+[`Repository`](#interface-repository)
+
+### bundle
+
+[`CommitNarrativeBundle`](#interface-commitnarrativebundle)
+
+### opts?
+
+[`CommitNarrativeOptions`](#interface-commitnarrativeoptions) = `{}`
+
+## Returns
+
+`Promise`\<[`CommitNarrativeResult`](#interface-commitnarrativeresult)\>
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / computeSalience
+
+# Function: computeSalience()
+
+> **computeSalience**(`factors`, `weights?`): `number`
+
+## Parameters
+
+### factors
+
+[`SalienceFactors`](#interface-saliencefactors)
+
+### weights?
+
+[`SalienceFactors`](#interface-saliencefactors) = `DEFAULT_SALIENCE_WEIGHTS`
+
+## Returns
+
+`number`
 
 [**sneq-engine API**](#sneq-engine-api)
 
@@ -7728,6 +12042,34 @@ Repository surface usable by distributed stores; atomic writes are injected sepa
 
 ***
 
+[sneq-engine API](#sneq-engine-api) / decideCommitNarrative
+
+# Function: decideCommitNarrative()
+
+> **decideCommitNarrative**(`bundle`, `ctx`): [`CommitPlan`](#interface-commitplan)
+
+The single write (§5.1), as a pure decision — the `decideCommitNarrative`
+§13 asked for, so the out-of-tree Convex adapter shares SNEQ's rules instead
+of re-deriving them. The executor applies the plan in one transaction.
+
+## Parameters
+
+### bundle
+
+[`CommitNarrativeBundle`](#interface-commitnarrativebundle)
+
+### ctx
+
+[`CommitContext`](#interface-commitcontext)
+
+## Returns
+
+[`CommitPlan`](#interface-commitplan)
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
 [sneq-engine API](#sneq-engine-api) / decideConfirmEntityMatch
 
 # Function: decideConfirmEntityMatch()
@@ -7768,21 +12110,30 @@ Repository surface usable by distributed stores; atomic writes are injected sepa
 
 ***
 
-[sneq-engine API](#sneq-engine-api) / decideRegisterFact
+[sneq-engine API](#sneq-engine-api) / decidePromotion
 
-# Function: decideRegisterFact()
+# Function: decidePromotion()
 
-> **decideRegisterFact**(`input`): [`RegisterFactDecision`](#interface-registerfactdecision)
+> **decidePromotion**(`invention`, `ctx`): [`PromotionDecision`](#type-alias-promotiondecision)
+
+The collapse loop, aimed at the output side (§2.6): promotion validates
+against canon + exclusion constraints. Contradiction by canon → REJECTED
+silently — no error, no interrupt (inverting today's `decideRegisterFact`
+path). Between provisionals, first uptake wins and the loser is SUPERSEDED.
 
 ## Parameters
 
-### input
+### invention
 
-[`RegisterFactDecisionInput`](#interface-registerfactdecisioninput)
+[`ProvisionalInvention`](#interface-provisionalinvention)
+
+### ctx
+
+[`PromotionContext`](#interface-promotioncontext)
 
 ## Returns
 
-[`RegisterFactDecision`](#interface-registerfactdecision)
+[`PromotionDecision`](#type-alias-promotiondecision)
 
 [**sneq-engine API**](#sneq-engine-api)
 
@@ -7822,6 +12173,111 @@ Repository surface usable by distributed stores; atomic writes are injected sepa
 
 ***
 
+[sneq-engine API](#sneq-engine-api) / deriveBeliefs
+
+# Function: deriveBeliefs()
+
+> **deriveBeliefs**(`world`, `holderId`, `today`): [`Belief`](#interface-belief)[]
+
+What a holder knows (§2.5): a pure function of
+(events, records, carriages, effects, holders, today). Never stored.
+
+The matrix (§7.2): participants know immediately with WITNESSED; a group
+witnesses events at its own place; everything else arrives by carriage —
+nothing early, OFFICIAL halts at a realm border regardless of standing,
+RUMOUR crosses but still waits, `minStanding` filters strata, DELAY shifts,
+CANCEL kills, DISCREDIT degrades fiabilite only. LEGACY_CANON events are
+known to the campaign default group (and, by inheritance, the player) from
+day 0 (#17) — pre-0.4 canon was omniscient; old data keeps old semantics.
+
+## Parameters
+
+### world
+
+[`BeliefWorld`](#interface-beliefworld)
+
+### holderId
+
+[`HolderId`](#type-alias-holderid)
+
+### today
+
+`number`
+
+## Returns
+
+[`Belief`](#interface-belief)[]
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / detectPlayerUptake
+
+# Function: detectPlayerUptake()
+
+> **detectPlayerUptake**(`text`, `inventions`, `atTurn`): [`InventionId`](#type-alias-inventionid)[]
+
+The detection half of phase A, pure. Resolution of mentions needs the resolver and stays in the context.
+
+## Parameters
+
+### text
+
+`string`
+
+### inventions
+
+[`ProvisionalInvention`](#interface-provisionalinvention)[]
+
+### atTurn
+
+`number`
+
+## Returns
+
+[`InventionId`](#type-alias-inventionid)[]
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / detectUptake
+
+# Function: detectUptake()
+
+> **detectUptake**(`utterance`, `inventions`, `atTurn`): [`InventionId`](#type-alias-inventionid)[]
+
+Player uptake, detected by the engine at commit time, never by the model
+(§2.6): a case-insensitive substring search of the utterance for each
+provisional invention's known `surfaceTokens` — the `checkContainment`
+match, not open extraction (#25; closes §0.5 premise 4's under-fire on
+lowercase tokens). A same-turn echo is the GM's own phrasing bouncing back
+and is not uptake. Confidence plays no part: it is provenance, never a
+promotion threshold.
+
+## Parameters
+
+### utterance
+
+`string`
+
+### inventions
+
+[`ProvisionalInvention`](#interface-provisionalinvention)[]
+
+### atTurn
+
+`number`
+
+## Returns
+
+[`InventionId`](#type-alias-inventionid)[]
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
 [sneq-engine API](#sneq-engine-api) / dispatchToolCall
 
 # Function: dispatchToolCall()
@@ -7845,6 +12301,72 @@ Repository surface usable by distributed stores; atomic writes are injected sepa
 ## Returns
 
 `Promise`\<`unknown`\>
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / filterTranscript
+
+# Function: filterTranscript()
+
+> **filterTranscript**(`world`, `beliefs`, `entries`): [`TranscriptFilterResult`](#interface-transcriptfilterresult)
+
+Phase C's other half (§11) — the leak that is measurable today. The host
+holds a transcript; this says which entries THIS holder may see. Without it
+the guarantee expires after one turn, because turn 2's prompt replays turn
+1's prose unfiltered (grimoire re-injects the last twelve journal entries
+raw on every call).
+
+Drop, never rewrite: a summariser would be a model call inside the seam, and
+the seam's whole claim is that it hands over nothing it has not checked.
+
+## Parameters
+
+### world
+
+[`TokenWorld`](#interface-tokenworld)
+
+### beliefs
+
+[`Belief`](#interface-belief)[]
+
+### entries
+
+[`TranscriptEntry`](#interface-transcriptentry)[]
+
+## Returns
+
+[`TranscriptFilterResult`](#interface-transcriptfilterresult)
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / forbiddenTokensFor
+
+# Function: forbiddenTokensFor()
+
+> **forbiddenTokensFor**(`world`, `beliefs`): `string`[]
+
+Every token from every event/record this holder has NOT learned. Decided
+from state, before any call — not a validator on the model's output; a
+statement about what was handed over. A token the holder legitimately holds
+is never forbidden, even if it also appears in something they don't hold.
+
+## Parameters
+
+### world
+
+[`TokenWorld`](#interface-tokenworld)
+
+### beliefs
+
+[`Belief`](#interface-belief)[]
+
+## Returns
+
+`string`[]
 
 [**sneq-engine API**](#sneq-engine-api)
 
@@ -7906,6 +12428,30 @@ Repository surface usable by distributed stores; atomic writes are injected sepa
 
 ***
 
+[sneq-engine API](#sneq-engine-api) / migrateLegacyCampaign
+
+# Function: migrateLegacyCampaign()
+
+> **migrateLegacyCampaign**(`input`): [`LegacyMigrationOutput`](#interface-legacymigrationoutput)
+
+The v0.4 migration epoch, as one pure function — shared by the SQLite v5
+migration and the JSON v1 loader so the two cannot drift. Deterministic:
+every synthesized id derives from content.
+
+## Parameters
+
+### input
+
+[`LegacyCampaignInput`](#interface-legacycampaigninput)
+
+## Returns
+
+[`LegacyMigrationOutput`](#interface-legacymigrationoutput)
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
 [sneq-engine API](#sneq-engine-api) / openAITools
 
 # Function: openAITools()
@@ -7920,21 +12466,208 @@ Repository surface usable by distributed stores; atomic writes are injected sepa
 
 ***
 
-[sneq-engine API](#sneq-engine-api) / propagate
+[sneq-engine API](#sneq-engine-api) / rebuildProjection
 
-# Function: propagate()
+# Function: rebuildProjection()
 
-> **propagate**(`input`): [`PropagationResult`](#interface-propagationresult)
+> **rebuildProjection**(`inputs`): [`CanonicalAttribute`](#interface-canonicalattribute)[]
+
+The deterministic fold (#27): `CanonicalAttribute` is a pure function of the
+ledger, with exactly the three producers the `source` union names. Applied in
+(day, turn, ledger sequence) order — last writer wins; replace-on-key is
+state evolution. Two `sets` on the same key with different values inside one
+event throw `SneqContradictionError`: a self-contradicting bundle is a
+caller bug, not fiction. Records never project.
+
+`rebuild(ledger) === projection` is the contract this function IS — it is
+also the SQLite v3→v4 migration tool (§5.4).
+
+## Parameters
+
+### inputs
+
+[`ProjectionInputs`](#interface-projectioninputs)
+
+## Returns
+
+[`CanonicalAttribute`](#interface-canonicalattribute)[]
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / renderContextBlock
+
+# Function: renderContextBlock()
+
+> **renderContextBlock**(`ctx`): `string`
+
+Phase C — the prompt block, rendered by the engine so every consumer stops
+writing its own (4/4 did). Deliberately plain text: the host owns the
+prompt, SNEQ owns what may be in it.
+
+## Parameters
+
+### ctx
+
+[`HolderContext`](#interface-holdercontext)
+
+## Returns
+
+`string`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / resolveHolder
+
+# Function: resolveHolder()
+
+> **resolveHolder**(`entityId`, `input`): [`HolderResolution`](#interface-holderresolution)
+
+The cascade (§2.3, #21): declared INDIVIDUAL → lazy auto-PARTICIPANT (#28) →
+campaign default group. Participation IS the declared reason, and the fiction
+touching the NPC is the trigger — a holder row exists only for entities the
+fiction actually asks about, so the cost is bounded by real play, never cast
+size. LEGACY_CANON participation does not derogate: the migration epoch is
+shared knowledge, not drama.
+
+## Parameters
+
+### entityId
+
+[`EntityID`](#type-alias-entityid)
+
+### input
+
+[`HolderResolutionInput`](#interface-holderresolutioninput)
+
+## Returns
+
+[`HolderResolution`](#interface-holderresolution)
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / runDoctor
+
+# Function: runDoctor()
+
+> **runDoctor**(`input`): [`DoctorReport`](#interface-doctorreport)
+
+§12.4's executable checklist. Four consumers, four silent misintegrations,
+zero of them detectable from inside the consumer — this is the instrument
+that says *why* when the campaign misbehaves, instead of leaving an
+impression.
+
+Pure: the CLI gathers, this judges. Every FAIL names the corrective call.
 
 ## Parameters
 
 ### input
 
-[`PropagationInput`](#interface-propagationinput)
+[`DoctorInput`](#interface-doctorinput)
 
 ## Returns
 
-[`PropagationResult`](#interface-propagationresult)
+[`DoctorReport`](#interface-doctorreport)
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / surfaceTokensOf
+
+# Function: surfaceTokensOf()
+
+> **surfaceTokensOf**(`subject`, `entities`): `string`[]
+
+Supplied tokens + the engine floor (#25): participant/place/object names and
+aliases for events; subject names, key, and textual value for records.
+`verb` is excluded — taxonomy strings do not occur in prose and only add
+false positives. The measured basis: the prototype's containment ran on
+hand-authored lowercase phrases; the floor covers what is mechanically
+nameable, the model covers the distinctive surface.
+
+## Parameters
+
+### subject
+
+[`NarrativeEvent`](#interface-narrativeevent) \| [`OfficialRecord`](#interface-officialrecord)
+
+### entities
+
+[`EntityLike`](#interface-entitylike)[]
+
+## Returns
+
+`string`[]
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / tick
+
+# Function: tick()
+
+> **tick**(`repo`, `campaignId`, `opts`): `Promise`\<\{ `health`: [`WorldHealth`](#interface-worldhealth); `worldDay`: `number`; \}\>
+
+Phase H (§11), reduced to what pure derivation leaves it: the out-of-band
+clock road (#20 — downtime, session breaks; in-fiction time travels on
+`commit_narrative.daysElapsed`) plus the world-health report. Arrivals and
+salience decay are read-time facts of `deriveBeliefs`; policy dispatch
+happens at commit.
+
+## Parameters
+
+### repo
+
+[`Repository`](#interface-repository)
+
+### campaignId
+
+[`CampaignId`](#type-alias-campaignid)
+
+### opts
+
+#### days
+
+`number`
+
+#### k?
+
+`number`
+
+## Returns
+
+`Promise`\<\{ `health`: [`WorldHealth`](#interface-worldhealth); `worldDay`: `number`; \}\>
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / validateSuppliedTokens
+
+# Function: validateSuppliedTokens()
+
+> **validateSuppliedTokens**(`e`): `string`[]
+
+Commit-time validation (#25): a supplied token absent from `circumstance`
+and every textual act value cannot leak — it can only false-positive against
+innocent prose — so it is rejected. Returns the invalid tokens.
+
+## Parameters
+
+### e
+
+[`NarrativeEvent`](#interface-narrativeevent)
+
+## Returns
+
+`string`[]
 
 [**sneq-engine API**](#sneq-engine-api)
 
@@ -7960,6 +12693,26 @@ Repository surface usable by distributed stores; atomic writes are injected sepa
 
 [`ValidationResult`](#interface-validationresult)
 
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / worldHealth
+
+# Function: worldHealth()
+
+> **worldHealth**(`input`): [`WorldHealth`](#interface-worldhealth)
+
+## Parameters
+
+### input
+
+[`WorldHealthInput`](#interface-worldhealthinput)
+
+## Returns
+
+[`WorldHealth`](#interface-worldhealth)
+
 
 ## variables
 
@@ -7979,11 +12732,72 @@ Tools advertised to LLMs. Every listed tool is implemented.
 
 ***
 
+[sneq-engine API](#sneq-engine-api) / DEFAULT\_GROUP\_HOLDER\_ID
+
+# Variable: DEFAULT\_GROUP\_HOLDER\_ID
+
+> `const` **DEFAULT\_GROUP\_HOLDER\_ID**: `"h_default_group"` = `"h_default_group"`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / DEFAULT\_MAX\_DISPATCH\_FANOUT
+
+# Variable: DEFAULT\_MAX\_DISPATCH\_FANOUT
+
+> `const` **DEFAULT\_MAX\_DISPATCH\_FANOUT**: `64` = `64`
+
+Default for EngineConfig.maxDispatchFanout (#15).
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / DEFAULT\_REALM\_ENTITY\_ID
+
+# Variable: DEFAULT\_REALM\_ENTITY\_ID
+
+> `const` **DEFAULT\_REALM\_ENTITY\_ID**: `"realm_default"` = `"realm_default"`
+
+Deterministic ids — the executor and the CLI can rely on them without a lookup.
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / DEFAULT\_SALIENCE\_WEIGHTS
+
+# Variable: DEFAULT\_SALIENCE\_WEIGHTS
+
+> `const` **DEFAULT\_SALIENCE\_WEIGHTS**: [`SalienceWeights`](#type-alias-salienceweights)
+
+The prototype's exercised values (§2.5). Five factors are the decided thing;
+the weights are a config constant, tunable via `EngineConfig` without
+touching the factor list. The model never ranks its own memory.
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
+[sneq-engine API](#sneq-engine-api) / OPERATION\_RETENTION
+
+# Variable: OPERATION\_RETENTION
+
+> `const` **OPERATION\_RETENTION**: `100` = `100`
+
+Per-campaign size of the operation dedup ring (#29). Retries are
+near-in-time; the ring is a bounded log, never a forever-log.
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
 [sneq-engine API](#sneq-engine-api) / SNEQ\_ENGINE\_VERSION
 
 # Variable: SNEQ\_ENGINE\_VERSION
 
-> `const` **SNEQ\_ENGINE\_VERSION**: `"0.3.1"` = `"0.3.1"`
+> `const` **SNEQ\_ENGINE\_VERSION**: `"0.5.0"` = `"0.5.0"`
 
 [**sneq-engine API**](#sneq-engine-api)
 
@@ -7993,7 +12807,12 @@ Tools advertised to LLMs. Every listed tool is implemented.
 
 # Variable: ToolNames
 
-> `const` **ToolNames**: readonly \[`"sneq__lookup_entity"`, `"sneq__get_entity"`, `"sneq__get_relevant_facts"`, `"sneq__suggest_existing"`, `"sneq__mention_entity"`, `"sneq__register_fact"`, `"sneq__add_constraint"`, `"sneq__set_scene"`, `"sneq__advance_turn"`, `"sneq__validate_narration"`\]
+> `const` **ToolNames**: readonly \[`"sneq__lookup_entity"`, `"sneq__get_entity"`, `"sneq__get_holder_context"`, `"sneq__suggest_existing"`, `"sneq__mention_entity"`, `"sneq__commit_narrative"`, `"sneq__add_constraint"`, `"sneq__set_scene"`, `"sneq__advance_turn"`, `"sneq__validate_narration"`\]
+
+Ten tools (§5.2). `get_relevant_facts` and `register_fact` are gone: the
+first was the omniscient read this design exists to remove, the second asked
+a stochastic process to invent a stable attribute key and then let
+GM_NARRATION walk straight into canon.
 
 [**sneq-engine API**](#sneq-engine-api)
 
@@ -8071,19 +12890,23 @@ Every id below is an engine-issued entity id from `lookup_entity` or
 
 ### sneq\_\_add\_constraint
 
-> `readonly` **sneq\_\_add\_constraint**: `ZodObject`\<\{ `attributeKey`: `ZodString`; `entityId`: `ZodString`; `justification`: `ZodString`; `rule`: `ZodUnknown`; \}, `$strip`\>
+> `readonly` **sneq\_\_add\_constraint**: `ZodObject`\<\{ `attributeKey`: `ZodString`; `entityId`: `ZodString`; `justification`: `ZodString`; `role`: `ZodUnion`\<readonly \[`ZodObject`\<\{ `role`: `ZodLiteral`\<`"REGLE_MONDE"`\>; `ruleId`: `ZodString`; \}, `$strip`\>, `ZodObject`\<\{ `confidence`: `ZodNumber`; `role`: `ZodLiteral`\<`"INFERENCE_IA"`\>; \}, `$strip`\>, `ZodObject`\<\{ `factId`: `ZodString`; `role`: `ZodLiteral`\<`"FAIT_CANONIQUE"`\>; \}, `$strip`\>, `ZodObject`\<\{ `edgeKey`: `ZodString`; `role`: `ZodLiteral`\<`"RELATION"`\>; \}, `$strip`\>\]\>; `rule`: `ZodUnknown`; \}, `$strip`\>
 
 ### sneq\_\_advance\_turn
 
-> `readonly` **sneq\_\_advance\_turn**: `ZodObject`\<\{ `summary`: `ZodOptional`\<`ZodString`\>; \}, `$strip`\>
+> `readonly` **sneq\_\_advance\_turn**: `ZodObject`\<\{ `days`: `ZodOptional`\<`ZodNumber`\>; `summary`: `ZodOptional`\<`ZodString`\>; \}, `$strip`\>
+
+### sneq\_\_commit\_narrative
+
+> `readonly` **sneq\_\_commit\_narrative**: `ZodObject`\<\{ `carriageEffects`: `ZodOptional`\<`ZodArray`\<`ZodObject`\<\{ `carriageId`: `ZodString`; `declaredOnDay`: `ZodNumber`; `effect`: `ZodUnion`\<readonly \[`ZodObject`\<\{ `days`: ...; `kind`: ...; \}, `$strip`\>, `ZodObject`\<\{ `kind`: ...; \}, `$strip`\>, `ZodObject`\<\{ `kind`: ...; \}, `$strip`\>\]\>; \}, `$strip`\>\>\>; `carriages`: `ZodOptional`\<`ZodArray`\<`ZodObject`\<\{ `carriageId`: `ZodString`; `carrier`: `ZodString`; `fromPlaceId`: `ZodString`; `minStanding`: `ZodOptional`\<`ZodNumber`\>; `route`: `ZodEnum`\<\{ `OFFICIAL`: `"OFFICIAL"`; `RUMOUR`: `"RUMOUR"`; \}\>; `subject`: `ZodUnion`\<readonly \[`ZodObject`\<\{ `id`: ...; `kind`: ...; \}, `$strip`\>, `ZodObject`\<\{ `id`: ...; `kind`: ...; \}, `$strip`\>\]\>; `toPlaceId`: `ZodString`; `travelDays`: `ZodNumber`; \}, `$strip`\>\>\>; `daysElapsed`: `ZodNumber`; `event`: `ZodOptional`\<`ZodObject`\<\{ `acts`: `ZodArray`\<`ZodObject`\<\{ `actorId`: `ZodString`; `objectId`: `ZodOptional`\<`ZodString`\>; `sets`: `ZodOptional`\<`ZodObject`\<..., ...\>\>; `value`: `ZodOptional`\<`ZodType`\<..., ..., ...\>\>; `verb`: `ZodString`; \}, `$strip`\>\>; `circumstance`: `ZodString`; `eventId`: `ZodString`; `gravity`: `ZodUnion`\<readonly \[`ZodLiteral`\<`0`\>, `ZodLiteral`\<`1`\>, `ZodLiteral`\<`2`\>, `ZodLiteral`\<`3`\>\]\>; `participants`: `ZodArray`\<`ZodString`\>; `placeId`: `ZodOptional`\<`ZodString`\>; `surfaceTokens`: `ZodArray`\<`ZodString`\>; \}, `$strip`\>\>; `holders`: `ZodOptional`\<`ZodArray`\<`ZodUnion`\<readonly \[`ZodObject`\<\{ `community`: `ZodString`; `holderId`: `ZodString`; `kind`: `ZodLiteral`\<`"GROUP"`\>; `placeId`: `ZodString`; `realmId`: `ZodString`; `standing`: `ZodNumber`; `stratum`: `ZodString`; \}, `$strip`\>, `ZodObject`\<\{ `baseGroupId`: `ZodString`; `derogationReason`: `ZodEnum`\<\{ `PARTICIPANT`: ...; `PERSONAL_STAKE`: ...; `PLAYER`: ...; \}\>; `entityId`: `ZodString`; `holderId`: `ZodString`; `kind`: `ZodLiteral`\<`"INDIVIDUAL"`\>; `standingOverride`: `ZodOptional`\<`ZodNumber`\>; \}, `$strip`\>\]\>\>\>; `inventions`: `ZodOptional`\<`ZodArray`\<`ZodObject`\<\{ `attributeKey`: `ZodString`; `category`: `ZodEnum`\<\{ `COMPETENCE`: `"COMPETENCE"`; `ETAT`: `"ETAT"`; `HISTORIQUE`: `"HISTORIQUE"`; `IDENTITE`: `"IDENTITE"`; `POSSESSION`: `"POSSESSION"`; `PSYCHOLOGIE`: `"PSYCHOLOGIE"`; `SECRET`: `"SECRET"`; `SOCIAL`: `"SOCIAL"`; \}\>; `confidence`: `ZodNumber`; `entityId`: `ZodString`; `inventionId`: `ZodString`; `sourceNarration`: `ZodString`; `surfaceTokens`: `ZodArray`\<`ZodString`\>; `value`: `ZodType`\<`unknown`, `unknown`, `$ZodTypeInternals`\<`unknown`, `unknown`\>\>; \}, `$strip`\>\>\>; `operationId`: `ZodString`; `playerUtterance`: `ZodOptional`\<`ZodString`\>; `policy`: `ZodOptional`\<`ZodObject`\<\{ `routes`: `ZodOptional`\<`ZodArray`\<`ZodObject`\<\{ `fromPlaceId`: `ZodString`; `minStanding`: `ZodOptional`\<...\>; `route`: `ZodEnum`\<...\>; `toPlaceId`: `ZodString`; `travelDays`: `ZodNumber`; \}, `$strip`\>\>\>; `rules`: `ZodOptional`\<`ZodArray`\<`ZodObject`\<\{ `carrierLabel`: `ZodString`; `minGravity`: `ZodUnion`\<...\>; `route`: `ZodEnum`\<...\>; `targets`: `ZodUnion`\<...\>; \}, `$strip`\>\>\>; \}, `$strip`\>\>; `promotionEvidence`: `ZodOptional`\<`ZodArray`\<`ZodObject`\<\{ `evidence`: `ZodUnion`\<readonly \[`ZodObject`\<\{ `eventId`: ...; `kind`: ...; \}, `$strip`\>, `ZodObject`\<\{ `eventId`: ...; `kind`: ...; \}, `$strip`\>, `ZodObject`\<\{ `eventId`: ...; `kind`: ...; \}, `$strip`\>, `ZodObject`\<\{ `kind`: ...; `recordId`: ...; \}, `$strip`\>\]\>; `inventionId`: `ZodString`; \}, `$strip`\>\>\>; `records`: `ZodOptional`\<`ZodArray`\<`ZodObject`\<\{ `aboutEventId`: `ZodOptional`\<`ZodString`\>; `authoredBy`: `ZodString`; `category`: `ZodEnum`\<\{ `COMPETENCE`: `"COMPETENCE"`; `ETAT`: `"ETAT"`; `HISTORIQUE`: `"HISTORIQUE"`; `IDENTITE`: `"IDENTITE"`; `POSSESSION`: `"POSSESSION"`; `PSYCHOLOGIE`: `"PSYCHOLOGIE"`; `SECRET`: `"SECRET"`; `SOCIAL`: `"SOCIAL"`; \}\>; `entityId`: `ZodString`; `key`: `ZodString`; `observation`: `ZodObject`\<\{ `emittedBy`: `ZodOptional`\<`ZodString`\>; `excerpt`: `ZodOptional`\<`ZodString`\>; `method`: `ZodEnum`\<\{ `AVEU`: ...; `DEDUCTION_CONFIRMEE`: ...; `DEMONSTRATION`: ...; `DIALOGUE_DIRECT`: ...; `DOCUMENT`: ...; `OBSERVATION_VISUELLE`: ...; \}\>; `sceneId`: `ZodOptional`\<`ZodString`\>; `source`: `ZodEnum`\<\{ `DICE_ROLL`: ...; `GM_NARRATION`: ...; `OUT_OF_BAND`: ...; `PLAYER_UTTERANCE`: ...; `SYSTEM`: ...; \}\>; `timestamp`: `ZodNumber`; \}, `$strict`\>; `recordId`: `ZodString`; `route`: `ZodEnum`\<\{ `OFFICIAL`: `"OFFICIAL"`; `RUMOUR`: `"RUMOUR"`; \}\>; `surfaceTokens`: `ZodArray`\<`ZodString`\>; `value`: `ZodType`\<`unknown`, `unknown`, `$ZodTypeInternals`\<`unknown`, `unknown`\>\>; \}, `$strip`\>\>\>; \}, `$strip`\>
 
 ### sneq\_\_get\_entity
 
 > `readonly` **sneq\_\_get\_entity**: `ZodObject`\<\{ `entityId`: `ZodString`; \}, `$strip`\>
 
-### sneq\_\_get\_relevant\_facts
+### sneq\_\_get\_holder\_context
 
-> `readonly` **sneq\_\_get\_relevant\_facts**: `ZodObject`\<\{ `attributeKeys`: `ZodOptional`\<`ZodArray`\<`ZodString`\>\>; `depth`: `ZodOptional`\<`ZodUnion`\<readonly \[`ZodLiteral`\<`0`\>, `ZodLiteral`\<`1`\>\]\>\>; `entityId`: `ZodString`; \}, `$strip`\>
+> `readonly` **sneq\_\_get\_holder\_context**: `ZodObject`\<\{ `about`: `ZodOptional`\<`ZodString`\>; `entityId`: `ZodOptional`\<`ZodString`\>; `holderId`: `ZodOptional`\<`ZodString`\>; `topK`: `ZodOptional`\<`ZodNumber`\>; \}, `$strip`\> = `holderContextArgs`
 
 ### sneq\_\_lookup\_entity
 
@@ -8092,10 +12915,6 @@ Every id below is an engine-issued entity id from `lookup_entity` or
 ### sneq\_\_mention\_entity
 
 > `readonly` **sneq\_\_mention\_entity**: `ZodObject`\<\{ `aliases`: `ZodOptional`\<`ZodArray`\<`ZodString`\>\>; `canonicalName`: `ZodString`; `description`: `ZodString`; `force`: `ZodOptional`\<`ZodBoolean`\>; `type`: `ZodEnum`\<\{ `EVENEMENT`: `"EVENEMENT"`; `FACTION`: `"FACTION"`; `LIEU`: `"LIEU"`; `OBJET`: `"OBJET"`; `PERSONNAGE`: `"PERSONNAGE"`; `RELATION`: `"RELATION"`; `SCENE`: `"SCENE"`; `WORLD`: `"WORLD"`; \}\>; \}, `$strip`\>
-
-### sneq\_\_register\_fact
-
-> `readonly` **sneq\_\_register\_fact**: `ZodObject`\<\{ `attributeKey`: `ZodString`; `category`: `ZodEnum`\<\{ `COMPETENCE`: `"COMPETENCE"`; `ETAT`: `"ETAT"`; `HISTORIQUE`: `"HISTORIQUE"`; `IDENTITE`: `"IDENTITE"`; `POSSESSION`: `"POSSESSION"`; `PSYCHOLOGIE`: `"PSYCHOLOGIE"`; `SECRET`: `"SECRET"`; `SOCIAL`: `"SOCIAL"`; \}\>; `entityId`: `ZodString`; `observation`: `ZodObject`\<\{ `emittedBy`: `ZodOptional`\<`ZodString`\>; `excerpt`: `ZodOptional`\<`ZodString`\>; `fiabilite`: `ZodEnum`\<\{ `CERTAINE`: `"CERTAINE"`; `RUMEUR_CONFIRMEE`: `"RUMEUR_CONFIRMEE"`; `TEMOIGNAGE`: `"TEMOIGNAGE"`; \}\>; `method`: `ZodEnum`\<\{ `AVEU`: `"AVEU"`; `DEDUCTION_CONFIRMEE`: `"DEDUCTION_CONFIRMEE"`; `DEMONSTRATION`: `"DEMONSTRATION"`; `DIALOGUE_DIRECT`: `"DIALOGUE_DIRECT"`; `DOCUMENT`: `"DOCUMENT"`; `OBSERVATION_VISUELLE`: `"OBSERVATION_VISUELLE"`; \}\>; `sceneId`: `ZodOptional`\<`ZodString`\>; `source`: `ZodEnum`\<\{ `DICE_ROLL`: `"DICE_ROLL"`; `GM_NARRATION`: `"GM_NARRATION"`; `PLAYER_UTTERANCE`: `"PLAYER_UTTERANCE"`; `SYSTEM`: `"SYSTEM"`; \}\>; `timestamp`: `ZodNumber`; \}, `$strip`\>; `value`: `ZodType`\<`unknown`, `unknown`, `$ZodTypeInternals`\<`unknown`, `unknown`\>\>; \}, `$strip`\>
 
 ### sneq\_\_set\_scene
 
@@ -8107,4 +12926,4 @@ Every id below is an engine-issued entity id from `lookup_entity` or
 
 ### sneq\_\_validate\_narration
 
-> `readonly` **sneq\_\_validate\_narration**: `ZodObject`\<\{ `narration`: `ZodString`; `strict`: `ZodOptional`\<`ZodBoolean`\>; `type`: `ZodOptional`\<`ZodEnum`\<\{ `EVENEMENT`: `"EVENEMENT"`; `FACTION`: `"FACTION"`; `LIEU`: `"LIEU"`; `OBJET`: `"OBJET"`; `PERSONNAGE`: `"PERSONNAGE"`; `RELATION`: `"RELATION"`; `SCENE`: `"SCENE"`; `WORLD`: `"WORLD"`; \}\>\>; \}, `$strip`\>
+> `readonly` **sneq\_\_validate\_narration**: `ZodObject`\<\{ `holderId`: `ZodOptional`\<`ZodString`\>; `narration`: `ZodString`; `strict`: `ZodOptional`\<`ZodBoolean`\>; `type`: `ZodOptional`\<`ZodEnum`\<\{ `EVENEMENT`: `"EVENEMENT"`; `FACTION`: `"FACTION"`; `LIEU`: `"LIEU"`; `OBJET`: `"OBJET"`; `PERSONNAGE`: `"PERSONNAGE"`; `RELATION`: `"RELATION"`; `SCENE`: `"SCENE"`; `WORLD`: `"WORLD"`; \}\>\>; \}, `$strip`\>

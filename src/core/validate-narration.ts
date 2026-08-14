@@ -231,7 +231,12 @@ export class Validator {
   }
 
   /** Stage 4 — group + sort + report shape. */
-  private assemble(extracted: string[], resolved: ResolvedCandidate[], partial: boolean): ValidationReport {
+  private assemble(
+    extracted: string[],
+    resolved: ResolvedCandidate[],
+    partial: boolean,
+    strict: boolean,
+  ): ValidationReport {
     // Sort: most-urgent kind first (no-match → ambiguous → below-threshold),
     // then highest confidence first within a kind.
     const order: Record<ResolvedCandidate["kind"], number> = {
@@ -246,11 +251,16 @@ export class Validator {
       const bConf = b.suggestions[0]?.confidence ?? 0;
       return bConf - aConf;
     });
+    // `strict` finally does something (§5.2): unresolved nouns are a reason to
+    // ask for one rewrite, not merely a line in a report nobody acts on.
+    const verdict = sorted.length > 0 && strict ? "REPAIR" : "PASS";
     const report: ValidationReport = {
       ok: sorted.length === 0,
+      verdict,
       extractedNames: extracted,
       issues: sorted
     };
+    if (verdict === "REPAIR") report.repairHint = repairHintFor(sorted);
     if (partial) report.partial = true;
     return report;
   }
@@ -263,7 +273,7 @@ export class Validator {
   ): Promise<ValidationReport> {
     const candidates = this.extract(input.narration);
     if (candidates.length === 0) {
-      return { ok: true, extractedNames: [], issues: [] };
+      return { ok: true, verdict: "PASS", extractedNames: [], issues: [] };
     }
     // resolvePass + topEntities are independent (one walks the resolver, the
     // other hits the repo). Fire in parallel — saves a round-trip in the
@@ -273,7 +283,7 @@ export class Validator {
       repo.topEntities(campaignId, this.topK)
     ]);
     const llmStage = await this.llmPass(campaignId, input.narration, resolved, top);
-    return this.assemble(candidates, llmStage.candidates, llmStage.partial);
+    return this.assemble(candidates, llmStage.candidates, llmStage.partial, input.strict === true);
   }
 
   /** Strip surrounding punctuation and French elision contractions. */
@@ -292,6 +302,47 @@ export class Validator {
     const first = t[0]!;
     return first.toUpperCase() === first && first.toLowerCase() !== first;
   }
+}
+
+/** Names the offending nouns and the call that fixes each one — a hint the model can act on. */
+function repairHintFor(issues: ResolvedCandidate[]): string {
+  const named = issues.slice(0, 5).map(i => {
+    const best = i.suggestions[0];
+    return best
+      ? `"${i.noun}" (did you mean ${best.canonicalName}, id ${best.entityId}?)`
+      : `"${i.noun}" (unknown to canon)`;
+  }).join("; ");
+  const more = issues.length > 5 ? ` and ${issues.length - 5} more` : "";
+  return `Rewrite this narration. These names do not resolve to a canonical entity: ${named}${more}. ` +
+    `For each one either use the canonical name, or call sneq__mention_entity to introduce it properly, ` +
+    `then narrate again. Do not simply drop the name and continue.`;
+}
+
+/** A leak is not a wording problem, so the hint says stop rather than rephrase. */
+function containmentHintFor(present: string[]): string {
+  return `Blocked: this narration uses ${present.length} term(s) the holder it is written for has never learned ` +
+    `(${present.map(t => JSON.stringify(t)).join(", ")}). Do not reword it — the information should not have been ` +
+    `available to compose with at all. Re-read the holder context, and if the term genuinely belongs there, ` +
+    `the derivation is wrong and this is an engine bug worth reporting.`;
+}
+
+/**
+ * Fold a containment result into a gate report (§11 phase F). Containment
+ * outranks everything: a narration that leaks is BLOCKed even when every proper
+ * noun in it resolves perfectly.
+ */
+export function applyContainment(
+  report: ValidationReport,
+  containment: { pass: boolean; forbidden: string[]; present: string[] },
+): ValidationReport {
+  if (containment.pass) return { ...report, containment };
+  return {
+    ...report,
+    ok: false,
+    verdict: "BLOCK",
+    containment,
+    repairHint: containmentHintFor(containment.present),
+  };
 }
 
 /**

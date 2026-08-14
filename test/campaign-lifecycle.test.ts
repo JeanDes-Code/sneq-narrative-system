@@ -55,6 +55,7 @@ describe("CampaignContext lifecycle", () => {
       attributeKey: "loyalty",
       rule: { type: "DOIT_ETRE", valeurs: [{ type: "STRING", value: "duke" }] },
       justification: "seed verification",
+      role: { role: "REGLE_MONDE", ruleId: "r1" },
     });
 
     await engine.deleteCampaign(campaignId);
@@ -63,6 +64,7 @@ describe("CampaignContext lifecycle", () => {
       attributeKey: "loyalty",
       rule: { type: "DOIT_ETRE", valeurs: [{ type: "STRING", value: "king" }] },
       justification: "must not resurrect",
+      role: { role: "REGLE_MONDE", ruleId: "r2" },
     }));
 
     const fresh = await engine.createCampaign({ id: campaignId, name: "Fresh", embeddingDim: 0 });
@@ -81,24 +83,23 @@ describe("CampaignContext lifecycle", () => {
       () => context.resolveEntity({ mention: "Roric" }),
       () => context.suggestExisting("Roric", "PERSONNAGE"),
       () => context.getEntity(entityId),
-      () => context.getRelevantFacts(entityId),
+      () => context.getHolderContext({ entityId }),
       () => context.currentScene(),
       () => context.mentionEntity({ canonicalName: "Roric", type: "PERSONNAGE" as const, description: "Captain" }),
-      () => context.registerFact({
-        entityId,
-        attributeKey: "role",
-        value: { type: "STRING" as const, value: "captain" },
-        category: "SOCIAL" as const,
-        observation: { source: "SYSTEM" as const, method: "DEDUCTION_CONFIRMEE" as const, timestamp: 0 },
-      }),
+      () => context.commitNarrative({ operationId: "op-closed", daysElapsed: 0 }),
+      () => context.ingestPlayerInput({ entityId, text: "hello" }),
+      () => context.assertContainment({ entityId, text: "hello" }),
+      () => context.filterTranscript({ entityId, entries: [] }),
+      () => context.doctor(),
       () => context.addConstraint({
         entityId,
         attributeKey: "role",
         rule: { type: "REGEX" as const, pattern: ".+" },
         justification: "closed",
+        role: { role: "INFERENCE_IA" as const, confidence: 0.5 },
       }),
       () => context.setScene({ locationEntityId: entityId, presentEntityIds: [], description: "closed" }),
-      () => context.advanceTurn("closed"),
+      () => context.advanceTurn({ summary: "closed" }),
       () => context.validateNarration({ narration: "Roric enters." }),
       () => context.prepareTurn(),
       () => context.handleToolCall("sneq__get_entity", { entityId }),
@@ -107,7 +108,7 @@ describe("CampaignContext lifecycle", () => {
 
     expect(() => context.registerUserPromptHandler(async () => null)).toThrow(SneqCampaignContextInvalidatedError);
     expect(() => context.registerPreGenerationHook({ onEvent() {} })).toThrow(SneqCampaignContextInvalidatedError);
-    expect(() => context.registerNarrationGate({ async validate() { return { ok: true, extractedNames: [], issues: [] }; } }))
+    expect(() => context.registerNarrationGate({ async validate() { return { ok: true, verdict: "PASS" as const, extractedNames: [], issues: [] }; } }))
       .toThrow(SneqCampaignContextInvalidatedError);
 
     expect(() => engine.campaign(campaignId)).toThrow(/engine is closed/i);

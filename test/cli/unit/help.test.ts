@@ -3,9 +3,9 @@ import { helpText } from "../../../src/cli/help.js";
 import { KNOWN_COMMANDS } from "../../../src/cli/types.js";
 
 describe("helpText", () => {
-  it("lists the fourteen supported commands and omits collapse-attribute", () => {
+  it("lists the eighteen supported commands and omits collapse-attribute", () => {
     const out = helpText();
-    expect(KNOWN_COMMANDS).toHaveLength(14);
+    expect(KNOWN_COMMANDS).toHaveLength(18);
     expect(out).not.toContain("collapse-attribute");
     for (const command of KNOWN_COMMANDS) expect(out).toContain(command);
   });

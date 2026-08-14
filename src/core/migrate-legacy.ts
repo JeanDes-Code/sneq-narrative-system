@@ -1,17 +1,17 @@
-import type { AttributFige, AttributValue, CanonicalAttribute } from "../domain/attribute.js";
+import type { AttributValue, CanonicalAttribute } from "../domain/attribute.js";
 import type { NarrativeEvent, EventAct } from "../domain/event.js";
 import type { Potentialite, Contrainte } from "../domain/potentialite.js";
 import type { Observation } from "../domain/observation.js";
 import type { CampaignId, EntityID } from "../domain/ids.js";
 import { asEventId } from "../domain/ids.js";
 
-export type { MigrationFinding, MigrationFindingKind } from "../domain/migration.js";
-import type { MigrationFinding, MigrationFindingKind } from "../domain/migration.js";
+export type { MigrationFinding, MigrationFindingKind, LegacyFact } from "../domain/migration.js";
+import type { MigrationFinding, MigrationFindingKind, LegacyFact } from "../domain/migration.js";
 
 export interface LegacyCampaignInput {
   campaignId: CampaignId;
   /** 0.3-era facts; observation blobs may still carry the stale `fiabilite` key. */
-  facts: Array<AttributFige & { campaignId: CampaignId }>;
+  facts: Array<LegacyFact & { campaignId: CampaignId }>;
   potentialites: Potentialite[];
 }
 
@@ -22,7 +22,7 @@ export interface LegacyMigrationOutput {
    *  keeps `rebuild(ledger) === projection` free of a LEGACY_FACT special case. */
   legacyEvents: NarrativeEvent[];
   /** The same facts with the stale `fiabilite` key stripped (#18). */
-  cleanedFacts: Array<AttributFige & { campaignId: CampaignId }>;
+  cleanedFacts: Array<LegacyFact & { campaignId: CampaignId }>;
   findings: MigrationFinding[];
 }
 
@@ -38,8 +38,8 @@ function cleanObservation(obs: Observation): Observation {
  */
 export function migrateLegacyCampaign(input: LegacyCampaignInput): LegacyMigrationOutput {
   const canonicalAttributes: CanonicalAttribute[] = [];
-  const cleanedFacts: Array<AttributFige & { campaignId: CampaignId }> = [];
-  const byEntity = new Map<string, Array<AttributFige & { campaignId: CampaignId }>>();
+  const cleanedFacts: Array<LegacyFact & { campaignId: CampaignId }> = [];
+  const byEntity = new Map<string, Array<LegacyFact & { campaignId: CampaignId }>>();
 
   for (const f of input.facts) {
     const cleaned = { ...f, observation: cleanObservation(f.observation) };

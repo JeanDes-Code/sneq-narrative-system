@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { migrateLegacyCampaign } from "../../src/core/migrate-legacy.js";
-import type { AttributFige } from "../../src/domain/attribute.js";
+import type { LegacyFact } from "../../src/domain/migration.js";
 import type { Potentialite, Contrainte } from "../../src/domain/potentialite.js";
 import type { CampaignId } from "../../src/domain/ids.js";
 import { asCampaignId, asEntityID, asFactId, asConstraintId } from "../../src/domain/ids.js";
@@ -8,11 +8,11 @@ import { asCampaignId, asEntityID, asFactId, asConstraintId } from "../../src/do
 const cid = asCampaignId("c1");
 
 // A 0.3-era persisted fact: observation blobs still carry the stale fiabilite key (#18).
-type LegacyFactBlob = AttributFige & { campaignId: CampaignId } & {
-  observation: AttributFige["observation"] & { fiabilite?: string };
+type LegacyFactBlob = LegacyFact & { campaignId: CampaignId } & {
+  observation: LegacyFact["observation"] & { fiabilite?: string };
 };
 
-function fact(eid: string, key: string, value: AttributFige["value"], turn = 3): LegacyFactBlob {
+function fact(eid: string, key: string, value: LegacyFact["value"], turn = 3): LegacyFactBlob {
   return {
     campaignId: cid, factId: asFactId(`f_${eid}_${key}`), entityId: asEntityID(eid),
     key, value, category: "HISTORIQUE",

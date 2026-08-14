@@ -71,49 +71,6 @@ describe("CampaignContext · mentionEntity", () => {
   });
 });
 
-describe("CampaignContext · registerFact", () => {
-  const observation: Observation = {
-    source: "GM_NARRATION",
-    method: "OBSERVATION_VISUELLE",
-    timestamp: 0
-  };
-
-  it("returns factId: null when fact contradicts existing canon", async () => {
-    const { config, deps } = makeEmbedRouter([0.5, 0.5, 0.0]);
-    const engine = new Engine({
-      repository: sqliteRepository({ path: ":memory:", embeddingDim: 3 }),
-      router: config,
-      _routerDeps: deps
-    });
-    const c = await engine.createCampaign({ id: asCampaignId("c3"), name: "x", embeddingDim: 3 });
-    const entityId = asEntityID("ent1");
-
-    // Register the canonical fact
-    const first = await c.registerFact({
-      entityId,
-      attributeKey: "alignment",
-      value: { type: "STRING", value: "lawful-good" },
-      category: "PSYCHOLOGIE",
-      observation
-    });
-    expect(first.factId).not.toBeNull();
-    expect(first.contradictions).toHaveLength(0);
-
-    // Register a contradicting value
-    const second = await c.registerFact({
-      entityId,
-      attributeKey: "alignment",
-      value: { type: "STRING", value: "chaotic-evil" },
-      category: "PSYCHOLOGIE",
-      observation
-    });
-    expect(second.factId).toBeNull();
-    expect(second.contradictions.length).toBeGreaterThan(0);
-
-    await engine.close();
-  });
-});
-
 describe("CampaignContext.validateNarration", () => {
   it("delegates to the registered NarrationGateHook with the campaign context", async () => {
     const { config, deps } = makeEmbedRouter([0.5, 0.5, 0.0]);
@@ -128,7 +85,7 @@ describe("CampaignContext.validateNarration", () => {
     const handle = ctx.registerNarrationGate({
       async validate(input) {
         seenInput = input;
-        return { ok: true, extractedNames: [], issues: [] };
+        return { ok: true, verdict: "PASS" as const, extractedNames: [], issues: [] };
       }
     });
 
@@ -155,7 +112,7 @@ describe("CampaignContext.prepareTurn", () => {
     await engine.close();
   });
 
-  it("returns scene + entity + facts in one call (the Cassius-bug closure)", async () => {
+  it("returns the frame only: scene, present entities by identity, day and turn (#21)", async () => {
     const { config, deps } = makeEmbedRouter([0.5, 0.5, 0.0]);
     const engine = new Engine({
       repository: sqliteRepository({ path: ":memory:", embeddingDim: 3 }),
@@ -169,19 +126,6 @@ describe("CampaignContext.prepareTurn", () => {
       type: "PERSONNAGE",
       description: "Court mage of Dragonsreach"
     });
-    const obs: Observation = {
-      source: "GM_NARRATION",
-      method: "OBSERVATION_VISUELLE",
-        timestamp: 0
-    };
-    await ctx.registerFact({
-      entityId: farengar.entityId!,
-      attributeKey: "role",
-      value: { type: "STRING", value: "court mage" },
-      category: "SOCIAL",
-      observation: obs
-    });
-
     await ctx.setScene({
       locationEntityId: asEntityID("loc_dragonsreach"),
       presentEntityIds: [farengar.entityId!],
@@ -191,9 +135,12 @@ describe("CampaignContext.prepareTurn", () => {
     const turn = await ctx.prepareTurn();
     expect(turn.scene?.description).toBe("Dragonsreach great hall");
     expect(turn.presentEntities).toHaveLength(1);
-    expect(turn.presentEntities[0]?.entity.name).toBe("Farengar");
-    expect(turn.presentEntities[0]?.facts).toHaveLength(1);
-    expect(turn.presentEntities[0]?.facts[0]?.key).toBe("role");
+    expect(turn.presentEntities[0]?.name).toBe("Farengar");
+    expect(turn.day).toBe(0);
+    expect(turn.turn).toBeGreaterThan(0);
+    // Holderless is the wake-up probe: no knowledge rides on it, so there is no
+    // way to read the world sideways through prepare-turn.
+    expect(turn.holder).toBeNull();
     await engine.close();
   });
 });

@@ -47,7 +47,6 @@ describe("CampaignContext.confirmEntityMatch", () => {
       },
       _routerDeps: { resolveProvider: () => provider },
       writeStrategy: {
-        registerFact: async () => ({ factId: null, contradictions: [] }),
         addConstraint: async (command) => ({ constraintId: command.constraintId }),
         createEntity: async (command) => ({
           status: "created" as const,

@@ -374,7 +374,7 @@ describe("Validator.validate (full pipeline)", () => {
       campaignId,
       repo
     );
-    expect(r).toEqual({ ok: true, extractedNames: [], issues: [] });
+    expect(r).toEqual({ ok: true, verdict: "PASS" as const, extractedNames: [], issues: [] });
     expect(topEntitiesCalled).toBe(false);
   });
 });

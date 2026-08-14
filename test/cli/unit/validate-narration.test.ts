@@ -31,12 +31,15 @@ const baseInv = (overrides: Partial<Parameters<typeof run>[0]> = {}) => ({
   argsInline: { narration: "Mira parle." },
   help: false,
   embeddingDim: undefined,
+  holder: undefined,
+  entity: undefined,
+  days: undefined,
   ...overrides
 });
 
 describe("validate-narration CLI", () => {
   it("emits the report and exits 0 on ok=true", async () => {
-    const report: ValidationReport = { ok: true, extractedNames: ["Mira"], issues: [] };
+    const report: ValidationReport = { ok: true, verdict: "PASS", extractedNames: ["Mira"], issues: [] };
     const io = fakeStdio();
     const exit = await run(baseInv(), { stdin: io.stdin, stdout: io.stdout, engine: mkEngine(report) });
     expect(exit).toBe(0);
@@ -46,6 +49,7 @@ describe("validate-narration CLI", () => {
   it("emits the report and exits 0 on ok=false when strict is absent/false", async () => {
     const report: ValidationReport = {
       ok: false,
+      verdict: "REPAIR",
       extractedNames: ["Cassius"],
       issues: [{ noun: "Cassius", kind: "no-match", suggestions: [] }]
     };
@@ -58,6 +62,7 @@ describe("validate-narration CLI", () => {
   it("exits 1 on ok=false when strict=true", async () => {
     const report: ValidationReport = {
       ok: false,
+      verdict: "REPAIR",
       extractedNames: ["Cassius"],
       issues: [{ noun: "Cassius", kind: "no-match", suggestions: [] }]
     };
@@ -74,7 +79,7 @@ describe("validate-narration CLI", () => {
     const io = fakeStdio();
     const exit = await run(
       baseInv({ argsInline: {} }),
-      { stdin: io.stdin, stdout: io.stdout, engine: mkEngine({ ok: true, extractedNames: [], issues: [] }) }
+      { stdin: io.stdin, stdout: io.stdout, engine: mkEngine({ ok: true, verdict: "PASS" as const, extractedNames: [], issues: [] }) }
     );
     expect(exit).toBe(1);
     expect(io.read().code).toBe("INVALID_ARGS");

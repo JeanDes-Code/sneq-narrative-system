@@ -1,4 +1,22 @@
-import type { CampaignId, EntityID } from "./ids.js";
+import type { AttributValue, CategorieAttribut } from "./attribute.js";
+import type { Observation } from "./observation.js";
+import type { CampaignId, EntityID, FactId } from "./ids.js";
+
+/**
+ * The 0.3-era `AttributFige` row, kept only as the shape the migration reads
+ * off an old store (§2.6 — one release, one break: the live contract holds
+ * `CanonicalAttribute` and nothing else, and there is no alias). Nothing writes
+ * this type after the migration epoch.
+ */
+export interface LegacyFact {
+  factId: FactId;
+  entityId: EntityID;
+  key: string;
+  value: AttributValue;
+  category: CategorieAttribut;
+  observation: Observation;
+  turn: number;
+}
 
 export type MigrationFindingKind =
   | "TYPE_MISMATCH_WITH_CANON"

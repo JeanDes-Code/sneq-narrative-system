@@ -5,21 +5,27 @@ import {
   SNEQ_ENGINE_VERSION,
   decideAdvanceTurn,
   decideConfirmEntityMatch,
-  decideRegisterFact,
+  decideAddConstraint,
   decideSetScene,
 } from "../src/index.js";
 
 const packageJson = JSON.parse(
   readFileSync(new URL("../package.json", import.meta.url), "utf8"),
-) as { exports: Record<string, unknown> };
+) as { exports: Record<string, unknown>; version: string };
 
 describe("smoke", () => {
   it("exports version constant", () => {
-    expect(SNEQ_ENGINE_VERSION).toBe("0.3.1");
+    expect(SNEQ_ENGINE_VERSION).toBe("0.5.0");
+  });
+
+  // They disagreed for two releases. An agent reading the constant and a
+  // consumer reading the manifest were told different things about the same build.
+  it("keeps SNEQ_ENGINE_VERSION and package.json#version in lockstep", () => {
+    expect(SNEQ_ENGINE_VERSION).toBe(packageJson.version);
   });
 
   it("exports distributed-store decisions from the main entrypoint", () => {
-    expect(decideRegisterFact).toBeTypeOf("function");
+    expect(decideAddConstraint).toBeTypeOf("function");
     expect(decideSetScene).toBeTypeOf("function");
     expect(decideAdvanceTurn).toBeTypeOf("function");
     expect(decideConfirmEntityMatch).toBeTypeOf("function");

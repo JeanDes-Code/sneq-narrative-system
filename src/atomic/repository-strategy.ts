@@ -5,30 +5,12 @@ import {
   decideAdvanceTurn,
   decideCreateEntity,
   decideConfirmEntityMatch,
-  decideRegisterFact,
   decideSetScene,
 } from "./decisions.js";
 import type { AtomicWriteStrategy } from "./types.js";
 
 export function repositoryAtomicWriteStrategy(repo: Repository): AtomicWriteStrategy {
   return {
-    registerFact: (command) => repo.transaction(async (tx) => {
-      const existing = await tx.queryFacts(command.campaignId, {
-        entityId: command.entityId,
-        attributeKey: command.attributeKey,
-      });
-      const latest = await tx.latestTurn(command.campaignId);
-      const decision = decideRegisterFact({
-        ...command,
-        existing,
-        latestTurnNumber: latest?.turnNumber ?? 0,
-      });
-      if (decision.fact) await tx.appendFact(decision.fact);
-      return {
-        factId: decision.fact?.factId ?? null,
-        contradictions: decision.contradictions,
-      };
-    }),
     addConstraint: (command) => repo.transaction(async (tx) => {
       const existing = await tx.getPotentialite(
         command.campaignId,

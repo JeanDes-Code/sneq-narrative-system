@@ -42,9 +42,9 @@ describe("buildObservation", () => {
     expect(o.sceneId).toBe("scene_42");
   });
 
-  it("exposes the 4 known presets", () => {
+  it("exposes the 5 known presets, out-of-band included (#22)", () => {
     expect(Object.keys(SOURCE_PRESETS).sort()).toEqual(
-      ["dice-roll", "gm-narration", "player-utterance", "system"]
+      ["dice-roll", "gm-narration", "out-of-band", "player-utterance", "system"]
     );
   });
 

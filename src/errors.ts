@@ -1,4 +1,4 @@
-import type { AttributFige, AttributValue } from "./domain/attribute.js";
+import type { AttributValue, CanonicalAttribute } from "./domain/attribute.js";
 import type { EntityID, EventId } from "./domain/ids.js";
 import type { Tier } from "./router/interface.js";
 
@@ -23,7 +23,7 @@ export interface IntraCommitConflict {
 }
 
 export class SneqContradictionError extends Error {
-  constructor(public readonly contradictions: AttributFige[] | IntraCommitConflict[], message?: string) {
+  constructor(public readonly contradictions: CanonicalAttribute[] | IntraCommitConflict[], message?: string) {
     super(message ?? `Fact contradicts ${contradictions.length} canonical fact(s)`);
     this.name = "SneqContradictionError";
   }
@@ -73,6 +73,46 @@ export class SneqUnknownEntityError extends Error {
       `then pass the returned entityId.`,
     );
     this.name = "SneqUnknownEntityError";
+  }
+}
+
+/**
+ * A holder id reached the engine and no holder answers to it. Distinct from
+ * "this holder knows nothing", which is an empty belief list plus an explain
+ * line — the #21 null doctrine keeps the three states apart, and conflating
+ * them is the Cassius Vorentius bug.
+ */
+export class SneqUnknownHolderError extends Error {
+  constructor(public readonly holderId: string) {
+    super(
+      `holder "${holderId}" is not a holder in this campaign. ` +
+      `Pass an entityId instead and let the engine run the §2.3 cascade, ` +
+      `or author the holder first (sneq-engine upsert-holder / commit_narrative holders[]).`,
+    );
+    this.name = "SneqUnknownHolderError";
+  }
+}
+
+/**
+ * A vector does not match the campaign's stored dimension (§14.5). The old
+ * message said *what* to do ("use a fresh database file") and never *why*, and
+ * it arrived after the campaign was already unusable. There is a migration
+ * now, so the message names it.
+ */
+export class SneqEmbeddingDimError extends Error {
+  constructor(
+    public readonly campaignId: string,
+    public readonly stored: number,
+    public readonly got: number,
+  ) {
+    super(
+      `embedding dim mismatch in campaign "${campaignId}": this campaign stores ${stored}-dimension vectors, ` +
+      `the one supplied has ${got}. Vectors from two different models are not comparable, so the resolver ` +
+      `would rank on noise. To move this campaign to ${got}: call setEmbeddingDim(campaignId, ${got}) — which ` +
+      `clears the stored vectors — then reindexEmbeddings(campaignId, vectors) with every entity re-embedded ` +
+      `by the new model. Until the reindex lands the campaign resolves by alias alone: degraded, never wrong.`,
+    );
+    this.name = "SneqEmbeddingDimError";
   }
 }
 

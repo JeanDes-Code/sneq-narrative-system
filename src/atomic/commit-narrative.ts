@@ -5,6 +5,7 @@ import {
   decideCommitNarrative,
   type CommitNarrativeBundle, type CommitHealth
 } from "../core/commit-narrative.js";
+import { detectUptake } from "../core/promotion.js";
 import { DEFAULT_MAX_DISPATCH_FANOUT } from "../config.js";
 
 export interface CommitNarrativeOptions {
@@ -62,10 +63,18 @@ export async function commitNarrative(
       places.push({ id, ...(e?.realmId !== undefined ? { realmId: e.realmId } : {}) });
     }
 
-    // Constraints only for the keys promotion will consult.
+    // Constraints only for the keys promotion will consult — engine-detected
+    // uptake included, so a detected promotion is gated by the same constraints
+    // a caller-supplied one is.
     const potentialites = [];
-    for (const { inventionId } of bundle.promotionEvidence ?? []) {
-      const invention = provisionals.find(i => i.inventionId === inventionId);
+    const candidateIds = new Set((bundle.promotionEvidence ?? []).map(e => String(e.inventionId)));
+    if (bundle.playerUtterance !== undefined) {
+      for (const id of detectUptake(bundle.playerUtterance, provisionals, (latestTurn?.turnNumber ?? 0) + 1)) {
+        candidateIds.add(String(id));
+      }
+    }
+    for (const inventionId of candidateIds) {
+      const invention = provisionals.find(i => String(i.inventionId) === inventionId);
       if (!invention) continue;
       const p = await tx.getPotentialite(cid, invention.entityId, invention.attributeKey);
       if (p) potentialites.push(p);
