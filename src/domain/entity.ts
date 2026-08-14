@@ -29,6 +29,12 @@ export interface Entity {
   name: string;
   /** Human-readable description, persisted at mention time. Feeds the judge prompt and prepare-turn. */
   description?: string;
+  /**
+   * For place entities: the realm entity this place belongs to (#26). Entity
+   * metadata, not a canonical attribute — conquest is a metadata update.
+   * Absent = the campaign's default realm (`realmOf` fallback).
+   */
+  realmId?: EntityID;
   nomConnu: boolean;
   aliases: Alias[];
   createdAt: number;

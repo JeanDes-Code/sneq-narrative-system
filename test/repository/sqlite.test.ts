@@ -177,6 +177,12 @@ describe("SqliteRepository · dim lifecycle", () => {
       INSERT INTO campaigns (id, name, created_at, embedding_dim)
       VALUES ('c1', 'Legacy', 0, 0);
       -- a real v2 DB always has these (created at v1); the v5 data step reads them
+      CREATE TABLE entities (
+        campaign_id TEXT NOT NULL, id TEXT NOT NULL, type TEXT NOT NULL, name TEXT NOT NULL,
+        nom_connu INTEGER NOT NULL, aliases TEXT NOT NULL, tags TEXT NOT NULL,
+        created_at INTEGER NOT NULL, embedding_refreshed_at INTEGER, description TEXT,
+        PRIMARY KEY (campaign_id, id)
+      );
       CREATE TABLE figed (
         campaign_id TEXT NOT NULL, entity_id TEXT NOT NULL, attribute_key TEXT NOT NULL,
         fact_id TEXT NOT NULL, value TEXT NOT NULL, category TEXT NOT NULL,
@@ -292,6 +298,12 @@ describe("SqliteRepository · v3 → v5 data migration (#17 #18 #23)", () => {
         embedding_dim INTEGER NOT NULL, entity_revision INTEGER NOT NULL DEFAULT 0
       );
       INSERT INTO campaigns (id, name, created_at, embedding_dim) VALUES ('c1', 'Legacy', 0, 0);
+      CREATE TABLE entities (
+        campaign_id TEXT NOT NULL, id TEXT NOT NULL, type TEXT NOT NULL, name TEXT NOT NULL,
+        nom_connu INTEGER NOT NULL, aliases TEXT NOT NULL, tags TEXT NOT NULL,
+        created_at INTEGER NOT NULL, embedding_refreshed_at INTEGER, description TEXT,
+        PRIMARY KEY (campaign_id, id)
+      );
       CREATE TABLE figed (
         campaign_id TEXT NOT NULL, entity_id TEXT NOT NULL, attribute_key TEXT NOT NULL,
         fact_id TEXT NOT NULL, value TEXT NOT NULL, category TEXT NOT NULL,

@@ -4,7 +4,10 @@ export type ObservationSource =
   | "GM_NARRATION"
   | "PLAYER_UTTERANCE"
   | "DICE_ROLL"
-  | "SYSTEM";
+  | "SYSTEM"
+  /** Confirmed by the human, outside the fiction (#22) — the sanctioned
+   *  reconstruction route. Warranted; counted by `doctor`, never silent. */
+  | "OUT_OF_BAND";
 
 export type ObservationMethod =
   | "DIALOGUE_DIRECT"
