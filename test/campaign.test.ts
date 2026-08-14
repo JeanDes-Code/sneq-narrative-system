@@ -75,7 +75,6 @@ describe("CampaignContext · registerFact", () => {
   const observation: Observation = {
     source: "GM_NARRATION",
     method: "OBSERVATION_VISUELLE",
-    fiabilite: "CERTAINE",
     timestamp: 0
   };
 
@@ -173,8 +172,7 @@ describe("CampaignContext.prepareTurn", () => {
     const obs: Observation = {
       source: "GM_NARRATION",
       method: "OBSERVATION_VISUELLE",
-      fiabilite: "CERTAINE",
-      timestamp: 0
+        timestamp: 0
     };
     await ctx.registerFact({
       entityId: farengar.entityId!,

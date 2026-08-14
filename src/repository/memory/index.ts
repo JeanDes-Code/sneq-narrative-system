@@ -1,14 +1,20 @@
 import type {
-  Repository, CampaignMeta, FactQuery, VectorSearchOpts, EntityWithScore
+  Repository, CampaignMeta, FactQuery, VectorSearchOpts, EntityWithScore, CarriageQuery
 } from "../interface.js";
+import { OPERATION_RETENTION } from "../interface.js";
 import type { Entity, EntityType } from "../../domain/entity.js";
 import type { AttributFige } from "../../domain/attribute.js";
 import type { Potentialite } from "../../domain/potentialite.js";
 import type { AreteGCN, NoeudGCN } from "../../domain/gcn.js";
 import type { Scene } from "../../domain/scene.js";
 import type { Turn } from "../../domain/turn.js";
+import type { NarrativeEvent } from "../../domain/event.js";
+import type { OfficialRecord } from "../../domain/record.js";
+import type { Holder } from "../../domain/holder.js";
+import type { Carriage, CarriageEffect, DispatchPolicy } from "../../domain/carriage.js";
+import type { ProvisionalInvention, InventionTransition, InventionStatus } from "../../domain/invention.js";
 import { AsyncLocalStorage } from "node:async_hooks";
-import type { CampaignId, EntityID, FactId } from "../../domain/ids.js";
+import type { CampaignId, CarriageId, EntityID, FactId, InventionId } from "../../domain/ids.js";
 import { asFactId } from "../../domain/ids.js";
 import { normalizeAlias, normalizeText } from "../../resolver/normalize.js";
 import { SneqCampaignNotFoundError } from "../../errors.js";
@@ -23,12 +29,27 @@ export interface MemoryState {
   edges: Map<string, Map<string, AreteGCN>>;
   turns: Map<string, Map<number, Turn>>;
   scenes: Map<string, Map<string, Scene>>;
+  // Ledger (0.5.0). Events/records/effects/transitions are APPEND-ONLY.
+  events: Map<string, Map<string, NarrativeEvent>>;
+  records: Map<string, Map<string, OfficialRecord>>;
+  holders: Map<string, Map<string, Holder>>;
+  carriages: Map<string, Map<string, Carriage>>;
+  carriageEffects: Map<string, CarriageEffect[]>;
+  inventions: Map<string, Map<string, ProvisionalInvention>>;
+  inventionTransitions: Map<string, InventionTransition[]>;
+  worldDays: Map<string, number>;
+  /** Bounded dedup ring (#29): insertion-ordered Map, oldest evicted past OPERATION_RETENTION. */
+  operations: Map<string, Map<string, unknown>>;
+  dispatchPolicies: Map<string, DispatchPolicy>;
 }
 
 export function emptyMemoryState(): MemoryState {
   return {
     campaigns: new Map(), entityRevisions: new Map(), entities: new Map(), facts: new Map(),
-    potentialites: new Map(), nodes: new Map(), edges: new Map(), turns: new Map(), scenes: new Map()
+    potentialites: new Map(), nodes: new Map(), edges: new Map(), turns: new Map(), scenes: new Map(),
+    events: new Map(), records: new Map(), holders: new Map(), carriages: new Map(),
+    carriageEffects: new Map(), inventions: new Map(), inventionTransitions: new Map(),
+    worldDays: new Map(), operations: new Map(), dispatchPolicies: new Map()
   };
 }
 
@@ -91,7 +112,11 @@ export class InMemoryRepository implements Repository {
   private async deleteCampaignNow(id: CampaignId): Promise<void> {
     this.state.campaigns.delete(id);
     for (const bucket of [this.state.entities, this.state.facts, this.state.potentialites,
-                          this.state.nodes, this.state.edges, this.state.turns, this.state.scenes]) {
+                          this.state.nodes, this.state.edges, this.state.turns, this.state.scenes,
+                          this.state.events, this.state.records, this.state.holders,
+                          this.state.carriages, this.state.carriageEffects, this.state.inventions,
+                          this.state.inventionTransitions, this.state.worldDays,
+                          this.state.operations, this.state.dispatchPolicies] as Array<Map<string, unknown>>) {
       bucket.delete(id);
     }
     this.state.entityRevisions.delete(id);
@@ -296,6 +321,183 @@ export class InMemoryRepository implements Repository {
     if (!sceneId) return null;
     const s = this.state.scenes.get(campaignId)?.get(sceneId);
     return s ? structuredClone(s) : null;
+  }
+
+  // -- ledger (0.5.0) ---------------------------------------------------------------
+
+  private bucket<V>(store: Map<string, Map<string, V>>, cid: CampaignId): Map<string, V> {
+    let m = store.get(cid);
+    if (!m) { m = new Map(); store.set(cid, m); }
+    return m;
+  }
+
+  async appendEvent(e: NarrativeEvent): Promise<void> {
+    this.assertCampaignExists(e.campaignId);
+    const events = this.bucket(this.state.events, e.campaignId);
+    if (events.has(e.eventId)) {
+      throw new Error(`event "${e.eventId}" already exists — the ledger is append-only`);
+    }
+    events.set(e.eventId, structuredClone(e));
+    await this.mutated();
+  }
+
+  async getEvents(campaignId: CampaignId): Promise<NarrativeEvent[]> {
+    // Maps preserve insertion order; a stable sort by (day, turn) keeps ledger
+    // sequence as the tie-breaker — the fold's ordering contract (#27).
+    return [...(this.state.events.get(campaignId)?.values() ?? [])]
+      .sort((a, b) => a.day - b.day || a.turn - b.turn)
+      .map(e => structuredClone(e));
+  }
+
+  async appendRecord(r: OfficialRecord): Promise<void> {
+    this.assertCampaignExists(r.campaignId);
+    const records = this.bucket(this.state.records, r.campaignId);
+    if (records.has(r.recordId)) {
+      throw new Error(`record "${r.recordId}" already exists — records accumulate, never replace`);
+    }
+    records.set(r.recordId, structuredClone(r));
+    await this.mutated();
+  }
+
+  async getRecords(campaignId: CampaignId): Promise<OfficialRecord[]> {
+    return [...(this.state.records.get(campaignId)?.values() ?? [])]
+      .sort((a, b) => a.day - b.day || a.turn - b.turn)
+      .map(r => structuredClone(r));
+  }
+
+  async upsertHolder(h: Holder): Promise<void> {
+    this.assertCampaignExists(h.campaignId);
+    this.bucket(this.state.holders, h.campaignId).set(h.holderId, structuredClone(h));
+    await this.mutated();
+  }
+
+  async listHolders(campaignId: CampaignId): Promise<Holder[]> {
+    return [...(this.state.holders.get(campaignId)?.values() ?? [])].map(h => structuredClone(h));
+  }
+
+  /** Derived arrival: departedDay + travelDays + Σ DELAY; null = CANCELled, never arrives. */
+  private arrivalDay(c: Carriage): number | null {
+    let day = c.departedDay + c.travelDays;
+    for (const fx of this.state.carriageEffects.get(c.campaignId) ?? []) {
+      if (fx.carriageId !== c.carriageId) continue;
+      if (fx.effect.kind === "CANCEL") return null;
+      if (fx.effect.kind === "DELAY") day += fx.effect.days;
+    }
+    return day;
+  }
+
+  async appendCarriage(c: Carriage): Promise<void> {
+    this.assertCampaignExists(c.campaignId);
+    const carriages = this.bucket(this.state.carriages, c.campaignId);
+    if (carriages.has(c.carriageId)) {
+      throw new Error(`carriage "${c.carriageId}" already exists — append effects, not rewrites`);
+    }
+    carriages.set(c.carriageId, structuredClone(c));
+    await this.mutated();
+  }
+
+  async listCarriages(campaignId: CampaignId, q: CarriageQuery): Promise<Carriage[]> {
+    return [...(this.state.carriages.get(campaignId)?.values() ?? [])]
+      .filter(c => {
+        if (q.toPlaceId !== undefined && c.toPlaceId !== q.toPlaceId) return false;
+        if (q.arrivedBy !== undefined) {
+          const arrival = this.arrivalDay(c);
+          if (arrival === null || arrival > q.arrivedBy) return false;
+        }
+        return true;
+      })
+      .map(c => structuredClone(c));
+  }
+
+  async appendCarriageEffect(fx: CarriageEffect): Promise<void> {
+    this.assertCampaignExists(fx.campaignId);
+    let list = this.state.carriageEffects.get(fx.campaignId);
+    if (!list) { list = []; this.state.carriageEffects.set(fx.campaignId, list); }
+    list.push(structuredClone(fx));
+    await this.mutated();
+  }
+
+  async listCarriageEffects(campaignId: CampaignId, carriageId?: CarriageId): Promise<CarriageEffect[]> {
+    return (this.state.carriageEffects.get(campaignId) ?? [])
+      .filter(fx => carriageId === undefined || fx.carriageId === carriageId)
+      .map(fx => structuredClone(fx));
+  }
+
+  async appendInvention(i: ProvisionalInvention): Promise<void> {
+    this.assertCampaignExists(i.campaignId);
+    const inventions = this.bucket(this.state.inventions, i.campaignId);
+    if (inventions.has(i.inventionId)) {
+      throw new Error(`invention "${i.inventionId}" already exists`);
+    }
+    inventions.set(i.inventionId, structuredClone(i));
+    await this.mutated();
+  }
+
+  async appendInventionTransition(t: InventionTransition): Promise<void> {
+    this.assertCampaignExists(t.campaignId);
+    const invention = this.state.inventions.get(t.campaignId)?.get(t.inventionId);
+    if (!invention) throw new Error(`invention "${t.inventionId}" not found`);
+    let list = this.state.inventionTransitions.get(t.campaignId);
+    if (!list) { list = []; this.state.inventionTransitions.set(t.campaignId, list); }
+    list.push(structuredClone(t));
+    invention.status = t.to; // transitions are the only status writer
+    await this.mutated();
+  }
+
+  async listInventions(campaignId: CampaignId, status?: InventionStatus): Promise<ProvisionalInvention[]> {
+    return [...(this.state.inventions.get(campaignId)?.values() ?? [])]
+      .filter(i => status === undefined || i.status === status)
+      .map(i => structuredClone(i));
+  }
+
+  async listInventionTransitions(campaignId: CampaignId, inventionId?: InventionId): Promise<InventionTransition[]> {
+    return (this.state.inventionTransitions.get(campaignId) ?? [])
+      .filter(t => inventionId === undefined || t.inventionId === inventionId)
+      .map(t => structuredClone(t));
+  }
+
+  async getWorldDay(campaignId: CampaignId): Promise<number> {
+    this.assertCampaignExists(campaignId);
+    return this.state.worldDays.get(campaignId) ?? 0;
+  }
+
+  async setWorldDay(campaignId: CampaignId, day: number): Promise<void> {
+    this.assertCampaignExists(campaignId);
+    const current = this.state.worldDays.get(campaignId) ?? 0;
+    if (day < current) {
+      throw new Error(`world day cannot run backward: ${current} → ${day}`);
+    }
+    this.state.worldDays.set(campaignId, day);
+    await this.mutated();
+  }
+
+  async recordOperation(campaignId: CampaignId, operationId: string, result: unknown): Promise<void> {
+    this.assertCampaignExists(campaignId);
+    const ring = this.bucket(this.state.operations, campaignId);
+    ring.delete(operationId); // re-record refreshes recency
+    ring.set(operationId, structuredClone(result));
+    while (ring.size > OPERATION_RETENTION) {
+      ring.delete(ring.keys().next().value as string);
+    }
+    await this.mutated();
+  }
+
+  async findOperation(campaignId: CampaignId, operationId: string): Promise<unknown | null> {
+    const ring = this.state.operations.get(campaignId);
+    if (!ring || !ring.has(operationId)) return null;
+    return structuredClone(ring.get(operationId));
+  }
+
+  async getDispatchPolicy(campaignId: CampaignId): Promise<DispatchPolicy> {
+    this.assertCampaignExists(campaignId);
+    const p = this.state.dispatchPolicies.get(campaignId);
+    return p ? structuredClone(p) : { routes: [], rules: [] };
+  }
+
+  async setDispatchPolicy(campaignId: CampaignId, p: DispatchPolicy): Promise<void> {
+    this.assertCampaignExists(campaignId);
+    this.state.dispatchPolicies.set(campaignId, structuredClone(p));
+    await this.mutated();
   }
 
   // -- transaction ------------------------------------------------------------------

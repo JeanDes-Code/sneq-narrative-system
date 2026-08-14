@@ -48,10 +48,11 @@ export function jsonFileRepository(opts: JsonFileRepositoryOptions): JsonFileRep
   return new JsonFileRepository(opts);
 }
 
-interface PersistedShape { version: 1; dim: number | null; state: MemoryState; }
+/** v2 adds the 0.5.0 ledger collections; a v1 file loads with an empty ledger. */
+interface PersistedShape { version: 1 | 2; dim: number | null; state: MemoryState; }
 
 function encode(state: MemoryState, dim: number | null): string {
-  return JSON.stringify({ version: 1, dim, state }, (_k, v: unknown) => {
+  return JSON.stringify({ version: 2, dim, state }, (_k, v: unknown) => {
     if (v instanceof Map) return { __map: [...v.entries()] };
     if (v instanceof Float32Array) return { __f32: [...v] };
     return v;
@@ -75,8 +76,8 @@ function tryLoad(path: string): { dim: number | null; state: MemoryState } | nul
     }
     return v;
   }) as PersistedShape;
-  if (parsed.version !== 1) {
-    throw new Error(`unsupported sneq json store version: ${String((parsed as { version: unknown }).version)} (this build reads version 1)`);
+  if (parsed.version !== 1 && parsed.version !== 2) {
+    throw new Error(`unsupported sneq json store version: ${String((parsed as { version: unknown }).version)} (this build reads versions 1-2)`);
   }
   const state: MemoryState = { ...emptyMemoryState(), ...parsed.state };
   return { dim: parsed.dim, state };
