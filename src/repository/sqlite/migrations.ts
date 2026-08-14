@@ -1,6 +1,11 @@
 import type BetterSqlite3 from "better-sqlite3";
+import { migrateLegacyCampaign } from "../../core/migrate-legacy.js";
+import type { AttributFige } from "../../domain/attribute.js";
+import type { Potentialite } from "../../domain/potentialite.js";
+import { asCampaignId } from "../../domain/ids.js";
+import type { CampaignId } from "../../domain/ids.js";
 
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 5;
 
 const MIGRATIONS: Array<{ version: number; sql: string }> = [
   {
@@ -211,6 +216,28 @@ const MIGRATIONS: Array<{ version: number; sql: string }> = [
 
       ALTER TABLE campaigns ADD COLUMN world_day INTEGER NOT NULL DEFAULT 0;
     `
+  },
+  {
+    // Projection storage (#27) + migration audit (#23). The data migration
+    // itself (figed copy, LEGACY_CANON synthesis, blob rewrite, audit) runs
+    // as a post-schema step in runMigrations, via core/migrate-legacy.
+    version: 5,
+    sql: `
+      CREATE TABLE IF NOT EXISTS canonical_attributes (
+        campaign_id TEXT NOT NULL,
+        entity_id TEXT NOT NULL,
+        attribute_key TEXT NOT NULL,
+        payload TEXT NOT NULL,
+        PRIMARY KEY (campaign_id, entity_id, attribute_key)
+      );
+
+      CREATE TABLE IF NOT EXISTS migration_findings (
+        seq INTEGER PRIMARY KEY AUTOINCREMENT,
+        campaign_id TEXT NOT NULL,
+        payload TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS idx_migration_findings ON migration_findings(campaign_id);
+    `
   }
 ];
 
@@ -222,6 +249,63 @@ export function runMigrations(db: BetterSqlite3.Database): void {
     if (m.version > current) {
       db.exec(m.sql);
       db.prepare(`INSERT INTO schema_version (version) VALUES (?)`).run(m.version);
+    }
+  }
+  // Data migration — the migration epoch (§4, #17 #18 #23). Runs exactly once:
+  // only when this open moved an EXISTING pre-ledger DB (version 1-4) to 5.
+  // A fresh DB (version 0) has no legacy canon to import.
+  if (current > 0 && current < 5) {
+    db.transaction(() => migrateLegacyData(db))();
+  }
+}
+
+function migrateLegacyData(db: BetterSqlite3.Database): void {
+  const campaigns = db.prepare(`SELECT id FROM campaigns`).all() as Array<{ id: string }>;
+  for (const { id } of campaigns) {
+    const campaignId: CampaignId = asCampaignId(id);
+    const factRows = db.prepare(
+      `SELECT * FROM figed WHERE campaign_id = ?`
+    ).all(campaignId) as Array<{
+      campaign_id: string; entity_id: string; attribute_key: string; fact_id: string;
+      value: string; category: string; observation: string; turn: number;
+    }>;
+    const potRows = db.prepare(
+      `SELECT * FROM potentialites WHERE campaign_id = ?`
+    ).all(campaignId) as Array<{ entity_id: string; attribute_key: string; etat: string; contraintes: string; contexte_generatif: string }>;
+
+    const facts = factRows.map(r => ({
+      campaignId,
+      factId: r.fact_id, entityId: r.entity_id, key: r.attribute_key,
+      value: JSON.parse(r.value), category: r.category,
+      observation: JSON.parse(r.observation), turn: r.turn
+    })) as Array<AttributFige & { campaignId: CampaignId }>;
+    const potentialites = potRows.map(r => ({
+      entiteId: r.entity_id, attribut: r.attribute_key, etat: r.etat,
+      contraintes: JSON.parse(r.contraintes), contexteGeneratif: JSON.parse(r.contexte_generatif)
+    })) as Potentialite[];
+
+    const out = migrateLegacyCampaign({ campaignId, facts, potentialites });
+
+    for (const row of out.canonicalAttributes) {
+      db.prepare(
+        `INSERT OR REPLACE INTO canonical_attributes (campaign_id, entity_id, attribute_key, payload) VALUES (?, ?, ?, ?)`
+      ).run(campaignId, row.entityId, row.key, JSON.stringify(row));
+    }
+    for (const e of out.legacyEvents) {
+      db.prepare(
+        `INSERT INTO events (campaign_id, event_id, day, turn, place_id, gravity, acts, circumstance, participants, surface_tokens)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      ).run(campaignId, e.eventId, e.day, e.turn, e.placeId ?? null, e.gravity,
+            JSON.stringify(e.acts), e.circumstance, JSON.stringify(e.participants), JSON.stringify(e.surfaceTokens));
+    }
+    // #18: rewrite persisted observation blobs in place — the stale key dies here.
+    for (const f of out.cleanedFacts) {
+      db.prepare(`UPDATE figed SET observation = ? WHERE campaign_id = ? AND entity_id = ? AND attribute_key = ?`)
+        .run(JSON.stringify(f.observation), campaignId, f.entityId, f.key);
+    }
+    for (const finding of out.findings) {
+      db.prepare(`INSERT INTO migration_findings (campaign_id, payload) VALUES (?, ?)`)
+        .run(campaignId, JSON.stringify(finding));
     }
   }
 }

@@ -11,7 +11,8 @@ import type { Holder } from "../../domain/holder.js";
 import type { Carriage, CarriageEffect, DispatchPolicy } from "../../domain/carriage.js";
 import type { ProvisionalInvention, InventionTransition, InventionStatus } from "../../domain/invention.js";
 import type { Entity, EntityType } from "../../domain/entity.js";
-import type { AttributFige } from "../../domain/attribute.js";
+import type { AttributFige, CanonicalAttribute } from "../../domain/attribute.js";
+import type { MigrationFinding } from "../../domain/migration.js";
 import type { Potentialite } from "../../domain/potentialite.js";
 import type { AreteGCN, NoeudGCN } from "../../domain/gcn.js";
 import type { Scene } from "../../domain/scene.js";
@@ -111,7 +112,8 @@ export class SqliteRepository implements Repository {
     const tx = this.db.transaction(() => {
       for (const t of ["entities", "aliases_norm", "figed", "potentialites", "nodes", "edges", "turns", "scenes",
                        "events", "records", "holders", "carriages", "carriage_effects", "inventions",
-                       "invention_transitions", "operations", "dispatch_policies"]) {
+                       "invention_transitions", "operations", "dispatch_policies",
+                       "canonical_attributes", "migration_findings"]) {
         this.db.prepare(`DELETE FROM ${t} WHERE campaign_id = ?`).run(id);
       }
       this.db.prepare(`DELETE FROM campaigns WHERE id = ?`).run(id);
@@ -547,6 +549,35 @@ export class SqliteRepository implements Repository {
       ? this.db.prepare(`SELECT payload FROM invention_transitions WHERE campaign_id = ? ORDER BY seq`).all(campaignId)
       : this.db.prepare(`SELECT payload FROM invention_transitions WHERE campaign_id = ? AND invention_id = ? ORDER BY seq`).all(campaignId, inventionId);
     return (rows as Array<{ payload: string }>).map(r => JSON.parse(r.payload) as InventionTransition);
+  }
+
+  async upsertCanonicalAttribute(campaignId: CampaignId, row: CanonicalAttribute): Promise<void> {
+    this.assertCampaignExists(campaignId);
+    this.db.prepare(
+      `INSERT OR REPLACE INTO canonical_attributes (campaign_id, entity_id, attribute_key, payload) VALUES (?, ?, ?, ?)`
+    ).run(campaignId, row.entityId, row.key, JSON.stringify(row));
+  }
+
+  async getCanonicalAttributes(campaignId: CampaignId, entityId?: EntityID): Promise<CanonicalAttribute[]> {
+    const rows = entityId === undefined
+      ? this.db.prepare(`SELECT payload FROM canonical_attributes WHERE campaign_id = ?`).all(campaignId)
+      : this.db.prepare(`SELECT payload FROM canonical_attributes WHERE campaign_id = ? AND entity_id = ?`).all(campaignId, entityId);
+    return (rows as Array<{ payload: string }>).map(r => JSON.parse(r.payload) as CanonicalAttribute);
+  }
+
+  async appendMigrationFindings(findings: MigrationFinding[]): Promise<void> {
+    const insert = this.db.prepare(`INSERT INTO migration_findings (campaign_id, payload) VALUES (?, ?)`);
+    for (const f of findings) {
+      this.assertCampaignExists(f.campaignId);
+      insert.run(f.campaignId, JSON.stringify(f));
+    }
+  }
+
+  async listMigrationFindings(campaignId: CampaignId): Promise<MigrationFinding[]> {
+    const rows = this.db.prepare(
+      `SELECT payload FROM migration_findings WHERE campaign_id = ? ORDER BY seq`
+    ).all(campaignId) as Array<{ payload: string }>;
+    return rows.map(r => JSON.parse(r.payload) as MigrationFinding);
   }
 
   async getWorldDay(campaignId: CampaignId): Promise<number> {
