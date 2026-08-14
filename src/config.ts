@@ -18,7 +18,18 @@ export interface EngineConfig {
   _routerDeps?: RouterDeps;
   resolver?: Partial<ResolverThresholds>;
   logger?: Logger;
+  /**
+   * Fan-out cap for ALL_KNOWN_COMMUNITIES dispatch (#15). The Convex bundle is
+   * one transaction with a document-write ceiling; truncation is deterministic
+   * (nearest declared travelDays first) and always counted, never silent.
+   */
+  maxDispatchFanout?: number;
+  /** Salience weights override (§2.5) — the factor list itself is fixed. */
+  salienceWeights?: import("./core/salience.js").SalienceWeights;
 }
+
+/** Default for EngineConfig.maxDispatchFanout (#15). */
+export const DEFAULT_MAX_DISPATCH_FANOUT = 64;
 
 export function loadConfigFromFile(path: string): { router: RouterConfig; resolver?: Partial<ResolverThresholds> } {
   const ext = extname(path).toLowerCase();

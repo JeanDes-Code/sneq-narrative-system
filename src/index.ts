@@ -11,7 +11,7 @@ export {
 } from "./campaign.js";
 
 // Config + loading
-export { type EngineConfig, loadConfigFromFile } from "./config.js";
+export { type EngineConfig, loadConfigFromFile, DEFAULT_MAX_DISPATCH_FANOUT } from "./config.js";
 
 // Router
 export { defaultRouterConfig } from "./router/defaults.js";
@@ -137,6 +137,23 @@ export {
   detectUptake, decidePromotion,
   type PromotionContext, type PromotionDecision
 } from "./core/promotion.js";
+
+// The single write and the world (0.5.0, slice 4)
+export {
+  decideCommitNarrative,
+  type CommitNarrativeBundle, type CommitContext, type CommitPlan,
+  type CommitHealth, type CommitEventInput, type CommitCarriageInput
+} from "./core/commit-narrative.js";
+export {
+  commitNarrative,
+  type CommitNarrativeOptions, type CommitNarrativeResult
+} from "./atomic/commit-narrative.js";
+export { tick, worldHealth, type WorldHealth, type WorldHealthInput } from "./core/tick.js";
+export {
+  bootstrapCampaign,
+  DEFAULT_REALM_ENTITY_ID, DEFAULT_GROUP_HOLDER_ID,
+  type BootstrapResult, type BootstrapRepo
+} from "./atomic/bootstrap.js";
 
 // Resolver
 export type { ResolverThresholds } from "./resolver/thresholds.js";

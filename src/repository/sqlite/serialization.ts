@@ -11,6 +11,7 @@ export interface EntityRow {
   type: string;
   name: string;
   description: string | null;
+  realm_id: string | null;
   nom_connu: number;
   aliases: string;
   tags: string;
@@ -25,6 +26,7 @@ export function entityToRow(e: Entity): EntityRow & { _embedding: Buffer | null 
     type: e.type,
     name: e.name,
     description: e.description ?? null,
+    realm_id: e.realmId ?? null,
     nom_connu: e.nomConnu ? 1 : 0,
     aliases: JSON.stringify(e.aliases),
     tags: JSON.stringify(e.tags),
@@ -44,6 +46,7 @@ export function rowToEntity(row: EntityRow, embeddingBuf: Buffer | null): Entity
     type: row.type as Entity["type"],
     name: row.name,
     ...(row.description !== null && row.description !== undefined ? { description: row.description } : {}),
+    ...(row.realm_id !== null && row.realm_id !== undefined ? { realmId: asEntityID(row.realm_id) } : {}),
     nomConnu: row.nom_connu === 1,
     aliases: JSON.parse(row.aliases) as Entity["aliases"],
     tags: JSON.parse(row.tags) as string[],

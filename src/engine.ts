@@ -1,3 +1,4 @@
+import { bootstrapCampaign } from "./atomic/bootstrap.js";
 import { repositoryAtomicWriteStrategy } from "./atomic/repository-strategy.js";
 import type { AtomicWriteStrategy } from "./atomic/types.js";
 import type { EngineConfig } from "./config.js";
@@ -135,6 +136,9 @@ export class Engine {
         createdAt: Date.now(),
         embeddingDim: input.embeddingDim
       });
+      // §2.3 bootstrap (decided at #15/#26): default realm entity, default
+      // group, default dispatch rules — the baseline is a world that talks.
+      await bootstrapCampaign(this.repo, input.id);
       return this.contextFor(input.id);
     });
   }

@@ -5,7 +5,7 @@ import type { Potentialite } from "../../domain/potentialite.js";
 import { asCampaignId } from "../../domain/ids.js";
 import type { CampaignId } from "../../domain/ids.js";
 
-export const SCHEMA_VERSION = 5;
+export const SCHEMA_VERSION = 6;
 
 const MIGRATIONS: Array<{ version: number; sql: string }> = [
   {
@@ -238,6 +238,11 @@ const MIGRATIONS: Array<{ version: number; sql: string }> = [
       );
       CREATE INDEX IF NOT EXISTS idx_migration_findings ON migration_findings(campaign_id);
     `
+  },
+  {
+    // Place → realm membership as entity metadata (#26).
+    version: 6,
+    sql: `ALTER TABLE entities ADD COLUMN realm_id TEXT;`
   }
 ];
 
