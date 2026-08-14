@@ -32,6 +32,7 @@ export {
   SneqCampaignContextInvalidatedError,
   SneqConcurrentEntityCreationError,
   SneqUnknownEntityError,
+  SneqContainmentError,
   type CampaignContextInvalidationReason,
   type ValidationFailureDetail,
   type IntraCommitConflict
@@ -89,7 +90,7 @@ export type { Entity, EntityType, Alias, AliasSource } from "./domain/entity.js"
 export type { AttributValue, AttributFige, CategorieAttribut, CanonicalAttribute, CanonicalSource } from "./domain/attribute.js";
 export type { Observation, ObservationSource, ObservationMethod, Fiabilite } from "./domain/observation.js";
 export type {
-  Potentialite, Contrainte, RegleContrainte, ContrainteSource, EtatAttribut,
+  Potentialite, Contrainte, RegleContrainte, ContrainteSource, EtatAttribut, ConstraintStatus,
   Tendance, ContexteGeneratif
 } from "./domain/potentialite.js";
 export type { NoeudGCN, AreteGCN, TypeRelation, ReglePropagation } from "./domain/gcn.js";
@@ -118,6 +119,24 @@ export {
   type LegacyCampaignInput, type LegacyMigrationOutput
 } from "./core/migrate-legacy.js";
 export type { MigrationFinding, MigrationFindingKind } from "./domain/migration.js";
+
+// The perspective seam's engine room (0.5.0, slice 3)
+export type { Belief, BeliefCertainty, SalienceFactors } from "./domain/belief.js";
+export { deriveBeliefs, type BeliefWorld } from "./core/derive-beliefs.js";
+export { computeSalience, DEFAULT_SALIENCE_WEIGHTS, type SalienceWeights } from "./core/salience.js";
+export {
+  resolveHolder,
+  type HolderResolution, type HolderResolutionInput, type ResolutionRoad
+} from "./core/holder-resolution.js";
+export {
+  surfaceTokensOf, validateSuppliedTokens, forbiddenTokensFor,
+  checkContainment, assertContainment,
+  type TokenWorld, type EntityLike, type ContainmentResult
+} from "./core/containment.js";
+export {
+  detectUptake, decidePromotion,
+  type PromotionContext, type PromotionDecision
+} from "./core/promotion.js";
 
 // Resolver
 export type { ResolverThresholds } from "./resolver/thresholds.js";
