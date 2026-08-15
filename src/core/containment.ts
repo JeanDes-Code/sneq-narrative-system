@@ -69,21 +69,40 @@ function namesOf(entities: EntityLike[], ids: Iterable<EntityID | undefined>): s
  * nameable, the model covers the distinctive surface.
  */
 export function surfaceTokensOf(subject: NarrativeEvent | OfficialRecord, entities: EntityLike[]): string[] {
-  const tokens = new Set<string>(subject.surfaceTokens);
+  const { identity, declared } = tokenPartsOf(subject, entities);
+  return [...new Set([...declared, ...identity])];
+}
+
+/**
+ * The same tokens, split by where they came from.
+ *
+ * `identity` is what the engine derived from an entity's name or aliases;
+ * `declared` is everything the subject states about itself — model-supplied
+ * `surfaceTokens`, a record's key, a record's textual value. The public
+ * exemption may only free the first kind: a secret whose *value* happens to
+ * spell a public entity's name is still a secret, and exempting it by string
+ * match would hand it over.
+ */
+function tokenPartsOf(
+  subject: NarrativeEvent | OfficialRecord,
+  entities: EntityLike[]
+): { identity: string[]; declared: string[] } {
+  const declared = new Set<string>(subject.surfaceTokens);
+  const identity = new Set<string>();
   if ("eventId" in subject) {
     for (const name of namesOf(entities, [
       ...subject.participants,
       subject.placeId,
       ...subject.acts.map(a => a.objectId),
       ...subject.acts.map(a => a.actorId)
-    ])) tokens.add(name);
+    ])) identity.add(name);
   } else {
-    for (const name of namesOf(entities, [subject.entityId, subject.authoredBy])) tokens.add(name);
-    tokens.add(subject.key);
+    for (const name of namesOf(entities, [subject.entityId, subject.authoredBy])) identity.add(name);
+    declared.add(subject.key);
     const value = textualValue(subject.value);
-    if (value !== null) tokens.add(value);
+    if (value !== null) declared.add(value);
   }
-  return [...tokens];
+  return { identity: [...identity], declared: [...declared] };
 }
 
 /**
@@ -106,24 +125,35 @@ export function validateSuppliedTokens(e: NarrativeEvent): string[] {
  * from state, before any call — not a validator on the model's output; a
  * statement about what was handed over.
  *
- * Two things are never forbidden: a token the holder legitimately holds, even
- * if it also appears in something they do not hold; and the name of an entity
- * authored `public` (see `PUBLIC_TAG`).
+ * Two things are never forbidden. A token the holder legitimately holds, even
+ * if it also appears in something they do not hold. And the name of an entity
+ * authored `public` (see `PUBLIC_TAG`) — but only where that token is purely
+ * an identity: if any unlearned subject also *declares* the same string as its
+ * own surface token, key or value, the exemption does not apply to it, because
+ * freeing the name would free the secret spelled the same way.
  */
 export function forbiddenTokensFor(world: TokenWorld, beliefs: Belief[]): string[] {
   const held = new Set(beliefs.map(b => `${b.subject.kind}:${b.subject.id}`));
   const forbidden = new Set<string>();
   const allowed = new Set<string>();
-  for (const e of world.events) {
-    const target = held.has(`EVENT:${e.eventId}`) ? allowed : forbidden;
-    for (const t of surfaceTokensOf(e, world.entities)) target.add(t.toLowerCase());
-  }
-  for (const r of world.records) {
-    const target = held.has(`RECORD:${r.recordId}`) ? allowed : forbidden;
-    for (const t of surfaceTokensOf(r, world.entities)) target.add(t.toLowerCase());
-  }
+  /** Tokens an unlearned subject states about itself — never exemptible. */
+  const declaredByUnlearned = new Set<string>();
+
+  const walk = (subject: NarrativeEvent | OfficialRecord, isHeld: boolean) => {
+    const target = isHeld ? allowed : forbidden;
+    const { identity, declared } = tokenPartsOf(subject, world.entities);
+    for (const t of identity) target.add(t.toLowerCase());
+    for (const t of declared) {
+      target.add(t.toLowerCase());
+      if (!isHeld) declaredByUnlearned.add(t.toLowerCase());
+    }
+  };
+  for (const e of world.events) walk(e, held.has(`EVENT:${e.eventId}`));
+  for (const r of world.records) walk(r, held.has(`RECORD:${r.recordId}`));
+
   const publicTokens = publicTokensOf(world.entities);
-  return [...forbidden].filter(t => !allowed.has(t) && !publicTokens.has(t));
+  return [...forbidden].filter(t =>
+    !allowed.has(t) && !(publicTokens.has(t) && !declaredByUnlearned.has(t)));
 }
 
 export interface ContainmentResult {

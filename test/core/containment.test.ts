@@ -167,6 +167,42 @@ describe("the public-token exemption", () => {
     expect(forbiddenTokensFor(publicWorld, [])).toContain("jehan");
   });
 
+  /**
+   * The exemption matches identity, not strings. A secret whose textual value
+   * happens to spell a public entity's name is still a secret — freeing the
+   * name by string match would hand the secret over with it.
+   *
+   * Concretely: declare the faction "Les Corbeaux" public, and a holder who
+   * merely knows Selin must still not be able to be told that Selin serves
+   * them, because the allegiance record was never learned.
+   */
+  it("does NOT free a secret whose declared value spells a public entity's name", () => {
+    const allegiance: OfficialRecord = {
+      recordId: asRecordId("r-allegiance"), campaignId: cid,
+      entityId: asEntityID("actor"), key: "allegeance",
+      value: { type: "STRING", value: "Les Corbeaux" }, category: "SECRET",
+      authoredBy: asEntityID("gabelou"), route: "OFFICIAL",
+      observation: { source: "SYSTEM", method: "DOCUMENT", timestamp: 0 },
+      day: 1, turn: 1, surfaceTokens: []
+    };
+    const factionWorld: TokenWorld = {
+      events: [], records: [allegiance],
+      entities: [
+        ...entities,
+        { id: asEntityID("faction"), name: "Les Corbeaux", aliases: [], tags: [PUBLIC_TAG] }
+      ]
+    };
+    expect(forbiddenTokensFor(factionWorld, [])).toContain("les corbeaux");
+  });
+
+  it("still frees the same name when no unlearned subject declares it", () => {
+    const factionWorld: TokenWorld = {
+      events: [], records: [],
+      entities: [{ id: asEntityID("faction"), name: "Les Corbeaux", aliases: [], tags: [PUBLIC_TAG] }]
+    };
+    expect(forbiddenTokensFor(factionWorld, [])).not.toContain("les corbeaux");
+  });
+
   it("the host's own scene description passes once the place is public", () => {
     const sceneDescription = "Vous êtes à Valmure, sous une pluie fine.";
     expect(() => assertContainment(world, [], asHolderId("h"), sceneDescription))
