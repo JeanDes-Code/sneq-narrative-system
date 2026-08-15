@@ -164,17 +164,17 @@ describe("the turn pipeline (§11), end to end", () => {
   });
 
   /**
-   * The engine floor (#25) forbids the NAMES of an unlearned event's place,
-   * participants and objects — not only the model-supplied tokens. So a public
-   * landmark that happens to appear in a secret event becomes unmentionable to
-   * everyone who has not learned that event.
+   * The floor forbids the NAMES of an unlearned event's place, participants and
+   * objects — not only the model-supplied tokens. Left alone that blocks the
+   * host's own scene description: `prepare-turn` hands back `scene.description`,
+   * the host composes it into the payload, and the place's own name fails the
+   * pre-flight check for anyone who has not learned an event there.
    *
-   * This is over-blocking, and it is the intended direction of the error:
-   * containment fails loud rather than leaking quiet. Recorded here so it is a
-   * known property rather than something discovered at turn 400 — the cure, if
-   * one is wanted, is authored public-token exemptions, not a softer floor.
+   * The direction of the error is right — containment fails loud rather than
+   * leaking quiet — so the cure is an authored, per-entity exemption, not a
+   * softer floor.
    */
-  it("the floor also forbids a public place name carried by an unlearned event", async () => {
+  it("an undeclared place name is withheld once a secret event happens there", async () => {
     await commitTheBurning();
     const result = await campaign.filterTranscript({
       holderId: H_TOLL,
@@ -182,6 +182,30 @@ describe("the turn pipeline (§11), end to end", () => {
     });
     expect(result.kept).toEqual([]);
     expect(result.dropped[0]!.present).toContain("la forge");
+  });
+
+  it("declaring the place public frees its name, and nothing else", async () => {
+    // Same fixture, one entity re-authored as common knowledge.
+    await (engine as unknown as { repo: { upsertEntity(e: unknown): Promise<void> } }).repo.upsertEntity({
+      campaignId: cid, id: FORGE, type: "LIEU", name: "La Forge",
+      nomConnu: true, aliases: [], tags: ["public"],
+      createdAt: 0, embedding: null, embeddingRefreshedAt: null,
+      realmId: asEntityID(DEFAULT_REALM_ENTITY_ID)
+    });
+    await commitTheBurning();
+
+    const result = await campaign.filterTranscript({
+      holderId: H_TOLL,
+      entries: [
+        { id: "t1", text: "Vous poussez la porte de La Forge." },
+        { id: "t2", text: "Le registre du péage n'est plus que cendre." }
+      ]
+    });
+    // The name passes…
+    expect(result.kept.map(e => e.id)).toEqual(["t1"]);
+    // …and what happened there is still withheld. The exemption is about
+    // identity, never about the secret.
+    expect(result.dropped[0]!.present).toContain("le registre du péage");
   });
 
   it("phase F: the gate blocks a narration that leaks, and does not ask for a rewrite", async () => {

@@ -128,7 +128,7 @@ export {
 } from "./core/holder-resolution.js";
 export {
   surfaceTokensOf, validateSuppliedTokens, forbiddenTokensFor,
-  checkContainment, assertContainment,
+  checkContainment, assertContainment, PUBLIC_TAG,
   type TokenWorld, type EntityLike, type ContainmentResult
 } from "./core/containment.js";
 export {

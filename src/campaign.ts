@@ -36,7 +36,7 @@ import {
 import { deriveBeliefs, type BeliefWorld } from "./core/derive-beliefs.js";
 import { resolveHolder, type HolderResolution } from "./core/holder-resolution.js";
 import {
-  assertContainment, checkContainment, forbiddenTokensFor,
+  assertContainment, checkContainment, forbiddenTokensFor, PUBLIC_TAG,
   type ContainmentResult, type EntityLike, type TokenWorld
 } from "./core/containment.js";
 import {
@@ -77,6 +77,13 @@ export interface MentionInput {
   description: string;
   /** Create even when resolution is ambiguous (after the caller adjudicated). */
   force?: boolean;
+  /**
+   * Common knowledge: this entity's NAME is exempt from the containment floor
+   * (`PUBLIC_TAG`). For landmarks, towns, factions everybody has heard of —
+   * things whose name carries no secret. What HAPPENED to them is still
+   * withheld; only the name stops being.
+   */
+  public?: boolean;
 }
 
 export interface ConfirmEntityMatchInput {
@@ -234,7 +241,7 @@ export class CampaignContext implements ToolCallContext {
           source: { kind: "GM_NARRATION" as const },
           observedAt: aliasObservedAt,
         })),
-        tags: [],
+        tags: input.public ? [PUBLIC_TAG] : [],
         createdAt,
         embedding,
         embeddingRefreshedAt,
@@ -498,7 +505,7 @@ export class CampaignContext implements ToolCallContext {
     const entities: EntityLike[] = [];
     for (const id of ids) {
       const e = await repo.getEntity(this.id, id);
-      if (e) entities.push({ id: e.id, name: e.name, aliases: e.aliases.map(a => a.text) });
+      if (e) entities.push({ id: e.id, name: e.name, aliases: e.aliases.map(a => a.text), tags: e.tags });
     }
 
     return {
@@ -661,6 +668,10 @@ export class CampaignContext implements ToolCallContext {
         repo.getDispatchPolicy(this.id)
       ]);
 
+    const publicEntities = (await repo.topEntities(this.id, 1000))
+      .filter(e => e.tags.includes(PUBLIC_TAG))
+      .map(e => ({ entityId: e.id, name: e.name }));
+
     const sceneIds = scene ? [scene.locationId, ...scene.presentEntityIds] : [];
     const sceneEntityResolution = await Promise.all(sceneIds.map(async entityId => ({
       entityId, known: (await repo.getEntity(this.id, entityId)) !== null
@@ -689,6 +700,7 @@ export class CampaignContext implements ToolCallContext {
       holders,
       potentialites,
       migrationFindings: findings,
+      publicEntities,
       health,
       // No route and no rule means nothing can ever be dispatched: bootstrap
       // ships rules with zero routes, which is what an undeclared map looks like.

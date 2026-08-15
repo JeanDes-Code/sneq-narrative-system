@@ -25,7 +25,7 @@ export interface ToolCallContext {
   suggestExisting(mention: string, type: EntityType): Promise<SuggestionResult>;
   getEntity(entityId: EntityID): Promise<Entity | null>;
   getHolderContext(args: HolderContextArgs): Promise<HolderContext>;
-  mentionEntity(input: { canonicalName: string; type: EntityType; aliases?: string[]; description: string; force?: boolean }): Promise<import("../campaign.js").MentionResult>;
+  mentionEntity(input: { canonicalName: string; type: EntityType; aliases?: string[]; description: string; force?: boolean; public?: boolean }): Promise<import("../campaign.js").MentionResult>;
   commitNarrative(bundle: ToolCommitBundle): Promise<CommitNarrativeResult>;
   addConstraint(input: { entityId: EntityID; attributeKey: string; rule: RegleContrainte; justification: string; role: ConstraintRole }): Promise<{ constraintId: ConstraintId }>;
   setScene(input: { locationEntityId: EntityID; presentEntityIds: EntityID[]; description: string }): Promise<{ sceneId: SceneId; turnNumber: number }>;
@@ -145,6 +145,7 @@ export async function dispatchToolCall(name: string, rawArgs: unknown, ctx: Tool
         type: args["type"] as EntityType,
         ...(args["aliases"] !== undefined ? { aliases: args["aliases"] as string[] } : {}),
         ...(args["force"] !== undefined ? { force: args["force"] as boolean } : {}),
+        ...(args["public"] !== undefined ? { public: args["public"] as boolean } : {}),
         description: args["description"] as string
       });
     case "sneq__commit_narrative": {

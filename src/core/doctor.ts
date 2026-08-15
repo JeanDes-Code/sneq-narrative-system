@@ -44,6 +44,8 @@ export interface DoctorInput {
   health: WorldHealth;
   /** From the last commit's `CommitHealth`, when the campaign has committed at all. */
   dispatch?: { uncovered: number; unroutable: number; truncated: number };
+  /** Entity names declared common knowledge (`PUBLIC_TAG`) — the floor's only authored exemption. */
+  publicEntities: Array<{ entityId: EntityID; name: string }>;
   /** Turns without an appended event before the ledger is called stale (§6.2). */
   staleAfterTurns?: number;
 }
@@ -182,7 +184,17 @@ export function runDoctor(input: DoctorInput): DoctorReport {
         `${[...new Set(input.migrationFindings.map(f => f.kind))].join(", ")}. ` +
         `They were never auto-fixed (guessing) and never deleted (data loss) — repair them by hand.`);
 
-  // 11-12. Two §12.4 lines nothing persisted can answer. Said out loud rather
+  // 11. The one authored hole in the floor, counted because it is one.
+  add("public-entities", "INFO",
+    input.publicEntities.length === 0
+      ? "No entity is declared public. Every name in an unlearned event is withheld — including landmarks, which will " +
+        "block prompts that merely describe where the player is standing. Tag the ones everybody has heard of."
+      : `${input.publicEntities.length} entity name(s) are common knowledge and never withheld: ` +
+        `${input.publicEntities.slice(0, 8).map(e => e.name).join(", ")}` +
+        `${input.publicEntities.length > 8 ? ", …" : ""}. What happened to them is still withheld; only the name is not. ` +
+        `Each one is a deliberate hole in the floor — a person or a secret should never be in this list.`);
+
+  // 12-13. Two §12.4 lines nothing persisted can answer. Said out loud rather
   // than quietly dropped, so the checklist stays honest about its own reach.
   add("containment-assertions", "INFO",
     "assertContainment is a pre-flight call the host makes over each composed payload (§11 phase D). " +
