@@ -1,21 +1,194 @@
-# Upgrading to sneq-engine 0.1.0
+# Upgrading sneq-engine
 
-This guide is written to be consumed by **humans and agents** (Hermes-Agent, Claude Code
-sessions, scripts). If you operate a system that calls `sneq-engine` or imports
-`sneq-engine`, read the section that matches how you consume it, apply the checklist,
-then run the verification commands at the bottom.
+Written to be consumed by **humans and agents** (Hermes-Agent, Claude Code sessions,
+scripts). Find the version you are coming from, apply its section, then run the
+verification commands at the bottom.
 
-> **TL;DR for out-of-process (CLI) consumers:** your existing database files keep working
-> untouched (the schema migration is automatic and additive). Two things need attention:
-> (1) `mention-entity` can now return `entityId: null` with `needsAdjudication: true` —
-> handle it; (2) the default embeddings chain is Google-only now — if you relied on the
-> Mistral fallback, you need a config file. Everything else is compatible or strictly better.
+Versions are listed newest first. There is no 0.4.0 — 0.4 was an internal milestone and
+the whole design landed as one release.
 
 ---
 
-## Unreleased pre-1.0 changes after 0.1.0
+## 0.5.0 — stratified knowledge (one release, one break)
 
-These land on top of 0.1.0 and are not yet published. If you track `main`:
+**Read this before you touch anything: the TL;DR of the 0.1.0 section below is no longer
+true.** It promised *"your existing database files keep working untouched (the schema
+migration is automatic and additive)"*. Under 0.5.0 the migration is still automatic, but
+it is **not additive**: `figed` becomes `canonical_attributes`, the JSON save format bumps
+to version 2, and per-entity day-0 events are synthesized. **Back up your database file
+before opening it with 0.5.0.** The migration never runs twice, so there is no way to
+re-run it against a copy afterwards.
+
+### What changed, in one paragraph
+
+Knowledge stopped being global. An event happens at a place on a world **day**; whoever
+was there witnesses it; everybody else learns it only when news physically reaches them.
+So there is no longer any call that answers *what is true* — every read of world knowledge
+is for a named **holder**, and that is the point: a character cannot leak a fact the API
+never handed over.
+
+### Breaking — tools
+
+| Gone | Replacement |
+|---|---|
+| `sneq__get_relevant_facts` | `sneq__get_holder_context { holderId \| entityId, about?, topK? }` — the same information, scoped to somebody. There is no unscoped form. |
+| `sneq__register_fact` | `sneq__commit_narrative` — the whole turn as one atomic bundle. |
+
+Changed: `sneq__get_entity` returns identity only and now says so (it never returned
+attributes; the description claimed it did). `sneq__advance_turn` gains `days`.
+`sneq__add_constraint` **requires** a `role` (`REGLE_MONDE` / `INFERENCE_IA` /
+`FAIT_CANONIQUE` / `RELATION`) — 0.3 hardcoded `INFERENCE_IA` for everything, which left
+`REGLE_MONDE` with no producer at all. `sneq__validate_narration` accepts `holderId`, and
+its report gains a `verdict` of `PASS` / `REPAIR` / `BLOCK`.
+
+The count stays at ten.
+
+### Breaking — CLI (14 → 18 commands)
+
+| Was | Now |
+|---|---|
+| `register-fact` | `commit-narrative` |
+| `get-relevant-facts` | `get-holder-context` (requires `--holder` or `--entity`) |
+| — | `upsert-holder`, `show-dispatch-policy`, `set-dispatch-policy`, `doctor` |
+
+- `prepare-turn` **changed shape**. Holderless it returns the frame only — `{ day, turn,
+  scene, presentEntities, holder: null }`. It no longer carries facts. Pass
+  `--holder`/`--entity` and it also carries that holder's knowledge.
+- Three flags do not travel through `--args`: `--holder`, `--entity`, `--days`.
+- `--source` gains `out-of-band` (#22) and now applies to `commit-narrative`'s `records[]`,
+  filling in only where a record brought no observation of its own. Before 0.5.0 `--source`
+  was wired solely to `register-fact`; without this change your provenance presets would
+  have died silently with that command.
+- New error codes: `HOLDER_NOT_FOUND`, `CONTAINMENT_VIOLATION`, `EMBEDDING_DIM_MISMATCH`.
+  All exit 1 — they are your call to fix, not engine bugs.
+
+### Breaking — TypeScript API
+
+| Change | Migration |
+|---|---|
+| `AttributFige` deleted, no alias | Use `CanonicalAttribute`. The old shape survives only as `LegacyFact`, the migration's read type. |
+| `Repository.appendFact` / `getFigedAttributes` / `queryFacts` and `FactQuery` removed | Read `getCanonicalAttributes(campaignId, entityId?)`. Write through `commitNarrative`. |
+| `campaign.registerFact` removed | `campaign.commitNarrative(bundle)`. |
+| `campaign.getRelevantFacts` removed | `campaign.getHolderContext({ holderId \| entityId })`. |
+| `campaign.prepareTurn()` returns a new shape | See the CLI note above. |
+| `campaign.advanceTurn(summary)` → `advanceTurn({ summary?, days? })` | Wrap the argument; the result gains `worldDay` and `health`. |
+| `decideRegisterFact`, `RegisterFact*` types removed from `sneq-engine/atomic` | Use `decideCommitNarrative` — it is how an out-of-tree store shares the single write's rules. |
+| `propagate`, `PropagationInput`, `PropagationResult`, `ContraintePropagee` removed | Constraint propagation through the relation graph is gone. It had zero call sites. A character reacts when they *learn*, which is what the belief layer models. |
+| `ValidationReport` gains a required `verdict` | Any hand-written `NarrationGateHook` must return one. |
+| `ValidationContext.existingFiged` → `existingCanon: CanonicalAttribute[]` | Rename and retype. Still unread by the validator. |
+| `AtomicWriteStrategy.registerFact` removed | Drop it from your strategy object. |
+
+**New, worth adopting:** `ingestPlayerInput`, `getHolderContext`, `filterTranscript`,
+`assertContainment`, `commitNarrative`, `tick`/`advanceTurn({days})`, `doctor`,
+`renderContextBlock`, and `setEmbeddingDim` + `reindexEmbeddings`.
+
+### The two clocks
+
+`turn` is your conversation. `day` is the world. **`commit_narrative.daysElapsed` is
+required** — the fiction declares its own elapsed time every turn, and `0` is legal.
+`advance-turn --days N` is for out-of-band time only: downtime, a session break.
+
+A campaign that always answers `daysElapsed: 0` will have carriages on the road forever.
+`doctor` has a check for exactly that.
+
+### Promotion is the engine's job
+
+Pass the player's raw text as `commit_narrative.playerUtterance`. The engine
+substring-searches it for the surface tokens of every provisional invention and promotes
+what the player took up. Do **not** hand-write `PLAYER_UPTAKE` evidence: the detection
+re-runs at commit and yours will not outrank it.
+
+An invention contradicted by canon is now **silently rejected** — no error, no interrupt.
+0.3's `register_fact` returned contradictions to adjudicate; that path is gone. Replacing a
+value on a key is state evolution, not a conflict.
+
+### One thing to author on day one
+
+The containment floor withholds the **names** of an unlearned event's place and
+participants. That is right for people and secrets and wrong for landmarks: the first
+secret meeting at a tavern makes the tavern's name unmentionable to the whole town, and
+your own scene description stops passing `assertContainment`.
+
+Tag the places everybody has heard of:
+
+```bash
+sneq-engine mention-entity --db <your.db> --campaign <id> \
+  --args '{"canonicalName":"La Forge","type":"LIEU","description":"…","public":true}'
+```
+
+What happened there is still withheld — `public` frees the name and nothing else. Never
+set it on a person, or on anything whose existence is the secret. `doctor` lists them back,
+because each one is a deliberate hole in the floor.
+
+### Storage migration
+
+- **SQLite**: schema v6. `figed` → `canonical_attributes` (copied as `LEGACY_FACT`), new
+  ledger tables, `operations` ring, `migration_findings`, `Entity.realmId`. Persisted
+  `observation` blobs are rewritten to drop the stale `fiabilite` key. Constraints are
+  audited for value-type coherence; findings are **flagged, never auto-fixed and never
+  deleted** — `doctor` reads them back.
+- **JSON**: save format `1 → 2`, with a v1 loader running the same pure migration core.
+- **Both** now run the §2.3 campaign bootstrap on a migrated campaign: a default realm
+  entity, a default group holder, and a default dispatch rule with zero routes. Without
+  the default group there is no floor to the holder cascade and nobody can hold anything.
+- The migration **never re-runs on reopen**.
+
+### Convex (out of tree)
+
+Grimoire's adapter is not migrated by any of the above. It needs, in its own repo:
+
+- Seven new tables: `events`, `records`, `holders`, `carriages`, `carriage_effects`,
+  `inventions`, `invention_transitions`; plus `canonical_attributes` (replacing `figed`),
+  `migration_findings`, and an `operations` ring for `operationId` dedup.
+- An index on `(campaign_id, to_place_id, arrival_day)` for carriage arrival queries.
+- A `commitNarrativeAtomic` mutation. Build it on **`decideCommitNarrative`** rather than
+  re-deriving promotion, dispatch and contradiction by hand — that export exists for this.
+- A backfill copying `figed` rows as `LEGACY_FACT` canonical rows plus one day-0
+  `LEGACY_CANON` event per entity.
+- The `payload as AttributFige` casts make this gap invisible to TypeScript. Grep for them.
+
+### Embedding dimension (§14)
+
+`embeddingDim` used to be chosen at campaign creation and then immutable, with no reindex
+path anywhere in the contract — which is very likely why every measured consumer picked
+`0`. Two new contract methods make moving between rungs a supported migration:
+
+```ts
+await repo.setEmbeddingDim(campaignId, 768);   // clears stored vectors — they are unreadable at the new dim
+await repo.reindexEmbeddings(campaignId, vectors);   // every entity, re-embedded by the new model
+```
+
+Between the two calls the campaign resolves by alias alone: degraded, never wrong. Note
+`sqlite-vec` holds one dimension per **file**, so SQLite refuses rather than destroying
+another campaign's vectors — move the campaign to its own file, or reindex them together.
+
+### 0.5.0 upgrade procedure (agent-executable)
+
+```bash
+cd <sneq-narrative-system checkout>
+git pull
+cp <your.db> <your.db>.pre-0.5.0-backup   # the migration does not run twice
+pnpm install && pnpm build                # 528 tests: pnpm test
+
+# Opening the DB runs the migration. Then ask what is wrong with it:
+sneq-engine doctor --db <your.db> --campaign <id>          # exit 1 on a FAIL
+
+# The frame still comes back, in its new shape:
+sneq-engine prepare-turn --db <your.db> --campaign <id>
+
+# And the read that replaces get-relevant-facts:
+sneq-engine get-holder-context --db <your.db> --campaign <id> --entity <entityId>
+```
+
+Then update your call sites per the tables above, and **replace your copy of
+`skills/sneq-narrative-engine.md`** — it was rewritten, not edited. Its frontmatter
+`description` changed too, which is what decides whether an agent loads it at all.
+
+---
+
+## 0.3.1 and the pre-1.0 changes after 0.1.0
+
+These landed on top of 0.1.0. If you are coming from 0.5.0 you have them already.
 
 - **`0.3.1` — Honest surface (one breaking check).** No new features; this release makes
   the package stop claiming things it does not do.
@@ -72,7 +245,7 @@ These land on top of 0.1.0 and are not yet published. If you track `main`:
 
 ---
 
-## 1. Out-of-process consumers (the `sneq-engine` CLI — e.g. Hermes-Agent)
+## 0.1.0 — out-of-process consumers (the `sneq-engine` CLI — e.g. Hermes-Agent)
 
 ### 1.1 MUST handle — `mention-entity` can refuse to create (anti-fork guard)
 
@@ -166,7 +339,7 @@ resolution. In that mode, register aliases eagerly — they are the entire looku
 ```bash
 cd <sneq-narrative-system checkout>
 git pull
-pnpm install && pnpm build          # 236 tests: pnpm test (optional but recommended)
+pnpm install && pnpm build          # 528 tests: pnpm test (optional but recommended)
 # Probe an existing campaign WITHOUT --embedding-dim (must succeed and show the stored dim):
 sneq-engine campaign-exists --db <your.db> --campaign <id>
 # Wake-up bundle still works:
@@ -178,7 +351,7 @@ refresh your copy of the skill file.
 
 ---
 
-## 2. In-process consumers (TypeScript `import "sneq-engine"`)
+## 0.1.0 — in-process consumers (TypeScript `import "sneq-engine"`)
 
 Breaking changes (pre-publish window — nothing on npm consumed 0.0.x):
 
@@ -198,11 +371,13 @@ repositories (zero native deps), keyless mode, `Entity.description`, real retrie
 
 ---
 
-## 3. Verification matrix
+## Verification matrix
 
 | Check | Command | Expect |
 |---|---|---|
-| Build is current | `pnpm build && sneq-engine --help` | help lists 14 commands |
+| Build is current | `pnpm build && sneq-engine --help` | help lists **18** commands |
+| The campaign survived the migration | `sneq-engine doctor --db <db> --campaign <id>` | no check with `"status":"FAIL"` (exit 0) |
+| The seam is intact | `sneq-engine --help` | no `get-relevant-facts`, no `register-fact` — there is no unscoped world read |
 | Existing DB opens without the dim flag | `sneq-engine campaign-exists --db <db> --campaign <id>` | `{"exists":true,…,"embeddingDim":<stored>}` |
 | Migration applied | `sneq-engine get-entity --db <db> --campaign <id> --args '{"entityId":"<known>"}'` | entity JSON (with `description` null/absent for old rows) |
 | Adjudication handled | trigger an ambiguous `mention-entity` in a test campaign | your code branches on `needsAdjudication` instead of using `null` |

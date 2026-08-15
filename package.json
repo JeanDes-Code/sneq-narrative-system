@@ -62,7 +62,8 @@
     "skills",
     "docs/api.md",
     "README.md",
-    "UPGRADING.md"
+    "UPGRADING.md",
+    "CHANGELOG.md"
   ],
   "scripts": {
     "prepublishOnly": "pnpm build && pnpm test",
