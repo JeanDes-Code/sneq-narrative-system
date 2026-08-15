@@ -44,7 +44,11 @@ export interface DoctorInput {
   health: WorldHealth;
   /** From the last commit's `CommitHealth`, when the campaign has committed at all. */
   dispatch?: { uncovered: number; unroutable: number; truncated: number };
-  /** Entity names declared common knowledge (`PUBLIC_TAG`) — the floor's only authored exemption. */
+  /**
+   * Entities the ledger names that are declared common knowledge (`PUBLIC_TAG`)
+   * — the floor's only authored exemption. A public entity no event mentions
+   * exempts nothing, so it is not listed.
+   */
   publicEntities: Array<{ entityId: EntityID; name: string }>;
   /** Turns without an appended event before the ledger is called stale (§6.2). */
   staleAfterTurns?: number;
@@ -189,7 +193,7 @@ export function runDoctor(input: DoctorInput): DoctorReport {
     input.publicEntities.length === 0
       ? "No entity is declared public. Every name in an unlearned event is withheld — including landmarks, which will " +
         "block prompts that merely describe where the player is standing. Tag the ones everybody has heard of."
-      : `${input.publicEntities.length} entity name(s) are common knowledge and never withheld: ` +
+      : `${input.publicEntities.length} entity name(s) named by the ledger are common knowledge and never withheld: ` +
         `${input.publicEntities.slice(0, 8).map(e => e.name).join(", ")}` +
         `${input.publicEntities.length > 8 ? ", …" : ""}. What happened to them is still withheld; only the name is not. ` +
         `Each one is a deliberate hole in the floor — a person or a secret should never be in this list.`);

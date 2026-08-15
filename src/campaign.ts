@@ -191,6 +191,7 @@ export class CampaignContext implements ToolCallContext {
       });
 
       if (resolution.match) {
+        await this.declarePublicIfAsked(resolution.match.id, input.public);
         return { entityId: resolution.match.id, isNew: false, resolvedTo: resolution.match.id };
       }
       if (!input.force && resolution.unavailableReason) {
@@ -266,6 +267,7 @@ export class CampaignContext implements ToolCallContext {
       if (result.status === "stale") continue;
       if (result.status === "created") return { entityId: result.entityId, isNew: true };
       if (result.status === "existing") {
+        await this.declarePublicIfAsked(result.entityId, input.public);
         return { entityId: result.entityId, isNew: false, resolvedTo: result.resolvedTo };
       }
       return {
@@ -278,6 +280,25 @@ export class CampaignContext implements ToolCallContext {
     }
 
     throw new SneqConcurrentEntityCreationError(this.id, MAX_ENTITY_CREATION_ATTEMPTS);
+  }
+
+  /**
+   * `public: true` has to reach an entity that already exists, or the flag is
+   * unreachable for every entity but a brand-new one — and you learn a place
+   * needs declaring *after* it exists, when `doctor` says so or a payload gets
+   * blocked. A `mention_entity` that resolved to an existing entity and quietly
+   * dropped the flag would be the silent no-op this release exists to remove.
+   *
+   * Idempotent and one-directional: it never removes the tag. `public: false`
+   * means "I am not declaring anything", not "revoke it" — revoking is a real
+   * decision about an already-published name and does not belong on a call
+   * whose job is introducing entities.
+   */
+  private async declarePublicIfAsked(entityId: EntityID, wanted: boolean | undefined): Promise<void> {
+    if (wanted !== true) return;
+    const entity = await this.deps.repo.getEntity(this.id, entityId);
+    if (!entity || entity.tags.includes(PUBLIC_TAG)) return;
+    await this.deps.repo.upsertEntity({ ...entity, tags: [...entity.tags, PUBLIC_TAG] });
   }
 
   async addConstraint(input: {
@@ -668,8 +689,14 @@ export class CampaignContext implements ToolCallContext {
         repo.getDispatchPolicy(this.id)
       ]);
 
-    const publicEntities = (await repo.topEntities(this.id, 1000))
-      .filter(e => e.tags.includes(PUBLIC_TAG))
+    // The entities the ledger actually names — the same walk containment does.
+    // `topEntities(k)` was wrong here twice over: it caps silently, and it orders
+    // by `embeddingRefreshedAt`, which is null for every entity in the
+    // `embeddingDim: 0` campaigns most consumers run. A doctor line that
+    // under-reports the holes in the floor is the one thing it must never be.
+    const world = await this.loadKnowledgeWorld();
+    const publicEntities = world.tokenWorld.entities
+      .filter(e => e.tags?.includes(PUBLIC_TAG))
       .map(e => ({ entityId: e.id, name: e.name }));
 
     const sceneIds = scene ? [scene.locationId, ...scene.presentEntityIds] : [];

@@ -8,6 +8,7 @@ import type { RouterConfig, Provider, ProviderRef, ChatRequest, EmbeddingRequest
 import { SneqContainmentError } from "../src/errors.js";
 import { renderContextBlock } from "../src/core/holder-context.js";
 import { asCampaignId, asEntityID, asHolderId } from "../src/domain/ids.js";
+import type { EntityID } from "../src/domain/ids.js";
 import { DEFAULT_REALM_ENTITY_ID } from "../src/atomic/bootstrap.js";
 
 function fakeRouter(): { config: RouterConfig; deps: { resolveProvider(ref: ProviderRef): Provider } } {
@@ -318,6 +319,45 @@ describe("the turn pipeline (§11), end to end", () => {
     // Materialized holders are persisted, so doctor and listHolders can see them.
     expect((await campaign.listHolders()).map(h => String(h.holderId)))
       .toContain(`h_participant_${SMITH}`);
+  });
+
+  /**
+   * You learn a place needs declaring AFTER it exists — when doctor says so, or
+   * when a payload gets blocked. If `public: true` only worked on a brand-new
+   * entity, the exemption would be unreachable for every entity that matters,
+   * and it would fail silently.
+   */
+  it("mention_entity declares an entity public even when it already exists", async () => {
+    const first = await campaign.mentionEntity({
+      canonicalName: "La Taverne du Cerf", type: "LIEU", description: "une auberge"
+    });
+    const id = (first as { entityId: EntityID }).entityId;
+    expect((await campaign.getEntity(id))!.tags).toEqual([]);
+
+    const again = await campaign.mentionEntity({
+      canonicalName: "La Taverne du Cerf", type: "LIEU", description: "une auberge", public: true
+    });
+    expect((again as { isNew: boolean }).isNew).toBe(false);
+    expect((await campaign.getEntity(id))!.tags).toContain("public");
+
+    // Idempotent: declaring it again does not duplicate the tag.
+    await campaign.mentionEntity({
+      canonicalName: "La Taverne du Cerf", type: "LIEU", description: "une auberge", public: true
+    });
+    expect((await campaign.getEntity(id))!.tags).toEqual(["public"]);
+  });
+
+  it("doctor lists the declared exemptions the ledger actually names", async () => {
+    await (engine as unknown as { repo: { upsertEntity(e: unknown): Promise<void> } }).repo.upsertEntity({
+      campaignId: cid, id: FORGE, type: "LIEU", name: "La Forge",
+      nomConnu: true, aliases: [], tags: ["public"],
+      createdAt: 0, embedding: null, embeddingRefreshedAt: null,
+      realmId: asEntityID(DEFAULT_REALM_ENTITY_ID)
+    });
+    await commitTheBurning();
+    const report = await campaign.doctor();
+    const line = report.checks.find(c => c.id === "public-entities")!;
+    expect(line.message).toMatch(/La Forge/);
   });
 
   it("an entity nobody has ever touched falls back to the campaign default group", async () => {

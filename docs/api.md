@@ -6620,7 +6620,9 @@ From the last commit's `CommitHealth`, when the campaign has committed at all.
 
 > **publicEntities**: `object`[]
 
-Entity names declared common knowledge (`PUBLIC_TAG`) — the floor's only authored exemption.
+Entities the ledger names that are declared common knowledge (`PUBLIC_TAG`)
+— the floor's only authored exemption. A public entity no event mentions
+exempts nothing, so it is not listed.
 
 #### entityId
 
@@ -12393,9 +12395,12 @@ Every token from every event/record this holder has NOT learned. Decided
 from state, before any call — not a validator on the model's output; a
 statement about what was handed over.
 
-Two things are never forbidden: a token the holder legitimately holds, even
-if it also appears in something they do not hold; and the name of an entity
-authored `public` (see `PUBLIC_TAG`).
+Two things are never forbidden. A token the holder legitimately holds, even
+if it also appears in something they do not hold. And the name of an entity
+authored `public` (see `PUBLIC_TAG`) — but only where that token is purely
+an identity: if any unlearned subject also *declares* the same string as its
+own surface token, key or value, the exemption does not apply to it, because
+freeing the name would free the secret spelled the same way.
 
 ## Parameters
 
