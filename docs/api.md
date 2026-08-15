@@ -5492,17 +5492,22 @@ Derived arrival ≤ this day: departedDay + travelDays + Σ DELAY; CANCEL never 
 
 ***
 
-### communities
-
-> **communities**: [`GroupHolder`](#interface-groupholder)[]
-
-Known community groups — ALL_KNOWN_COMMUNITIES targets.
-
-***
-
 ### defaultRealmId
 
 > **defaultRealmId**: [`EntityID`](#type-alias-entityid)
+
+***
+
+### holders
+
+> **holders**: [`Holder`](#type-alias-holder)[]
+
+Every holder the campaign already has. The GROUP ones are the
+ALL_KNOWN_COMMUNITIES dispatch targets; the rest is what lets this pure
+function tell a holder the bundle *creates* from one it *edits* (#46).
+
+Replaced `communities` in 0.6.0 — a pure decision cannot check an edit
+against a list it was never handed.
 
 ***
 

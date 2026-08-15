@@ -85,7 +85,7 @@ export async function commitNarrative(
       latestTurn: latestTurn?.turnNumber ?? 0,
       policy, places,
       defaultRealmId: opts.defaultRealmId ?? asEntityID("realm_default"),
-      communities, canon, inventions: provisionals, potentialites,
+      holders, canon, inventions: provisionals, potentialites,
       maxDispatchFanout: opts.maxDispatchFanout ?? DEFAULT_MAX_DISPATCH_FANOUT
     });
 

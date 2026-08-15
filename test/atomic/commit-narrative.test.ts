@@ -4,6 +4,7 @@ import type { Repository } from "../../src/repository/interface.js";
 import { commitNarrative } from "../../src/atomic/commit-narrative.js";
 import type { CommitNarrativeBundle } from "../../src/core/commit-narrative.js";
 import { asCampaignId, asEntityID, asEventId, asHolderId } from "../../src/domain/ids.js";
+import { SneqValidationError } from "../../src/errors.js";
 
 const cid = asCampaignId("c1");
 const VALMURE = asEntityID("place-valmure");
@@ -61,6 +62,29 @@ describe("commitNarrative — one bundle or nothing (§7.5)", () => {
     expect(second.newWorldDay).toBe(first.newWorldDay);
     expect(await repo.getEvents(cid)).toHaveLength(1);
     expect(await repo.getWorldDay(cid)).toBe(1);       // no double time advance
+  });
+
+  it("refuses a bundle that re-prices an existing holder, and writes nothing at all (#46)", async () => {
+    await expect(commitNarrative(repo, bundle("op-standing", {
+      holders: [{
+        kind: "GROUP", holderId: asHolderId("g-bourg"), campaignId: cid,
+        community: "bourg", stratum: "commun", realmId: DEFAULT_REALM, placeId: BOURG, standing: 0.95
+      }]
+    }))).rejects.toThrow(SneqValidationError);
+
+    const stored = (await repo.listHolders(cid)).find(h => String(h.holderId) === "g-bourg");
+    expect(stored && stored.kind === "GROUP" ? stored.standing : null).toBe(0.5);
+    expect(await repo.getEvents(cid)).toHaveLength(0);   // atomic: the event went nowhere either
+    expect(await repo.getWorldDay(cid)).toBe(0);
+  });
+
+  it("the host path keeps its authority — upsertHolder still sets standing (§5.3)", async () => {
+    await repo.upsertHolder({
+      kind: "GROUP", holderId: asHolderId("g-bourg"), campaignId: cid,
+      community: "bourg", stratum: "commun", realmId: DEFAULT_REALM, placeId: BOURG, standing: 0.95
+    });
+    const stored = (await repo.listHolders(cid)).find(h => String(h.holderId) === "g-bourg");
+    expect(stored && stored.kind === "GROUP" ? stored.standing : null).toBe(0.95);
   });
 
   it("injected failure at a write boundary → nothing visible", async () => {
