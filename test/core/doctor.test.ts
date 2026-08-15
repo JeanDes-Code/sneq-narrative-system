@@ -12,11 +12,16 @@ const defaultGroup: Holder = {
   placeId: asEntityID("place_default"), standing: 0.5
 };
 
-function event(turn: number): NarrativeEvent {
+function event(turn: number, gravity: NarrativeEvent["gravity"] = 1): NarrativeEvent {
   return {
-    eventId: asEventId(`ev${turn}`), campaignId: cid, day: turn, turn, gravity: 1,
+    eventId: asEventId(`ev${turn}`), campaignId: cid, day: turn, turn, gravity,
     acts: [], circumstance: "something happened", participants: [], surfaceTokens: []
   };
+}
+
+/** n events, gravities cycled from the pattern — enough of them to clear the sample floor. */
+function eventsWithGravity(pattern: Array<NarrativeEvent["gravity"]>, n = 12): NarrativeEvent[] {
+  return Array.from({ length: n }, (_, i) => event(i + 1, pattern[i % pattern.length]!));
 }
 
 function input(over: Partial<DoctorInput> = {}): DoctorInput {
@@ -182,5 +187,62 @@ describe("runDoctor · what it cannot see", () => {
   it("rolls up to the worst real status", () => {
     expect(runDoctor(input({ scene: null })).status).toBe("WARN");
     expect(runDoctor(input({ holders: [] })).status).toBe("FAIL");
+  });
+
+  /**
+   * Gravity is the model's to answer and nothing in the ledger can derive it —
+   * a 0–3 band is a closed question, which is the shape the consuming doctrine
+   * licenses. But it is 40% of salience and gates all auto-dispatch, and no
+   * counter ever looked at the answers. Count it, do not police it (#46).
+   */
+  describe("gravity-distribution", () => {
+    it("PASSes on a spread, and shows the histogram", () => {
+      const c = check(runDoctor(input({ events: eventsWithGravity([0, 1, 2, 3]) })), "gravity-distribution");
+      expect(c.status).toBe("PASS");
+      expect(c.message).toMatch(/0:3\s+1:3\s+2:3\s+3:3/);
+    });
+
+    it("WARNs when every event is gravity 0 — dispatch never fires and the world goes deaf", () => {
+      const c = check(runDoctor(input({ events: eventsWithGravity([0]) })), "gravity-distribution");
+      expect(c.status).toBe("WARN");
+      expect(c.message).toMatch(/dispatch/i);
+    });
+
+    it("WARNs when every event is top band — the fan-out cap does the thinking", () => {
+      const c = check(runDoctor(input({ events: eventsWithGravity([3]) })), "gravity-distribution");
+      expect(c.status).toBe("WARN");
+      expect(c.message).toMatch(/fan-out cap/);
+    });
+
+    it("a lopsided-but-not-degenerate campaign is nobody's business", () => {
+      const c = check(runDoctor(input({ events: eventsWithGravity([0, 0, 0, 0, 0, 1]) })), "gravity-distribution");
+      expect(c.status).toBe("PASS");
+    });
+
+    // A quiet afternoon is not a deaf world. Below the floor it reports and
+    // judges nothing, so a fresh campaign does not open with a warning.
+    it("reports without judging below the sample floor", () => {
+      const c = check(runDoctor(input({ events: eventsWithGravity([0], 3) })), "gravity-distribution");
+      expect(c.status).toBe("INFO");
+      expect(c.message).toMatch(/0:3/);
+    });
+
+    it("says so when there are no events at all", () => {
+      expect(check(runDoctor(input({ events: [] })), "gravity-distribution").status).toBe("INFO");
+    });
+
+    // INFO is excluded from the roll-up, so the floor cannot colour a report.
+    it("an under-floor campaign that is otherwise healthy does not roll up to WARN because of gravity", () => {
+      const r = runDoctor(input({
+        events: eventsWithGravity([0], 3),
+        scene: {
+          campaignId: cid, id: "s1" as never, locationId: asEntityID("e_known"),
+          presentEntityIds: [asEntityID("e_known")], description: "d", createdAtTurn: 1
+        },
+        sceneEntityResolution: [{ entityId: asEntityID("e_known"), known: true }]
+      }));
+      expect(check(r, "gravity-distribution").status).toBe("INFO");
+      expect(r.checks.filter(c => c.status === "WARN").map(c => c.id)).not.toContain("gravity-distribution");
+    });
   });
 });
