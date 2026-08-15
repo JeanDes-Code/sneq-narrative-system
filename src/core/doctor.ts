@@ -245,7 +245,7 @@ export function runDoctor(input: DoctorInput): DoctorReport {
     "The engine keeps no session log of those calls, so doctor cannot confirm after the fact that you made them. " +
     "If your composition step does not call it, the containment guarantee is untested in your integration.");
   add("belief-cache", "INFO",
-    "There is no belief cache in 0.5.0: deriveBeliefs is a pure derivation run on every read, so there is no hit " +
+    "There is no belief cache: deriveBeliefs is a pure derivation run on every read, so there is no hit " +
     "rate and no invalidation count to check. Cost grows with ledger size — measure before you assume it is fine.");
 
   const status: CheckStatus =

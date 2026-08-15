@@ -9,6 +9,99 @@ the whole design landed as one release.
 
 ---
 
+## 0.6.0 — the model stops writing its own standing
+
+**No database migration. No schema change. No tool added or removed.** If your
+integration never wrote `standing` from a narration bundle, upgrading is `npm i` and
+nothing else.
+
+Coming from 0.5.0 rather than 0.5.1? Apply the 0.5.1 notes at the end of this section
+too.
+
+### Breaking — `commit_narrative`'s `holders[]`
+
+The bundle may **create** a holder. It may not change the `standing` of one that
+already exists. The refusal is a `SneqValidationError` and it rejects the **whole
+bundle** — event, records, inventions and all — so a caller that hits this writes
+nothing at all that turn.
+
+Three shapes are refused, all on a holder the campaign already has:
+
+| Refused | Why it counts as re-pricing |
+|---|---|
+| `standing` differs from the stored value | the direct case, in either direction |
+| `standingOverride` differs, on an `INDIVIDUAL` | `deriveBeliefs` collapses both fields into one value — same channel, different field name |
+| `standingOverride` **omitted** where one is stored | the upsert writes the whole holder, so omitting the field erases it |
+| `kind` differs from the stored holder's | changes which field carries standing, so it re-prices by construction |
+
+**What to do.** If you re-send whole holder records every turn as a convenience, stop
+sending the ones that already exist — or catch `SneqValidationError` and retry without
+them. If you genuinely need to change a holder's standing, that is a host act:
+
+```ts
+await campaign.upsertHolder({ ...holder, standing: 0.9 });
+```
+
+```sh
+sneq-engine upsert-holder --campaign <id> --args '{"kind":"GROUP","holderId":"...","standing":0.9,...}'
+```
+
+The host path is unchanged and keeps full authority. Only the narration loop lost the
+write.
+
+**Why.** `standing` gates carriage delivery and feeds salience, so a model that can
+raise it hands itself the news the `minStanding` gate was withholding. §5.3 ruled holder
+authoring a host concern and then put creation in the bundle; this puts the line back
+between those two halves.
+
+### Breaking — `CommitContext`, for out-of-tree adapters only
+
+Ignore this unless you call the exported `decideCommitNarrative` yourself (the §13
+Convex adapter shape). `CommitContext.communities: GroupHolder[]` is now
+`CommitContext.holders: Holder[]`, and the `ALL_KNOWN_COMMUNITIES` targets are derived
+inside.
+
+```diff
+  const plan = decideCommitNarrative(bundle, {
+    campaignId, worldDay, latestTurn, policy, places, defaultRealmId,
+-   communities: holders.filter(h => h.kind === "GROUP"),
++   holders,
+    canon, inventions, potentialites, maxDispatchFanout
+  });
+```
+
+Pass **every** holder, not the groups. A pure decision cannot tell a creation from an
+edit against a list it was never handed, and an adapter that kept passing the narrow
+list would skip the standing guard in silence. That is why this is a compile error and
+not an optional field.
+
+### Added — one new `doctor` line
+
+`gravity-distribution` appears in `doctor`'s report. It reports the histogram of your
+events' gravity, and WARNs on two degenerate shapes: everything at `0` (dispatch only
+fires above 0, so no carriage ever leaves) and everything at the top band (the fan-out
+cap chooses who hears what instead of your policy). Below 8 events it reports as `INFO`
+and judges nothing.
+
+It is a WARN, never a FAIL, so `sneq-engine doctor` still exits 0. Nothing that gated
+on the exit code changes behaviour.
+
+### If you are coming from 0.5.0 and skipped 0.5.1
+
+0.5.1 tightened two token checks, and both are breaking for a caller that was sending
+weak tokens:
+
+- An invention's `surfaceTokens` must occur in its `sourceNarration` **and** must not be
+  a stopword or fragment. Fail-closed and atomic: one bad token rejects the bundle.
+- Model-supplied tokens that cannot carry a secret are dropped from the containment
+  forbidden set at read time. This *loosens* `assertContainment` and stops
+  `filterTranscript` silently dropping legitimate entries.
+
+Catch `SneqValidationError` around `commitNarrative` and re-ask rather than letting it
+surface.
+
+---
+
 ## 0.5.0 — stratified knowledge (one release, one break)
 
 **Read this before you touch anything: the TL;DR of the 0.1.0 section below is no longer
@@ -382,5 +475,8 @@ repositories (zero native deps), keyless mode, `Entity.description`, real retrie
 | Migration applied | `sneq-engine get-entity --db <db> --campaign <id> --args '{"entityId":"<known>"}'` | entity JSON (with `description` null/absent for old rows) |
 | Adjudication handled | trigger an ambiguous `mention-entity` in a test campaign | your code branches on `needsAdjudication` instead of using `null` |
 | Embeddings path | `sneq-engine mention-entity … ` on a vector campaign | no dim-mismatch error; if `PROVIDER_ERROR`, revisit §1.2 |
+| Standing is host-only (0.6.0) | commit a bundle whose `holders[]` re-sends an existing holder with a different `standing` | `SneqValidationError` naming `upsert-holder`, and the ledger unchanged — no event, no clock advance |
+| The host still owns it (0.6.0) | `sneq-engine upsert-holder --db <db> --campaign <id> --args '{…,"standing":0.9}'` then `sneq-engine doctor …` | the write lands; standing is not model-writable, it is not read-only |
+| Gravity is counted (0.6.0) | `sneq-engine doctor --db <db> --campaign <id>` | a `gravity-distribution` check is present; `WARN` on it does not change the exit code |
 
 Spec with full rationale: `docs/superpowers/specs/2026-06-10-sneq-plug-and-play-hardening-design.md`.

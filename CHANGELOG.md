@@ -5,6 +5,90 @@ this file says *what* changed, that one says *what to do about it*.
 
 Versions follow semver with the pre-1.0 caveat: a minor bump may break.
 
+## 0.6.0 — the model stops writing its own standing
+
+0.5.0 closed the hole where the model chose what would promote its own
+inventions. This closes the other one it left open, and adds the counter that
+was missing on the one channel the model *should* own.
+
+Both changes come from [#46](https://github.com/JeanDes-Code/sneq-narrative-system/issues/46),
+filed while integrating the engine into a real campaign.
+
+### Breaking
+
+- **`commit_narrative`'s `holders[]` may create a holder, never re-price one.**
+  `standing` gates carriage delivery and is 40% of the `socialPosition` salience
+  factor. The bundle let a model write it on a holder that **already exists**, so
+  a model could raise a holder's standing and thereby hand itself the news the
+  `minStanding` gate was withholding. That is the model writing an effect.
+
+  §5.3 already ruled holder authoring a host concern *and then* put holder
+  creation in the bundle. Both halves are in the code, and together they undo the
+  first. The line now runs between them: create yes, re-price no.
+  `campaign.upsertHolder` and the CLI `upsert-holder` command keep full
+  authority — nothing about the host path changed.
+
+  Refusal is loud and fail-closed, in the same posture as 0.5.1's invention-token
+  guard: one re-priced holder rejects the whole bundle, a rejected bundle writes
+  nothing, and the message names `upsert-holder` as the corrective call.
+
+  `standingOverride` is guarded identically. `deriveBeliefs` collapses both
+  fields into a single value, so they are one effects channel wearing two field
+  names. Two further ways to move that channel are refused too: **erasing** an
+  existing override (the upsert writes the whole holder, so omitting the field
+  wipes it), and **flipping** an existing holder's `kind`.
+
+  Breaking for a caller that re-sent whole holder records on every turn. A caller
+  should catch `SneqValidationError` and drop the holder from the bundle, or move
+  the write to `upsertHolder`.
+
+- **`CommitContext.communities` becomes `CommitContext.holders`.** Only affects
+  out-of-tree adapters calling the exported `decideCommitNarrative` (§13's Convex
+  adapter). It is now `Holder[]` — every holder, not just the groups — and the
+  `ALL_KNOWN_COMMUNITIES` targets are derived inside. A pure decision cannot tell
+  a creation from an edit against a list it was never handed. The break is a
+  compile error, which is the point: an adapter that silently passed the old
+  narrow list would have skipped the guard entirely.
+
+### Added
+
+- **`doctor` counts the gravity distribution.** `gravity` is 40% of salience and
+  gates all auto-dispatch, and no counter ever looked at the answers. `doctor`
+  counted uncovered and unroutable routes but never the distribution that
+  produces them.
+
+  This does **not** police it. A 0–3 band is a closed question, which is the
+  shape the consuming doctrine licenses, and nothing in the ledger can derive how
+  much a thing mattered — that is a narrative judgement and the model is the
+  right source for it. So: count it, do not lock it, the move already made for
+  `OUT_OF_BAND` and the `public` tag.
+
+  The new `gravity-distribution` check reports the histogram always, and WARNs on
+  the two degenerate shapes: **everything at `0`** (dispatch only fires above 0,
+  so no carriage ever leaves and the world goes silently deaf — no other counter
+  shows this) and **everything at the top band** (every event clears every rule,
+  so the fan-out cap chooses who hears what instead of your policy).
+
+  WARN rather than FAIL, deliberately: every FAIL in that file names a corrective
+  call, and no call fixes a narrator's judgement — you fix the prompt. The CLI
+  exits 1 on FAIL only, so this line is read, never enforced.
+
+  Below 8 events it reports the histogram as `INFO` and judges nothing. Three
+  events all at `0` is a quiet afternoon, not a deaf world, and a fresh campaign
+  should not open with a warning it cannot act on. `INFO` stays out of the
+  roll-up.
+
+### Refused, with reasons
+
+Two asks from #46 were declined and should not be re-opened without new evidence.
+**`standing` derived rather than stored**: there is no ledger signal for social
+position, and inventing one would mean the engine deciding what raises a person
+in the world's eyes — fiction semantics SNEQ owns none of. **`sharedWith` on
+`HolderContext`**: it reports another holder's knowledge state, which is the
+exact class of thing the seam exists to withhold, and it is O(holders at place ×
+ledger) on every read. If wanted later it should be an explicit opt-in call, not
+a field riding every read.
+
 ## 0.5.1 — the model stops choosing its own promotion trigger
 
 A patch, and one of the three is a real hole in 0.5.0's central claim.
