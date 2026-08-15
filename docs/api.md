@@ -12421,12 +12421,26 @@ Every token from every event/record this holder has NOT learned. Decided
 from state, before any call — not a validator on the model's output; a
 statement about what was handed over.
 
-Two things are never forbidden. A token the holder legitimately holds, even
-if it also appears in something they do not hold. And the name of an entity
+Three things are never forbidden. A token the holder legitimately holds, even
+if it also appears in something they do not hold. The name of an entity
 authored `public` (see `PUBLIC_TAG`) — but only where that token is purely
 an identity: if any unlearned subject also *declares* the same string as its
 own surface token, key or value, the exemption does not apply to it, because
 freeing the name would free the secret spelled the same way.
+
+And anything that cannot carry a secret (#46). Model-supplied tokens reach
+this set from events and records as well as inventions, a record's `key` and
+`value` join it automatically, and none of those paths checked
+distinctiveness. One `"le"` on one event forbade the commonest word in the
+language for every holder who had not learned it — `assertContainment` threw
+on harmless payloads and `filterTranscript` dropped legitimate entries in
+silence.
+
+Removing them cannot leak: a stopword conveys nothing, which is what makes it
+a stopword. It does mean an entity whose *entire* name is a stopword or two
+letters long is not protected by substring containment — and it never was.
+Blocking every payload containing `"or"` is not protection, it is refusal to
+answer; the engine declines to pretend otherwise.
 
 ## Parameters
 

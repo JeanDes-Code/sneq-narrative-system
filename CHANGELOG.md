@@ -31,7 +31,29 @@ A patch, and one of the three is a real hole in 0.5.0's central claim.
   prose at all.
 
   Breaking for a caller that was sending junk tokens — deliberately, and in the
-  same posture as the event-side check it mirrors.
+  same posture as the event-side check it mirrors. Note the rejection is
+  **fail-closed and atomic**: one bland token rejects the whole bundle, not just
+  the offending invention. That is the right direction for a field whose
+  permissive default created the hole, but a caller should catch
+  `SneqValidationError` and re-ask rather than let it surface.
+
+- **The forbidden set drops tokens that cannot carry a secret** ([#46](https://github.com/JeanDes-Code/sneq-narrative-system/issues/46)).
+  The same list, on the containment side. Model-supplied `surfaceTokens` reach
+  the forbidden set from events and records too, and a record's `key` and
+  `value` join it automatically — none of those paths checked distinctiveness.
+  One `"le"` on one event forbade the commonest word in French for every holder
+  who had not learned that event: `assertContainment` threw on harmless
+  payloads, and `filterTranscript` dropped legitimate entries **in silence**.
+
+  Filtered at read time rather than rejected at commit, deliberately. A record
+  key like `"age"` is legitimate data that merely makes a poor token, and
+  filtering also repairs campaigns whose ledgers already hold such tokens.
+  Removing them cannot leak — a stopword conveys nothing, which is what makes
+  it a stopword.
+
+  It does mean an entity whose *entire* name is a stopword or two letters long
+  is not protected by substring containment. It never was: blocking every
+  payload containing `"or"` is refusal to answer, not protection.
 
 - **`build` now cleans first.** `tsc` never removes outputs whose source has
   been deleted, so `dist/` accumulated orphans across releases and `npm pack`

@@ -133,6 +133,19 @@ export type InventionTokenRejection = {
 const MIN_TOKEN_LENGTH = 3;
 
 /**
+ * Can this string carry a secret at all?
+ *
+ * A stopword or a two-letter fragment cannot. It appears in innocent prose
+ * constantly, so its presence is evidence of nothing — which cuts both ways:
+ * as an uptake trigger it promotes on noise, and as a forbidden token it
+ * blocks on noise. One list settles both.
+ */
+function isDistinctive(token: string): boolean {
+  const t = token.trim().toLowerCase();
+  return t.length >= MIN_TOKEN_LENGTH && !STOPWORDS.has(t);
+}
+
+/**
  * Commit-time validation of an invention's uptake alphabet (#46).
  *
  * These tokens are what `detectUptake` searches the player's utterance for, and
@@ -166,7 +179,7 @@ export function validateInventionTokens(
     const normalized = token.trim().toLowerCase();
     // Distinctiveness first: it is the more actionable message, and a stopword
     // is usually present in the source as well, so provenance would pass it.
-    if (normalized.length < MIN_TOKEN_LENGTH || STOPWORDS.has(normalized)) {
+    if (!isDistinctive(token)) {
       out.push({ token, reason: "NOT_DISTINCTIVE" });
       continue;
     }
@@ -182,12 +195,26 @@ export function validateInventionTokens(
  * from state, before any call — not a validator on the model's output; a
  * statement about what was handed over.
  *
- * Two things are never forbidden. A token the holder legitimately holds, even
- * if it also appears in something they do not hold. And the name of an entity
+ * Three things are never forbidden. A token the holder legitimately holds, even
+ * if it also appears in something they do not hold. The name of an entity
  * authored `public` (see `PUBLIC_TAG`) — but only where that token is purely
  * an identity: if any unlearned subject also *declares* the same string as its
  * own surface token, key or value, the exemption does not apply to it, because
  * freeing the name would free the secret spelled the same way.
+ *
+ * And anything that cannot carry a secret (#46). Model-supplied tokens reach
+ * this set from events and records as well as inventions, a record's `key` and
+ * `value` join it automatically, and none of those paths checked
+ * distinctiveness. One `"le"` on one event forbade the commonest word in the
+ * language for every holder who had not learned it — `assertContainment` threw
+ * on harmless payloads and `filterTranscript` dropped legitimate entries in
+ * silence.
+ *
+ * Removing them cannot leak: a stopword conveys nothing, which is what makes it
+ * a stopword. It does mean an entity whose *entire* name is a stopword or two
+ * letters long is not protected by substring containment — and it never was.
+ * Blocking every payload containing `"or"` is not protection, it is refusal to
+ * answer; the engine declines to pretend otherwise.
  */
 export function forbiddenTokensFor(world: TokenWorld, beliefs: Belief[]): string[] {
   const held = new Set(beliefs.map(b => `${b.subject.kind}:${b.subject.id}`));
@@ -210,7 +237,9 @@ export function forbiddenTokensFor(world: TokenWorld, beliefs: Belief[]): string
 
   const publicTokens = publicTokensOf(world.entities);
   return [...forbidden].filter(t =>
-    !allowed.has(t) && !(publicTokens.has(t) && !declaredByUnlearned.has(t)));
+    isDistinctive(t) &&
+    !allowed.has(t) &&
+    !(publicTokens.has(t) && !declaredByUnlearned.has(t)));
 }
 
 export interface ContainmentResult {
