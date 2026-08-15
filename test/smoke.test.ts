@@ -15,7 +15,7 @@ const packageJson = JSON.parse(
 
 describe("smoke", () => {
   it("exports version constant", () => {
-    expect(SNEQ_ENGINE_VERSION).toBe("0.5.1");
+    expect(SNEQ_ENGINE_VERSION).toBe("0.6.0");
   });
 
   // They disagreed for two releases. An agent reading the constant and a
