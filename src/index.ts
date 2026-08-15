@@ -1,4 +1,4 @@
-export const SNEQ_ENGINE_VERSION = "0.5.0";
+export const SNEQ_ENGINE_VERSION = "0.5.1";
 
 // Engine + CampaignContext
 export { Engine, type NewCampaignInput } from "./engine.js";
@@ -128,8 +128,8 @@ export {
 } from "./core/holder-resolution.js";
 export {
   surfaceTokensOf, validateSuppliedTokens, forbiddenTokensFor,
-  checkContainment, assertContainment, PUBLIC_TAG,
-  type TokenWorld, type EntityLike, type ContainmentResult
+  checkContainment, assertContainment, PUBLIC_TAG, validateInventionTokens,
+  type TokenWorld, type EntityLike, type ContainmentResult, type InventionTokenRejection
 } from "./core/containment.js";
 export {
   detectUptake, decidePromotion,

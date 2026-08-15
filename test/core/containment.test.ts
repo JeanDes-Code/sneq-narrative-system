@@ -211,3 +211,50 @@ describe("the public-token exemption", () => {
       .not.toThrow();
   });
 });
+
+/**
+ * Issue #46, second half. `surfaceTokens` reach the forbidden set from events
+ * and records too, and neither path has a distinctiveness check — an event's
+ * tokens are only presence-checked, a record's are not checked at all, and a
+ * record's `key` and `value` join the alphabet automatically.
+ *
+ * A short or common token there does not leak anything. It does the opposite:
+ * it forbids innocent prose for every holder who has not learned that subject,
+ * so `assertContainment` throws on a harmless payload and `filterTranscript`
+ * silently drops legitimate entries.
+ */
+describe("the forbidden set drops tokens that cannot carry a secret", () => {
+  const noisyEvent: NarrativeEvent = {
+    eventId: asEventId("e-noisy"), campaignId: cid, day: 1, turn: 1, gravity: 1,
+    acts: [], circumstance: "Le forgeron ferme la porte.",
+    participants: [], surfaceTokens: ["le"]
+  };
+  const noisyRecord: OfficialRecord = {
+    recordId: asRecordId("r-noisy"), campaignId: cid, entityId: asEntityID("actor"),
+    key: "k", value: { type: "STRING", value: "de" }, category: "SECRET",
+    authoredBy: asEntityID("gabelou"), route: "OFFICIAL",
+    observation: { source: "SYSTEM", method: "DOCUMENT", timestamp: 0 },
+    day: 1, turn: 1, surfaceTokens: []
+  };
+  const noisy: TokenWorld = { events: [noisyEvent], records: [noisyRecord], entities: [] };
+
+  it("drops a stopword supplied on an event", () => {
+    expect(forbiddenTokensFor(noisy, [])).not.toContain("le");
+  });
+
+  it("drops a one-character record key and a stopword record value", () => {
+    const forbidden = forbiddenTokensFor(noisy, []);
+    expect(forbidden).not.toContain("k");
+    expect(forbidden).not.toContain("de");
+  });
+
+  it("so innocent prose stops being blocked", () => {
+    const r = checkContainment(forbiddenTokensFor(noisy, []), "Vous marchez vers le nord de la vallée.");
+    expect(r.pass).toBe(true);
+  });
+
+  it("but a real secret on the same subjects is still withheld", () => {
+    expect(forbiddenTokensFor(world, [])).toContain("gourdin");
+    expect(forbiddenTokensFor(world, [])).toContain("quatre jours de geôle");
+  });
+});

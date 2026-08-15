@@ -3,6 +3,7 @@ import type { OfficialRecord } from "../domain/record.js";
 import type { Belief } from "../domain/belief.js";
 import type { EntityID, HolderId } from "../domain/ids.js";
 import { SneqContainmentError } from "../errors.js";
+import { STOPWORDS } from "./stopwords.js";
 
 /** The identity surface the engine can floor without NLP (#25). */
 export interface EntityLike {
@@ -120,17 +121,100 @@ export function validateSuppliedTokens(e: NarrativeEvent): string[] {
   return e.surfaceTokens.filter(t => !haystacks.some(h => h.includes(t.toLowerCase())));
 }
 
+export type InventionTokenRejection = {
+  token: string;
+  /** The model never said it — a trigger invented purely to be a trigger. */
+  reason: "ABSENT_FROM_SOURCE"
+  /** A stopword or a fragment: it matches almost any sentence, so a match proves nothing. */
+        | "NOT_DISTINCTIVE";
+};
+
+/** Below this, a token is a fragment rather than a name. */
+const MIN_TOKEN_LENGTH = 3;
+
+/**
+ * Can this string carry a secret at all?
+ *
+ * A stopword or a two-letter fragment cannot. It appears in innocent prose
+ * constantly, so its presence is evidence of nothing — which cuts both ways:
+ * as an uptake trigger it promotes on noise, and as a forbidden token it
+ * blocks on noise. One list settles both.
+ */
+function isDistinctive(token: string): boolean {
+  const t = token.trim().toLowerCase();
+  return t.length >= MIN_TOKEN_LENGTH && !STOPWORDS.has(t);
+}
+
+/**
+ * Commit-time validation of an invention's uptake alphabet (#46).
+ *
+ * These tokens are what `detectUptake` searches the player's utterance for, and
+ * a match promotes the invention into canon. They arrive from the model, and
+ * until 0.5.1 nothing looked at them — so the model chose the string whose
+ * later appearance would make its own invention true. Tag one `"le"` and the
+ * next French sentence the player types promotes it.
+ *
+ * Two guards, because each catches what the other cannot:
+ *
+ * - **Provenance.** The token must occur in `sourceNarration`, so it can only
+ *   be something the player actually read. This is the event-side argument
+ *   (`validateSuppliedTokens`) applied to the other half of the bundle.
+ * - **Distinctiveness.** The token must not be a stopword and must not be a
+ *   fragment. Provenance alone cannot catch this: `sourceNarration` is
+ *   model-supplied too, and `"le"` occurs in nearly all French prose, so it
+ *   passes a presence check trivially.
+ *
+ * **What this does not do.** It raises the floor; it does not make the channel
+ * safe. A common noun that is not a stopword — `"porte"`, `"nord"` — still
+ * passes, and detecting that would need a frequency model this engine does not
+ * have. The durable answer is to stop detecting uptake from raw prose at all
+ * and carve it from an act instead; this guard is what holds until then.
+ */
+export function validateInventionTokens(
+  invention: { sourceNarration: string; surfaceTokens: string[] }
+): InventionTokenRejection[] {
+  const source = invention.sourceNarration.toLowerCase();
+  const out: InventionTokenRejection[] = [];
+  for (const token of invention.surfaceTokens) {
+    const normalized = token.trim().toLowerCase();
+    // Distinctiveness first: it is the more actionable message, and a stopword
+    // is usually present in the source as well, so provenance would pass it.
+    if (!isDistinctive(token)) {
+      out.push({ token, reason: "NOT_DISTINCTIVE" });
+      continue;
+    }
+    if (!source.includes(normalized)) {
+      out.push({ token, reason: "ABSENT_FROM_SOURCE" });
+    }
+  }
+  return out;
+}
+
 /**
  * Every token from every event/record this holder has NOT learned. Decided
  * from state, before any call — not a validator on the model's output; a
  * statement about what was handed over.
  *
- * Two things are never forbidden. A token the holder legitimately holds, even
- * if it also appears in something they do not hold. And the name of an entity
+ * Three things are never forbidden. A token the holder legitimately holds, even
+ * if it also appears in something they do not hold. The name of an entity
  * authored `public` (see `PUBLIC_TAG`) — but only where that token is purely
  * an identity: if any unlearned subject also *declares* the same string as its
  * own surface token, key or value, the exemption does not apply to it, because
  * freeing the name would free the secret spelled the same way.
+ *
+ * And anything that cannot carry a secret (#46). Model-supplied tokens reach
+ * this set from events and records as well as inventions, a record's `key` and
+ * `value` join it automatically, and none of those paths checked
+ * distinctiveness. One `"le"` on one event forbade the commonest word in the
+ * language for every holder who had not learned it — `assertContainment` threw
+ * on harmless payloads and `filterTranscript` dropped legitimate entries in
+ * silence.
+ *
+ * Removing them cannot leak: a stopword conveys nothing, which is what makes it
+ * a stopword. It does mean an entity whose *entire* name is a stopword or two
+ * letters long is not protected by substring containment — and it never was.
+ * Blocking every payload containing `"or"` is not protection, it is refusal to
+ * answer; the engine declines to pretend otherwise.
  */
 export function forbiddenTokensFor(world: TokenWorld, beliefs: Belief[]): string[] {
   const held = new Set(beliefs.map(b => `${b.subject.kind}:${b.subject.id}`));
@@ -153,7 +237,9 @@ export function forbiddenTokensFor(world: TokenWorld, beliefs: Belief[]): string
 
   const publicTokens = publicTokensOf(world.entities);
   return [...forbidden].filter(t =>
-    !allowed.has(t) && !(publicTokens.has(t) && !declaredByUnlearned.has(t)));
+    isDistinctive(t) &&
+    !allowed.has(t) &&
+    !(publicTokens.has(t) && !declaredByUnlearned.has(t)));
 }
 
 export interface ContainmentResult {

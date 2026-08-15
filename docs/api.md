@@ -188,6 +188,7 @@
 - [HolderId](#type-alias-holderid)
 - [InventionId](#type-alias-inventionid)
 - [InventionStatus](#type-alias-inventionstatus)
+- [InventionTokenRejection](#type-alias-inventiontokenrejection)
 - [MentionResult](#type-alias-mentionresult)
 - [MigrationFindingKind](#type-alias-migrationfindingkind)
 - [NarrationVerdict](#type-alias-narrationverdict)
@@ -273,6 +274,7 @@
 - [runDoctor](#function-rundoctor)
 - [surfaceTokensOf](#function-surfacetokensof)
 - [tick](#function-tick)
+- [validateInventionTokens](#function-validateinventiontokens)
 - [validateSuppliedTokens](#function-validatesuppliedtokens)
 - [validateValue](#function-validatevalue)
 - [worldHealth](#function-worldhealth)
@@ -11342,6 +11344,30 @@ how much a holder should trust it.
 
 ***
 
+[sneq-engine API](#sneq-engine-api) / InventionTokenRejection
+
+# Type Alias: InventionTokenRejection
+
+> **InventionTokenRejection** = `object`
+
+## Properties
+
+### reason
+
+> **reason**: `"ABSENT_FROM_SOURCE"` \| `"NOT_DISTINCTIVE"`
+
+The model never said it — a trigger invented purely to be a trigger.
+
+***
+
+### token
+
+> **token**: `string`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
 [sneq-engine API](#sneq-engine-api) / MentionResult
 
 # Type Alias: MentionResult
@@ -12395,12 +12421,26 @@ Every token from every event/record this holder has NOT learned. Decided
 from state, before any call — not a validator on the model's output; a
 statement about what was handed over.
 
-Two things are never forbidden. A token the holder legitimately holds, even
-if it also appears in something they do not hold. And the name of an entity
+Three things are never forbidden. A token the holder legitimately holds, even
+if it also appears in something they do not hold. The name of an entity
 authored `public` (see `PUBLIC_TAG`) — but only where that token is purely
 an identity: if any unlearned subject also *declares* the same string as its
 own surface token, key or value, the exemption does not apply to it, because
 freeing the name would free the secret spelled the same way.
+
+And anything that cannot carry a secret (#46). Model-supplied tokens reach
+this set from events and records as well as inventions, a record's `key` and
+`value` join it automatically, and none of those paths checked
+distinctiveness. One `"le"` on one event forbade the commonest word in the
+language for every holder who had not learned it — `assertContainment` threw
+on harmless payloads and `filterTranscript` dropped legitimate entries in
+silence.
+
+Removing them cannot leak: a stopword conveys nothing, which is what makes it
+a stopword. It does mean an entity whose *entire* name is a stopword or two
+letters long is not protected by substring containment — and it never was.
+Blocking every payload containing `"or"` is not protection, it is refusal to
+answer; the engine declines to pretend otherwise.
 
 ## Parameters
 
@@ -12697,6 +12737,56 @@ happens at commit.
 
 ***
 
+[sneq-engine API](#sneq-engine-api) / validateInventionTokens
+
+# Function: validateInventionTokens()
+
+> **validateInventionTokens**(`invention`): [`InventionTokenRejection`](#type-alias-inventiontokenrejection)[]
+
+Commit-time validation of an invention's uptake alphabet (#46).
+
+These tokens are what `detectUptake` searches the player's utterance for, and
+a match promotes the invention into canon. They arrive from the model, and
+until 0.5.1 nothing looked at them — so the model chose the string whose
+later appearance would make its own invention true. Tag one `"le"` and the
+next French sentence the player types promotes it.
+
+Two guards, because each catches what the other cannot:
+
+- **Provenance.** The token must occur in `sourceNarration`, so it can only
+  be something the player actually read. This is the event-side argument
+  (`validateSuppliedTokens`) applied to the other half of the bundle.
+- **Distinctiveness.** The token must not be a stopword and must not be a
+  fragment. Provenance alone cannot catch this: `sourceNarration` is
+  model-supplied too, and `"le"` occurs in nearly all French prose, so it
+  passes a presence check trivially.
+
+**What this does not do.** It raises the floor; it does not make the channel
+safe. A common noun that is not a stopword — `"porte"`, `"nord"` — still
+passes, and detecting that would need a frequency model this engine does not
+have. The durable answer is to stop detecting uptake from raw prose at all
+and carve it from an act instead; this guard is what holds until then.
+
+## Parameters
+
+### invention
+
+#### sourceNarration
+
+`string`
+
+#### surfaceTokens
+
+`string`[]
+
+## Returns
+
+[`InventionTokenRejection`](#type-alias-inventiontokenrejection)[]
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
 [sneq-engine API](#sneq-engine-api) / validateSuppliedTokens
 
 # Function: validateSuppliedTokens()
@@ -12866,7 +12956,7 @@ deliberate, authored, per-entity weakening — `doctor` counts them.
 
 # Variable: SNEQ\_ENGINE\_VERSION
 
-> `const` **SNEQ\_ENGINE\_VERSION**: `"0.5.0"` = `"0.5.0"`
+> `const` **SNEQ\_ENGINE\_VERSION**: `"0.5.1"` = `"0.5.1"`
 
 [**sneq-engine API**](#sneq-engine-api)
 

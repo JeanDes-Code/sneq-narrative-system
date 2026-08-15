@@ -1,6 +1,6 @@
 {
   "name": "sneq-engine",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "packageManager": "pnpm@10.30.3",
   "description": "Bookkeeping engine for turn-based AI-narrated games (SNEQ V2) \u2014 canonical entities, facts, scenes and turns for AI game masters",
   "type": "module",
@@ -67,7 +67,7 @@
   ],
   "scripts": {
     "prepublishOnly": "pnpm build && pnpm test",
-    "build": "tsc -p tsconfig.build.json",
+    "build": "pnpm clean && tsc -p tsconfig.build.json",
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc -p tsconfig.json",
@@ -78,8 +78,8 @@
     "zod": "^4.0.0"
   },
   "peerDependencies": {
-    "@anthropic-ai/sdk": "^0.30.0",
-    "@google/generative-ai": "^0.21.0",
+    "@anthropic-ai/sdk": ">=0.30.0 <1",
+    "@google/generative-ai": ">=0.21.0 <1",
     "better-sqlite3": "^11.0.0",
     "sqlite-vec": "^0.1.0"
   },

@@ -5,6 +5,69 @@ this file says *what* changed, that one says *what to do about it*.
 
 Versions follow semver with the pre-1.0 caveat: a minor bump may break.
 
+## 0.5.1 — the model stops choosing its own promotion trigger
+
+A patch, and one of the three is a real hole in 0.5.0's central claim.
+
+### Fixed
+
+- **An invention's `surfaceTokens` are validated at commit** ([#46](https://github.com/JeanDes-Code/sneq-narrative-system/issues/46)).
+  Those tokens are the alphabet `detectUptake` searches the player's utterance
+  for, and a match promotes the invention into canon. They arrive from the
+  model, and nothing looked at them — so the model chose the string whose later
+  appearance would make its own invention true. An invention tagged `"le"` was
+  promoted by the next French sentence the player typed.
+
+  Two guards, because neither catches the other's case. **Provenance**: the
+  token must occur in `sourceNarration`, so it can only be something the player
+  actually read. **Distinctiveness**: it must not be a stopword or a fragment,
+  reusing the 204-entry list already in `core/stopwords.ts`. Provenance alone
+  does not close it — `sourceNarration` is model-supplied too, and `"le"` occurs
+  in nearly all French prose, so it passes a presence check trivially.
+
+  This raises the floor; it does not make the channel safe. A common noun that
+  is not a stopword still passes, and catching that needs a frequency model the
+  engine does not have. The durable answer is to stop detecting uptake from raw
+  prose at all.
+
+  Breaking for a caller that was sending junk tokens — deliberately, and in the
+  same posture as the event-side check it mirrors. Note the rejection is
+  **fail-closed and atomic**: one bland token rejects the whole bundle, not just
+  the offending invention. That is the right direction for a field whose
+  permissive default created the hole, but a caller should catch
+  `SneqValidationError` and re-ask rather than let it surface.
+
+- **The forbidden set drops tokens that cannot carry a secret** ([#46](https://github.com/JeanDes-Code/sneq-narrative-system/issues/46)).
+  The same list, on the containment side. Model-supplied `surfaceTokens` reach
+  the forbidden set from events and records too, and a record's `key` and
+  `value` join it automatically — none of those paths checked distinctiveness.
+  One `"le"` on one event forbade the commonest word in French for every holder
+  who had not learned that event: `assertContainment` threw on harmless
+  payloads, and `filterTranscript` dropped legitimate entries **in silence**.
+
+  Filtered at read time rather than rejected at commit, deliberately. A record
+  key like `"age"` is legitimate data that merely makes a poor token, and
+  filtering also repairs campaigns whose ledgers already hold such tokens.
+  Removing them cannot leak — a stopword conveys nothing, which is what makes
+  it a stopword.
+
+  It does mean an entity whose *entire* name is a stopword or two letters long
+  is not protected by substring containment. It never was: blocking every
+  payload containing `"or"` is refusal to answer, not protection.
+
+- **`build` now cleans first.** `tsc` never removes outputs whose source has
+  been deleted, so `dist/` accumulated orphans across releases and `npm pack`
+  carried them. The 0.5.0 tarball came within one command of shipping
+  `dist/core/propagation.js` — the machinery its own README says was removed.
+  `prepublishOnly` runs `build`, so it inherits the clean.
+
+- **Peer ranges no longer freeze the minor.** `^0.30.0` means `<0.31` for a `0.x`
+  package, so `@anthropic-ai/sdk` was bounded against `0.117.1` published, and
+  `@google/generative-ai` against `0.24.1` — an `ERESOLVE` for any consumer on a
+  current SDK. Both widened to `>=x.y.0 <1`. The providers use only
+  `messages.create`, `getGenerativeModel` and `embedContent`, stable across the
+  range. Present since 0.3.0, not a 0.5.0 regression.
+
 ## 0.5.0 — stratified knowledge
 
 The release the whole `v0.4` design work was for. One breaking release; there is no
