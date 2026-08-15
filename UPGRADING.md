@@ -102,6 +102,24 @@ An invention contradicted by canon is now **silently rejected** — no error, no
 0.3's `register_fact` returned contradictions to adjudicate; that path is gone. Replacing a
 value on a key is state evolution, not a conflict.
 
+### One thing to author on day one
+
+The containment floor withholds the **names** of an unlearned event's place and
+participants. That is right for people and secrets and wrong for landmarks: the first
+secret meeting at a tavern makes the tavern's name unmentionable to the whole town, and
+your own scene description stops passing `assertContainment`.
+
+Tag the places everybody has heard of:
+
+```bash
+sneq-engine mention-entity --db <your.db> --campaign <id> \
+  --args '{"canonicalName":"La Forge","type":"LIEU","description":"…","public":true}'
+```
+
+What happened there is still withheld — `public` frees the name and nothing else. Never
+set it on a person, or on anything whose existence is the secret. `doctor` lists them back,
+because each one is a deliberate hole in the floor.
+
 ### Storage migration
 
 - **SQLite**: schema v6. `figed` → `canonical_attributes` (copied as `LEGACY_FACT`), new

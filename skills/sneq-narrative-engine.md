@@ -88,7 +88,9 @@ Ten of them. Consult `docs/api.md` for exact parameter shapes; this is the *when
   - **An act reaches canon only through its explicit `sets`.** The engine never reads `verb`. `{ verb: "WALKS" }` records that it happened and changes nothing; `sets: { entityId, key, value, category }` changes canon. An assertion with no act to hang on lands in the provisional layer whatever you label it.
   - **Retry with the same `operationId`** and you get the recorded result back, not a second write.
 
-- **`sneq__mention_entity({ canonicalName, type, description, aliases?, force? })`** — introduce or re-use. `needsAdjudication: true` means the engine refused to silently create a near-duplicate: pick a candidate's id, or re-call with `force: true` when it really is somebody new. Never `force: true` merely to make the call succeed.
+- **`sneq__mention_entity({ canonicalName, type, description, aliases?, force?, public? })`** — introduce or re-use. `needsAdjudication: true` means the engine refused to silently create a near-duplicate: pick a candidate's id, or re-call with `force: true` when it really is somebody new. Never `force: true` merely to make the call succeed.
+
+  **Set `public: true` for a landmark, town or faction whose name everybody has heard of.** Without it, the first secret event at that place makes its *name* unmentionable to everyone who did not learn that event — including in your own scene description. What happened there stays withheld either way; `public` only frees the name. Never set it on a person or on anything whose existence is the secret.
 
 - **`sneq__add_constraint({ entityId, attributeKey, rule, justification, role })`** — narrow what an unsettled attribute may become. **`role` is required**: `REGLE_MONDE` is a declared rule of the world, `INFERENCE_IA` is your own guess and carries its confidence. Constraints are consulted for real now — they gate promotion — so a wrong one silently stops a fact from ever becoming canon. Nothing propagates: no other entity is touched.
 
@@ -118,7 +120,7 @@ The world is not omniscient either. An event happens at a place. Whoever was the
 
 So a holder can be ignorant of something that happened yesterday two towns over, and that is correct — not a missing read. If you find yourself explaining why an NPC *ought* to know something, you are about to leak.
 
-`doctor` will tell you when the world has gone deaf: rules that fire with no route to travel means the map has never been declared.
+`doctor` will tell you when the world has gone deaf: rules that fire with no route to travel means the map has never been declared. It also lists the entities you declared `public` — each one is a deliberate hole in the floor, so the list is worth reading.
 
 ## When things go wrong
 
