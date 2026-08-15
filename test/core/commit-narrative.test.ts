@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { decideCommitNarrative, type CommitContext, type CommitNarrativeBundle } from "../../src/core/commit-narrative.js";
 import { SneqContradictionError, SneqValidationError } from "../../src/errors.js";
-import type { GroupHolder } from "../../src/domain/holder.js";
+import type { GroupHolder, IndividualHolder } from "../../src/domain/holder.js";
 import {
   asCampaignId, asEntityID, asEventId, asCarriageId, asInventionId, asConstraintId
 } from "../../src/domain/ids.js";
@@ -21,6 +21,15 @@ function group(id: string, placeId: ReturnType<typeof asEntityID>, community: st
   };
 }
 
+function individual(id: string, baseGroup: string, over: Partial<IndividualHolder> = {}): IndividualHolder {
+  return {
+    kind: "INDIVIDUAL", holderId: `i-${id}` as IndividualHolder["holderId"], campaignId: cid,
+    entityId: asEntityID(`e-${id}`), baseGroupId: `g-${baseGroup}` as IndividualHolder["baseGroupId"],
+    derogationReason: "PERSONAL_STAKE",
+    ...over
+  };
+}
+
 function ctx(over: Partial<CommitContext> = {}): CommitContext {
   return {
     campaignId: cid, worldDay: 5, latestTurn: 9,
@@ -34,7 +43,7 @@ function ctx(over: Partial<CommitContext> = {}): CommitContext {
     },
     places: [{ id: SKARROW, realmId: MARCHE }],   // Bourg/Valmure/Hameau: default realm by fallback (#26)
     defaultRealmId: DEFAULT_REALM,
-    communities: [group("bourg", BOURG, "bourg"), group("skarrow", SKARROW, "skarrow"), group("hameau", HAMEAU, "hameau")],
+    holders: [group("bourg", BOURG, "bourg"), group("skarrow", SKARROW, "skarrow"), group("hameau", HAMEAU, "hameau")],
     canon: [], inventions: [], potentialites: [],
     maxDispatchFanout: 64,
     ...over
@@ -198,5 +207,109 @@ describe("decideCommitNarrative — the single write (§5.1)", () => {
     expect(plan.newWorldDay).toBe(6);
     expect(plan.event).toBeUndefined();
     expect(plan.carriages).toEqual([]);
+  });
+});
+
+/**
+ * §5.3 adjudicated holder authoring as a host concern and then put holder
+ * creation in this bundle. `standing` gates carriage delivery
+ * (`derive-beliefs.ts:121`) and feeds the socialPosition salience factor
+ * (`:157`), so leaving it writable here lets a model hand a holder the news the
+ * minStanding gate was withholding — the model writing an effect. The line runs
+ * between the two halves of §5.3: create yes, re-price no (#46).
+ */
+describe("holders[] may create a holder, never re-price one (#46)", () => {
+  const BOURG_GROUP = group("bourg", BOURG, "bourg"); // standing 0.5
+
+  it("refuses a bundle that raises an existing group's standing", () => {
+    expect(() => decideCommitNarrative(
+      bundle({ holders: [{ ...BOURG_GROUP, standing: 0.9 }] }),
+      ctx({ holders: [BOURG_GROUP] })
+    )).toThrow(SneqValidationError);
+  });
+
+  it("refuses a bundle that lowers it too — the guard is about authority, not direction", () => {
+    expect(() => decideCommitNarrative(
+      bundle({ holders: [{ ...BOURG_GROUP, standing: 0.1 }] }),
+      ctx({ holders: [BOURG_GROUP] })
+    )).toThrow(SneqValidationError);
+  });
+
+  it("names upsert-holder as the corrective call, like every other refusal", () => {
+    try {
+      decideCommitNarrative(
+        bundle({ holders: [{ ...BOURG_GROUP, standing: 0.9 }] }),
+        ctx({ holders: [BOURG_GROUP] })
+      );
+      throw new Error("expected the bundle to be refused");
+    } catch (e) {
+      expect(e).toBeInstanceOf(SneqValidationError);
+      expect((e as SneqValidationError).details.map(d => d.message).join(" ")).toContain("upsert-holder");
+    }
+  });
+
+  it("rejects the whole bundle, so one re-priced holder writes nothing (fail-closed, like the invention guard)", () => {
+    expect(() => decideCommitNarrative(
+      bundle({ holders: [group("valmure", VALMURE, "valmure"), { ...BOURG_GROUP, standing: 0.9 }] }),
+      ctx({ holders: [BOURG_GROUP] })
+    )).toThrow(SneqValidationError);
+  });
+
+  it("refuses a bundle that changes an existing individual's standingOverride", () => {
+    const miller = individual("miller", "bourg", { standingOverride: 0.4 });
+    expect(() => decideCommitNarrative(
+      bundle({ holders: [{ ...miller, standingOverride: 0.95 }] }),
+      ctx({ holders: [BOURG_GROUP, miller] })
+    )).toThrow(SneqValidationError);
+  });
+
+  it("refuses a bundle that drops an existing standingOverride — erasing it is a change", () => {
+    const miller = individual("miller", "bourg", { standingOverride: 0.4 });
+    const { standingOverride: _erased, ...withoutOverride } = miller;
+    expect(() => decideCommitNarrative(
+      bundle({ holders: [withoutOverride] }),
+      ctx({ holders: [BOURG_GROUP, miller] })
+    )).toThrow(SneqValidationError);
+  });
+
+  it("refuses a bundle that flips an existing holder's kind — that re-prices it by construction", () => {
+    expect(() => decideCommitNarrative(
+      bundle({ holders: [individual("bourg", "bourg", { standingOverride: 0.9 })] }),
+      ctx({ holders: [{ ...BOURG_GROUP, holderId: "i-bourg" as GroupHolder["holderId"] }] })
+    )).toThrow(SneqValidationError);
+  });
+
+  // The other half of the line: everything below must keep working, or the guard
+  // is not a line, it is a wall.
+
+  it("still creates a group the campaign does not have, standing included", () => {
+    const plan = decideCommitNarrative(
+      bundle({ holders: [group("valmure", VALMURE, "valmure")] }),
+      ctx({ holders: [BOURG_GROUP] })
+    );
+    expect(plan.holders).toHaveLength(1);
+    expect((plan.holders[0] as GroupHolder).standing).toBe(0.5);
+  });
+
+  it("still creates an individual, whose absent override was never a standing write", () => {
+    const plan = decideCommitNarrative(
+      bundle({ holders: [individual("miller", "bourg")] }),
+      ctx({ holders: [BOURG_GROUP] })
+    );
+    expect(plan.holders).toHaveLength(1);
+  });
+
+  it("lets an existing holder through when the standing is unchanged — a re-send is not an edit", () => {
+    const plan = decideCommitNarrative(
+      bundle({ holders: [{ ...BOURG_GROUP, stratum: "notables" }] }),
+      ctx({ holders: [BOURG_GROUP] })
+    );
+    expect(plan.holders).toHaveLength(1);
+    expect((plan.holders[0] as GroupHolder).stratum).toBe("notables");
+  });
+
+  it("dispatch still finds its communities now that the context carries every holder", () => {
+    const plan = decideCommitNarrative(bundle(), ctx());
+    expect(plan.carriages.length).toBeGreaterThan(0);
   });
 });

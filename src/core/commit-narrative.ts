@@ -2,7 +2,7 @@ import type { NarrativeEvent, EventAct } from "../domain/event.js";
 import type { OfficialRecord } from "../domain/record.js";
 import type { Carriage, CarriageEffect, DispatchPolicy } from "../domain/carriage.js";
 import type { CarriageRoute } from "../domain/record.js";
-import type { GroupHolder, Holder } from "../domain/holder.js";
+import type { Holder } from "../domain/holder.js";
 import type { ProvisionalInvention, InventionTransition, PromotionEvidence } from "../domain/invention.js";
 import type { CanonicalAttribute } from "../domain/attribute.js";
 import type { Potentialite } from "../domain/potentialite.js";
@@ -69,8 +69,15 @@ export interface CommitContext {
   /** Realm membership of known places (#26); absent place → default realm. */
   places: Array<{ id: EntityID; realmId?: EntityID }>;
   defaultRealmId: EntityID;
-  /** Known community groups — ALL_KNOWN_COMMUNITIES targets. */
-  communities: GroupHolder[];
+  /**
+   * Every holder the campaign already has. The GROUP ones are the
+   * ALL_KNOWN_COMMUNITIES dispatch targets; the rest is what lets this pure
+   * function tell a holder the bundle *creates* from one it *edits* (#46).
+   *
+   * Replaced `communities` in 0.6.0 — a pure decision cannot check an edit
+   * against a list it was never handed.
+   */
+  holders: Holder[];
   canon: CanonicalAttribute[];
   /** All PROVISIONAL inventions (for promotion + competition). */
   inventions: ProvisionalInvention[];
@@ -101,6 +108,16 @@ export interface CommitPlan {
   policyUpdate?: DispatchPolicy;
   quarantined: ConstraintId[];
   health: CommitHealth;
+}
+
+/**
+ * The one number a holder's standing actually resolves to. `deriveBeliefs`
+ * collapses both branches into a single value (`derive-beliefs.ts:75-77`), so
+ * they are one effects channel wearing two field names — and the guard below
+ * has to treat them as one.
+ */
+function standingChannelOf(holder: Holder): number | undefined {
+  return holder.kind === "GROUP" ? holder.standing : holder.standingOverride;
 }
 
 /**
@@ -175,7 +192,7 @@ export function decideCommitNarrative(bundle: CommitNarrativeBundle, ctx: Commit
       const from = event.placeId;
       if (from === undefined) continue;
       const targetPlaces: EntityID[] = rule.targets === "ALL_KNOWN_COMMUNITIES"
-        ? [...new Set(ctx.communities.map(g => g.placeId).filter(p => p !== from))]
+        ? [...new Set(ctx.holders.filter(h => h.kind === "GROUP").map(g => g.placeId).filter(p => p !== from))]
         : rule.targets;
       const routed: Array<{ toPlaceId: EntityID; travelDays: number }> = [];
       for (const to of targetPlaces) {
@@ -224,6 +241,33 @@ export function decideCommitNarrative(bundle: CommitNarrativeBundle, ctx: Commit
     throw new SneqValidationError([{
       type: "FORMAT",
       message: `invention "${i.inventionId}" carries surfaceTokens that cannot serve as uptake evidence: ${parts.join("; ")} (#46)`
+    }]);
+  }
+
+  // -- holders: create yes, re-price no (#46) ---------------------------------
+  // `standing` gates carriage delivery (`derive-beliefs.ts:121`) and is the
+  // socialPosition salience factor (`:157`), so a model that can raise it hands
+  // a holder the news the minStanding gate was withholding — the model writing
+  // an effect. §5.3 already ruled holder authoring a host concern and then put
+  // creation in this bundle; the line runs between those two halves. Fail-closed
+  // and atomic like the invention guard: one re-priced holder rejects the
+  // bundle, and a rejected bundle writes nothing.
+  for (const submitted of bundle.holders ?? []) {
+    const stored = ctx.holders.find(h => h.holderId === submitted.holderId);
+    if (!stored) continue;  // a creation — §5.3 put that here on purpose
+    const was = standingChannelOf(stored);
+    const now = standingChannelOf(submitted);
+    if (stored.kind === submitted.kind && was === now) continue;
+    const field = submitted.kind === "GROUP" ? "standing" : "standingOverride";
+    const because = stored.kind !== submitted.kind
+      ? `it arrives as ${submitted.kind} where the campaign holds a ${stored.kind}, which re-prices it by construction`
+      : `it changes ${field} from ${was ?? "unset"} to ${now ?? "unset"}`;
+    throw new SneqValidationError([{
+      type: "FORMAT",
+      message: `holder "${String(submitted.holderId)}" already exists and ${because}. commit_narrative may CREATE a ` +
+        `holder, never re-price one: ${field} gates carriage delivery and feeds salience, so writing it from a ` +
+        `narration bundle is the model handing itself news the minStanding gate was withholding. Standing is a ` +
+        `host concern (§5.3) — call upsert-holder (#46).`
     }]);
   }
 
