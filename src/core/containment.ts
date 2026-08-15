@@ -3,6 +3,7 @@ import type { OfficialRecord } from "../domain/record.js";
 import type { Belief } from "../domain/belief.js";
 import type { EntityID, HolderId } from "../domain/ids.js";
 import { SneqContainmentError } from "../errors.js";
+import { STOPWORDS } from "./stopwords.js";
 
 /** The identity surface the engine can floor without NLP (#25). */
 export interface EntityLike {
@@ -118,6 +119,62 @@ export function validateSuppliedTokens(e: NarrativeEvent): string[] {
       .map(v => v.toLowerCase())
   ];
   return e.surfaceTokens.filter(t => !haystacks.some(h => h.includes(t.toLowerCase())));
+}
+
+export type InventionTokenRejection = {
+  token: string;
+  /** The model never said it — a trigger invented purely to be a trigger. */
+  reason: "ABSENT_FROM_SOURCE"
+  /** A stopword or a fragment: it matches almost any sentence, so a match proves nothing. */
+        | "NOT_DISTINCTIVE";
+};
+
+/** Below this, a token is a fragment rather than a name. */
+const MIN_TOKEN_LENGTH = 3;
+
+/**
+ * Commit-time validation of an invention's uptake alphabet (#46).
+ *
+ * These tokens are what `detectUptake` searches the player's utterance for, and
+ * a match promotes the invention into canon. They arrive from the model, and
+ * until 0.5.1 nothing looked at them — so the model chose the string whose
+ * later appearance would make its own invention true. Tag one `"le"` and the
+ * next French sentence the player types promotes it.
+ *
+ * Two guards, because each catches what the other cannot:
+ *
+ * - **Provenance.** The token must occur in `sourceNarration`, so it can only
+ *   be something the player actually read. This is the event-side argument
+ *   (`validateSuppliedTokens`) applied to the other half of the bundle.
+ * - **Distinctiveness.** The token must not be a stopword and must not be a
+ *   fragment. Provenance alone cannot catch this: `sourceNarration` is
+ *   model-supplied too, and `"le"` occurs in nearly all French prose, so it
+ *   passes a presence check trivially.
+ *
+ * **What this does not do.** It raises the floor; it does not make the channel
+ * safe. A common noun that is not a stopword — `"porte"`, `"nord"` — still
+ * passes, and detecting that would need a frequency model this engine does not
+ * have. The durable answer is to stop detecting uptake from raw prose at all
+ * and carve it from an act instead; this guard is what holds until then.
+ */
+export function validateInventionTokens(
+  invention: { sourceNarration: string; surfaceTokens: string[] }
+): InventionTokenRejection[] {
+  const source = invention.sourceNarration.toLowerCase();
+  const out: InventionTokenRejection[] = [];
+  for (const token of invention.surfaceTokens) {
+    const normalized = token.trim().toLowerCase();
+    // Distinctiveness first: it is the more actionable message, and a stopword
+    // is usually present in the source as well, so provenance would pass it.
+    if (normalized.length < MIN_TOKEN_LENGTH || STOPWORDS.has(normalized)) {
+      out.push({ token, reason: "NOT_DISTINCTIVE" });
+      continue;
+    }
+    if (!source.includes(normalized)) {
+      out.push({ token, reason: "ABSENT_FROM_SOURCE" });
+    }
+  }
+  return out;
 }
 
 /**

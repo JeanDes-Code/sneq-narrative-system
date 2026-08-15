@@ -188,6 +188,7 @@
 - [HolderId](#type-alias-holderid)
 - [InventionId](#type-alias-inventionid)
 - [InventionStatus](#type-alias-inventionstatus)
+- [InventionTokenRejection](#type-alias-inventiontokenrejection)
 - [MentionResult](#type-alias-mentionresult)
 - [MigrationFindingKind](#type-alias-migrationfindingkind)
 - [NarrationVerdict](#type-alias-narrationverdict)
@@ -273,6 +274,7 @@
 - [runDoctor](#function-rundoctor)
 - [surfaceTokensOf](#function-surfacetokensof)
 - [tick](#function-tick)
+- [validateInventionTokens](#function-validateinventiontokens)
 - [validateSuppliedTokens](#function-validatesuppliedtokens)
 - [validateValue](#function-validatevalue)
 - [worldHealth](#function-worldhealth)
@@ -11342,6 +11344,30 @@ how much a holder should trust it.
 
 ***
 
+[sneq-engine API](#sneq-engine-api) / InventionTokenRejection
+
+# Type Alias: InventionTokenRejection
+
+> **InventionTokenRejection** = `object`
+
+## Properties
+
+### reason
+
+> **reason**: `"ABSENT_FROM_SOURCE"` \| `"NOT_DISTINCTIVE"`
+
+The model never said it — a trigger invented purely to be a trigger.
+
+***
+
+### token
+
+> **token**: `string`
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
 [sneq-engine API](#sneq-engine-api) / MentionResult
 
 # Type Alias: MentionResult
@@ -12697,6 +12723,56 @@ happens at commit.
 
 ***
 
+[sneq-engine API](#sneq-engine-api) / validateInventionTokens
+
+# Function: validateInventionTokens()
+
+> **validateInventionTokens**(`invention`): [`InventionTokenRejection`](#type-alias-inventiontokenrejection)[]
+
+Commit-time validation of an invention's uptake alphabet (#46).
+
+These tokens are what `detectUptake` searches the player's utterance for, and
+a match promotes the invention into canon. They arrive from the model, and
+until 0.5.1 nothing looked at them — so the model chose the string whose
+later appearance would make its own invention true. Tag one `"le"` and the
+next French sentence the player types promotes it.
+
+Two guards, because each catches what the other cannot:
+
+- **Provenance.** The token must occur in `sourceNarration`, so it can only
+  be something the player actually read. This is the event-side argument
+  (`validateSuppliedTokens`) applied to the other half of the bundle.
+- **Distinctiveness.** The token must not be a stopword and must not be a
+  fragment. Provenance alone cannot catch this: `sourceNarration` is
+  model-supplied too, and `"le"` occurs in nearly all French prose, so it
+  passes a presence check trivially.
+
+**What this does not do.** It raises the floor; it does not make the channel
+safe. A common noun that is not a stopword — `"porte"`, `"nord"` — still
+passes, and detecting that would need a frequency model this engine does not
+have. The durable answer is to stop detecting uptake from raw prose at all
+and carve it from an act instead; this guard is what holds until then.
+
+## Parameters
+
+### invention
+
+#### sourceNarration
+
+`string`
+
+#### surfaceTokens
+
+`string`[]
+
+## Returns
+
+[`InventionTokenRejection`](#type-alias-inventiontokenrejection)[]
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
 [sneq-engine API](#sneq-engine-api) / validateSuppliedTokens
 
 # Function: validateSuppliedTokens()
@@ -12866,7 +12942,7 @@ deliberate, authored, per-entity weakening — `doctor` counts them.
 
 # Variable: SNEQ\_ENGINE\_VERSION
 
-> `const` **SNEQ\_ENGINE\_VERSION**: `"0.5.0"` = `"0.5.0"`
+> `const` **SNEQ\_ENGINE\_VERSION**: `"0.5.1"` = `"0.5.1"`
 
 [**sneq-engine API**](#sneq-engine-api)
 

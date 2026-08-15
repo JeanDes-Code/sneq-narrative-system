@@ -8,7 +8,7 @@ import type { CanonicalAttribute } from "../domain/attribute.js";
 import type { Potentialite } from "../domain/potentialite.js";
 import type { CampaignId, CarriageId, ConstraintId, EntityID, EventId, FactId, InventionId, RecordId } from "../domain/ids.js";
 import { SneqContradictionError, SneqValidationError, type IntraCommitConflict } from "../errors.js";
-import { validateSuppliedTokens } from "./containment.js";
+import { validateSuppliedTokens, validateInventionTokens } from "./containment.js";
 import { decidePromotion, detectUptake } from "./promotion.js";
 
 export interface CommitEventInput {
@@ -206,6 +206,27 @@ export function decideCommitNarrative(bundle: CommitNarrativeBundle, ctx: Commit
   const records: OfficialRecord[] = (bundle.records ?? []).map(r => ({
     ...r, campaignId: bundle.campaignId, day: newWorldDay, turn
   }));
+  // An invention's surfaceTokens are the alphabet detectUptake searches the
+  // player's utterance for, and a match writes canon — so an unvalidated set
+  // lets the model choose what will make its own invention true (#46).
+  for (const i of bundle.inventions ?? []) {
+    const rejected = validateInventionTokens(i);
+    if (rejected.length === 0) continue;
+    const absent = rejected.filter(r => r.reason === "ABSENT_FROM_SOURCE").map(r => r.token);
+    const bland = rejected.filter(r => r.reason === "NOT_DISTINCTIVE").map(r => r.token);
+    const parts: string[] = [];
+    if (absent.length > 0) {
+      parts.push(`${absent.map(t => JSON.stringify(t)).join(", ")} do not appear in sourceNarration — an uptake token must be something the player actually read`);
+    }
+    if (bland.length > 0) {
+      parts.push(`${bland.map(t => JSON.stringify(t)).join(", ")} are stopwords or fragments — they match almost any sentence, so a match would prove nothing and promote on noise`);
+    }
+    throw new SneqValidationError([{
+      type: "FORMAT",
+      message: `invention "${i.inventionId}" carries surfaceTokens that cannot serve as uptake evidence: ${parts.join("; ")} (#46)`
+    }]);
+  }
+
   const inventions: ProvisionalInvention[] = (bundle.inventions ?? []).map(i => ({
     ...i, campaignId: bundle.campaignId,
     introducedAtTurn: turn, introducedOnDay: newWorldDay,
