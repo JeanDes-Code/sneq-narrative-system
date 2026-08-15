@@ -219,6 +219,7 @@
 - [noopLogger](#variable-nooplogger)
 - [noopPreGenerationHook](#variable-nooppregenerationhook)
 - [OPERATION\_RETENTION](#variable-operation_retention)
+- [PUBLIC\_TAG](#variable-public_tag)
 - [SNEQ\_ENGINE\_VERSION](#variable-sneq_engine_version)
 - [toolDescriptions](#variable-tooldescriptions)
 - [toolJsonSchemas](#variable-tooljsonschemas)
@@ -1001,7 +1002,7 @@ a leak comes back `BLOCK`.
 
 ##### zod.sneq\_\_mention\_entity
 
-> `readonly` **sneq\_\_mention\_entity**: `ZodObject`\<\{ `aliases`: `ZodOptional`\<`ZodArray`\<`ZodString`\>\>; `canonicalName`: `ZodString`; `description`: `ZodString`; `force`: `ZodOptional`\<`ZodBoolean`\>; `type`: `ZodEnum`\<\{ `EVENEMENT`: `"EVENEMENT"`; `FACTION`: `"FACTION"`; `LIEU`: `"LIEU"`; `OBJET`: `"OBJET"`; `PERSONNAGE`: `"PERSONNAGE"`; `RELATION`: `"RELATION"`; `SCENE`: `"SCENE"`; `WORLD`: `"WORLD"`; \}\>; \}, `$strip`\>
+> `readonly` **sneq\_\_mention\_entity**: `ZodObject`\<\{ `aliases`: `ZodOptional`\<`ZodArray`\<`ZodString`\>\>; `canonicalName`: `ZodString`; `description`: `ZodString`; `force`: `ZodOptional`\<`ZodBoolean`\>; `public`: `ZodOptional`\<`ZodBoolean`\>; `type`: `ZodEnum`\<\{ `EVENEMENT`: `"EVENEMENT"`; `FACTION`: `"FACTION"`; `LIEU`: `"LIEU"`; `OBJET`: `"OBJET"`; `PERSONNAGE`: `"PERSONNAGE"`; `RELATION`: `"RELATION"`; `SCENE`: `"SCENE"`; `WORLD`: `"WORLD"`; \}\>; \}, `$strip`\>
 
 ##### zod.sneq\_\_set\_scene
 
@@ -6615,6 +6616,22 @@ From the last commit's `CommitHealth`, when the campaign has committed at all.
 
 ***
 
+### publicEntities
+
+> **publicEntities**: `object`[]
+
+Entity names declared common knowledge (`PUBLIC_TAG`) — the floor's only authored exemption.
+
+#### entityId
+
+> **entityId**: [`EntityID`](#type-alias-entityid)
+
+#### name
+
+> **name**: `string`
+
+***
+
 ### scene
 
 > **scene**: [`Scene`](#interface-scene) \| `null`
@@ -6978,6 +6995,14 @@ The identity surface the engine can floor without NLP (#25).
 ### name
 
 > **name**: `string`
+
+***
+
+### tags?
+
+> `optional` **tags?**: `string`[]
+
+`public` here exempts this entity's own name and aliases from the floor.
 
 [**sneq-engine API**](#sneq-engine-api)
 
@@ -7775,6 +7800,17 @@ One day-0 LEGACY_CANON event per entity (#17) — the ledger backing that
 > `optional` **force?**: `boolean`
 
 Create even when resolution is ambiguous (after the caller adjudicated).
+
+***
+
+### public?
+
+> `optional` **public?**: `boolean`
+
+Common knowledge: this entity's NAME is exempt from the containment floor
+(`PUBLIC_TAG`). For landmarks, towns, factions everybody has heard of —
+things whose name carries no secret. What HAPPENED to them is still
+withheld; only the name stops being.
 
 ***
 
@@ -10400,6 +10436,10 @@ that is what it is here for. Do not read it as a guarantee the engine provides.
 
 `boolean`
 
+###### public?
+
+`boolean`
+
 ###### type
 
 [`EntityType`](#type-alias-entitytype)
@@ -12351,8 +12391,11 @@ the seam's whole claim is that it hands over nothing it has not checked.
 
 Every token from every event/record this holder has NOT learned. Decided
 from state, before any call — not a validator on the model's output; a
-statement about what was handed over. A token the holder legitimately holds
-is never forbidden, even if it also appears in something they don't hold.
+statement about what was handed over.
+
+Two things are never forbidden: a token the holder legitimately holds, even
+if it also appears in something they do not hold; and the name of an entity
+authored `public` (see `PUBLIC_TAG`).
 
 ## Parameters
 
@@ -12793,6 +12836,27 @@ near-in-time; the ring is a bounded log, never a forever-log.
 
 ***
 
+[sneq-engine API](#sneq-engine-api) / PUBLIC\_TAG
+
+# Variable: PUBLIC\_TAG
+
+> `const` **PUBLIC\_TAG**: `"public"` = `"public"`
+
+Declares a name common knowledge. The floor forbids the names of every
+subject a holder has not learned, which is right for people and secrets and
+wrong for landmarks: a tavern that appears in one secret meeting becomes
+unmentionable to the whole town, and the host's own scene description stops
+passing its own pre-flight check.
+
+Tag the tavern `public` and its NAME stops being withheld. Nothing else
+changes: what happened there is still forbidden, and every model-supplied
+token, record key and record value stays subject to the floor. This is a
+deliberate, authored, per-entity weakening — `doctor` counts them.
+
+[**sneq-engine API**](#sneq-engine-api)
+
+***
+
 [sneq-engine API](#sneq-engine-api) / SNEQ\_ENGINE\_VERSION
 
 # Variable: SNEQ\_ENGINE\_VERSION
@@ -12914,7 +12978,7 @@ Every id below is an engine-issued entity id from `lookup_entity` or
 
 ### sneq\_\_mention\_entity
 
-> `readonly` **sneq\_\_mention\_entity**: `ZodObject`\<\{ `aliases`: `ZodOptional`\<`ZodArray`\<`ZodString`\>\>; `canonicalName`: `ZodString`; `description`: `ZodString`; `force`: `ZodOptional`\<`ZodBoolean`\>; `type`: `ZodEnum`\<\{ `EVENEMENT`: `"EVENEMENT"`; `FACTION`: `"FACTION"`; `LIEU`: `"LIEU"`; `OBJET`: `"OBJET"`; `PERSONNAGE`: `"PERSONNAGE"`; `RELATION`: `"RELATION"`; `SCENE`: `"SCENE"`; `WORLD`: `"WORLD"`; \}\>; \}, `$strip`\>
+> `readonly` **sneq\_\_mention\_entity**: `ZodObject`\<\{ `aliases`: `ZodOptional`\<`ZodArray`\<`ZodString`\>\>; `canonicalName`: `ZodString`; `description`: `ZodString`; `force`: `ZodOptional`\<`ZodBoolean`\>; `public`: `ZodOptional`\<`ZodBoolean`\>; `type`: `ZodEnum`\<\{ `EVENEMENT`: `"EVENEMENT"`; `FACTION`: `"FACTION"`; `LIEU`: `"LIEU"`; `OBJET`: `"OBJET"`; `PERSONNAGE`: `"PERSONNAGE"`; `RELATION`: `"RELATION"`; `SCENE`: `"SCENE"`; `WORLD`: `"WORLD"`; \}\>; \}, `$strip`\>
 
 ### sneq\_\_set\_scene
 

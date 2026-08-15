@@ -24,7 +24,7 @@ function input(over: Partial<DoctorInput> = {}): DoctorInput {
     campaignId: "c1", day: 3, turn: 3,
     scene: null, sceneEntityResolution: [],
     events: [event(3)], holders: [defaultGroup],
-    potentialites: [], migrationFindings: [],
+    potentialites: [], migrationFindings: [], publicEntities: [],
     health: { inTransit: 0, frozenClock: false, outOfBandRecords: 0 },
     ...over
   };
@@ -163,6 +163,20 @@ describe("runDoctor · what it cannot see", () => {
     expect(check(r, "containment-assertions").status).toBe("INFO");
     expect(check(r, "belief-cache").status).toBe("INFO");
     expect(r.status).not.toBe("FAIL");
+  });
+
+  // Every public entity is a deliberate hole in the floor. Counting them is the
+  // whole point: a person or a secret should never be on this list.
+  it("counts the authored exemptions, and says what an empty list costs", () => {
+    const none = check(runDoctor(input()), "public-entities");
+    expect(none.status).toBe("INFO");
+    expect(none.message).toMatch(/block prompts that merely describe where the player is standing/);
+
+    const some = check(runDoctor(input({
+      publicEntities: [{ entityId: asEntityID("place_forge"), name: "La Forge" }]
+    })), "public-entities");
+    expect(some.message).toMatch(/La Forge/);
+    expect(some.message).toMatch(/only the name is not/);
   });
 
   it("rolls up to the worst real status", () => {

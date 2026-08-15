@@ -9,6 +9,33 @@ export interface EntityLike {
   id: EntityID;
   name: string;
   aliases: string[];
+  /** `public` here exempts this entity's own name and aliases from the floor. */
+  tags?: string[];
+}
+
+/**
+ * Declares a name common knowledge. The floor forbids the names of every
+ * subject a holder has not learned, which is right for people and secrets and
+ * wrong for landmarks: a tavern that appears in one secret meeting becomes
+ * unmentionable to the whole town, and the host's own scene description stops
+ * passing its own pre-flight check.
+ *
+ * Tag the tavern `public` and its NAME stops being withheld. Nothing else
+ * changes: what happened there is still forbidden, and every model-supplied
+ * token, record key and record value stays subject to the floor. This is a
+ * deliberate, authored, per-entity weakening — `doctor` counts them.
+ */
+export const PUBLIC_TAG = "public";
+
+/** Names and aliases of entities declared common knowledge, lowercased. */
+function publicTokensOf(entities: EntityLike[]): Set<string> {
+  const out = new Set<string>();
+  for (const e of entities) {
+    if (!e.tags?.includes(PUBLIC_TAG)) continue;
+    out.add(e.name.toLowerCase());
+    for (const a of e.aliases) out.add(a.toLowerCase());
+  }
+  return out;
 }
 
 export interface TokenWorld {
@@ -77,8 +104,11 @@ export function validateSuppliedTokens(e: NarrativeEvent): string[] {
 /**
  * Every token from every event/record this holder has NOT learned. Decided
  * from state, before any call — not a validator on the model's output; a
- * statement about what was handed over. A token the holder legitimately holds
- * is never forbidden, even if it also appears in something they don't hold.
+ * statement about what was handed over.
+ *
+ * Two things are never forbidden: a token the holder legitimately holds, even
+ * if it also appears in something they do not hold; and the name of an entity
+ * authored `public` (see `PUBLIC_TAG`).
  */
 export function forbiddenTokensFor(world: TokenWorld, beliefs: Belief[]): string[] {
   const held = new Set(beliefs.map(b => `${b.subject.kind}:${b.subject.id}`));
@@ -92,7 +122,8 @@ export function forbiddenTokensFor(world: TokenWorld, beliefs: Belief[]): string
     const target = held.has(`RECORD:${r.recordId}`) ? allowed : forbidden;
     for (const t of surfaceTokensOf(r, world.entities)) target.add(t.toLowerCase());
   }
-  return [...forbidden].filter(t => !allowed.has(t));
+  const publicTokens = publicTokensOf(world.entities);
+  return [...forbidden].filter(t => !allowed.has(t) && !publicTokens.has(t));
 }
 
 export interface ContainmentResult {

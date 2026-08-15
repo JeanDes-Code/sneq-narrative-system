@@ -194,7 +194,9 @@ export const schemas = {
     type: entityType,
     aliases: z.array(z.string()).optional(),
     description: z.string(),
-    force: z.boolean().optional()
+    force: z.boolean().optional(),
+    /** Common knowledge: exempts this entity's NAME from the containment floor. */
+    public: z.boolean().optional()
   }),
   sneq__commit_narrative: z.object({
     operationId: z.string(),
@@ -262,7 +264,7 @@ export const toolDescriptions: Record<ToolName, string> = {
   sneq__suggest_existing:
     "Before naming a new entity, surface the existing ones it might already be, so canon does not fork. Returns { candidates, recommendsNew }. Creates nothing and writes nothing. Use BEFORE mention_entity whenever you are about to introduce a name you have not used in this session.",
   sneq__mention_entity:
-    "Introduce an entity, or re-use the one it turns out to be. Returns { entityId, isNew, resolvedTo }. Failure mode to handle: needsAdjudication=true means the engine refused to silently create a near-duplicate — surface the candidates to the player or pick one yourself, then either pass the chosen entityId onward or re-call with force:true to create a genuinely distinct entity. Never force:true just to make the call succeed.",
+    "Introduce an entity, or re-use the one it turns out to be. Returns { entityId, isNew, resolvedTo }. Failure mode to handle: needsAdjudication=true means the engine refused to silently create a near-duplicate — surface the candidates to the player or pick one yourself, then either pass the chosen entityId onward or re-call with force:true to create a genuinely distinct entity. Never force:true just to make the call succeed. Set public:true for a landmark, town or faction whose NAME everybody has heard of — otherwise, once it appears in one secret event, its name is withheld from everyone who did not learn that event, and even your own scene description stops passing the containment check. What happened there is still withheld either way.",
   sneq__commit_narrative:
     "The single write: one bundle, atomic, all of it or none of it. Carries the turn's event, records, carriages, carriage effects, provisional inventions, promotion evidence, holders and dispatch policy additions. daysElapsed is REQUIRED — the fiction declares its own elapsed time every turn; 0 is legal, leaving it out is not, and a campaign that always answers 0 will be caught by the frozen-clock check. Returns { replayed, newWorldDay, turn, eventId, carriages, promoted, quarantined, health }. Retry with the same operationId and you get the recorded result back, not a second write. Two things you do NOT control: an act reaches canon only through its explicit `sets` (the engine never interprets `verb`), and promotion of a provisional invention is detected by the engine from `playerUtterance` — pass the player's raw text and let it decide. An assertion with no act to hang on lands in the provisional layer whatever you label it.",
   sneq__add_constraint:
