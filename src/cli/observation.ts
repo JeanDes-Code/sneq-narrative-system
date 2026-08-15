@@ -9,7 +9,11 @@ export const SOURCE_PRESETS: Record<SourcePreset, PresetBody> = {
   "gm-narration":     { source: "GM_NARRATION",     method: "DIALOGUE_DIRECT" },
   "player-utterance": { source: "PLAYER_UTTERANCE", method: "DIALOGUE_DIRECT" },
   "dice-roll":        { source: "DICE_ROLL",        method: "DEMONSTRATION" },
-  "system":           { source: "SYSTEM",           method: "DEDUCTION_CONFIRMEE" }
+  "system":           { source: "SYSTEM",           method: "DEDUCTION_CONFIRMEE" },
+  // #22: the human confirmed it outside the fiction. AVEU is the honest method —
+  // somebody stated it plainly — and the source says who, so the escape hatch is
+  // audited rather than locked.
+  "out-of-band":      { source: "OUT_OF_BAND",      method: "AVEU" }
 };
 
 export function buildObservation(

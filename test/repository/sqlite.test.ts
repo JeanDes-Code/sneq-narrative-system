@@ -353,9 +353,6 @@ describe("SqliteRepository · v3 → v5 data migration (#17 #18 #23)", () => {
     expect(events[0]!.acts[0]!.verb).toBe("LEGACY_CANON");
     expect(events[0]!.acts[0]!.sets?.key).toBe("metier");
 
-    const facts = await repo.getFigedAttributes(cid, asEntityID("e1"));
-    expect("fiabilite" in (facts[0]!.observation as unknown as Record<string, unknown>)).toBe(false);
-
     const findings = await repo.listMigrationFindings(cid);
     expect(findings).toHaveLength(1);
     expect(findings[0]!.kind).toBe("TYPE_MISMATCH_WITH_CANON");

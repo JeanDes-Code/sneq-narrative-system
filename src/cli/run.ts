@@ -2,7 +2,10 @@ import type { Engine } from "../engine.js";
 import type { ParsedInvocation } from "./types.js";
 import { CliError, formatError } from "./errors.js";
 import { helpText } from "./help.js";
-import { asCampaignId } from "../domain/ids.js";
+import { asCampaignId, asHolderId, asEntityID } from "../domain/ids.js";
+import type { EntityID, HolderId } from "../domain/ids.js";
+import type { Holder } from "../domain/holder.js";
+import type { DispatchPolicy } from "../domain/carriage.js";
 import { dispatchToolCall } from "../tools/dispatcher.js";
 import { buildObservation } from "./observation.js";
 
@@ -102,9 +105,22 @@ async function dispatch(inv: ParsedInvocation, deps: FullRunDeps): Promise<numbe
       return 0;
     }
     case "prepare-turn": {
+      // #21: holderless is the wake-up probe and returns the frame only. No
+      // holder knowledge means no way to read the world sideways through it.
       const campaign = deps.engine.campaign(campaignId);
-      const result = await campaign.prepareTurn();
+      const result = await campaign.prepareTurn(holderSelector(inv, false));
       deps.stdout.write(JSON.stringify(result) + "\n");
+      return 0;
+    }
+    case "get-holder-context": {
+      const selector = holderSelector(inv, true);
+      const campaign = deps.engine.campaign(campaignId);
+      const ctx = await campaign.getHolderContext({
+        ...selector,
+        ...(args["about"] !== undefined ? { about: args["about"] as EntityID } : {}),
+        ...(args["topK"] !== undefined ? { topK: Number(args["topK"]) } : {})
+      });
+      deps.stdout.write(JSON.stringify(ctx) + "\n");
       return 0;
     }
     case "validate-narration": {
@@ -115,17 +131,71 @@ async function dispatch(inv: ParsedInvocation, deps: FullRunDeps): Promise<numbe
       }
       const type = argsObj["type"] as import("../domain/entity.js").EntityType | undefined;
       const strict = argsObj["strict"] === true;
+      const holderId = inv.holder ?? (argsObj["holderId"] as string | undefined);
       const campaign = deps.engine.campaign(campaignId);
       const report = await campaign.validateNarration({
         narration,
         ...(type !== undefined ? { type } : {}),
-        ...(strict ? { strict: true } : {})
+        ...(strict ? { strict: true } : {}),
+        ...(holderId !== undefined ? { holderId: asHolderId(holderId) } : {})
       });
       deps.stdout.write(JSON.stringify(report) + "\n");
+      // A BLOCK is always exit 1: it is not advisory, whatever --args said.
+      if (report.verdict === "BLOCK") return 1;
       return strict && !report.ok ? 1 : 0;
     }
+    case "upsert-holder": {
+      // Special-cased rather than an eleventh tool (§5.3): holder authoring is a
+      // host/setup concern, not a narration-loop one, and in-play creation
+      // already rides commit_narrative's holders[].
+      const holder = (await assembleToolArgs(inv, deps, args)) as unknown as Holder;
+      if (holder?.kind !== "GROUP" && holder?.kind !== "INDIVIDUAL") {
+        throw new CliError("INVALID_ARGS",
+          `upsert-holder requires a holder object with kind "GROUP" or "INDIVIDUAL" via --args or stdin`);
+      }
+      const campaign = deps.engine.campaign(campaignId);
+      await campaign.upsertHolder(holder);
+      deps.stdout.write(JSON.stringify({ holderId: holder.holderId, kind: holder.kind }) + "\n");
+      return 0;
+    }
+    case "show-dispatch-policy": {
+      const campaign = deps.engine.campaign(campaignId);
+      const policy = await campaign.getDispatchPolicy();
+      deps.stdout.write(JSON.stringify(policy) + "\n");
+      return 0;
+    }
+    case "set-dispatch-policy": {
+      const patch = (await assembleToolArgs(inv, deps, args)) as { routes?: unknown[]; rules?: unknown[] };
+      if (!Array.isArray(patch.routes) && !Array.isArray(patch.rules)) {
+        throw new CliError("INVALID_ARGS",
+          "set-dispatch-policy requires args.routes and/or args.rules (arrays). Both are additive: they accrete, they never replace.");
+      }
+      const campaign = deps.engine.campaign(campaignId);
+      const merged = await campaign.setDispatchPolicy(patch as Partial<DispatchPolicy>);
+      deps.stdout.write(JSON.stringify(merged) + "\n");
+      return 0;
+    }
+    case "doctor": {
+      const campaign = deps.engine.campaign(campaignId);
+      const report = await campaign.doctor();
+      deps.stdout.write(JSON.stringify(report) + "\n");
+      // Exit 1 on FAIL so a CI step or a wrapper script can gate on it; a WARN
+      // is worth reading, not worth failing a build over.
+      return report.status === "FAIL" ? 1 : 0;
+    }
+    case "advance-turn": {
+      const campaign = deps.engine.campaign(campaignId);
+      const merged = await assembleToolArgs(inv, deps, args);
+      const days = inv.days ?? (merged["days"] !== undefined ? Number(merged["days"]) : undefined);
+      const result = await campaign.advanceTurn({
+        ...(merged["summary"] !== undefined ? { summary: String(merged["summary"]) } : {}),
+        ...(days !== undefined ? { days } : {})
+      });
+      deps.stdout.write(JSON.stringify(result) + "\n");
+      return 0;
+    }
     default: {
-      // 9 tool commands: kebab-case → sneq__snake_case
+      // The remaining tool commands: kebab-case → sneq__snake_case
       const toolName = `sneq__${inv.command.replaceAll("-", "_")}`;
       const finalArgs = await assembleToolArgs(inv, deps, args);
       const campaign = deps.engine.campaign(campaignId);
@@ -134,6 +204,28 @@ async function dispatch(inv: ParsedInvocation, deps: FullRunDeps): Promise<numbe
       return 0;
     }
   }
+}
+
+/**
+ * `--holder` / `--entity`, at most one. When `required`, absence is an error;
+ * on `prepare-turn` absence is the wake-up probe and returns the frame alone.
+ */
+function holderSelector(
+  inv: ParsedInvocation,
+  required: boolean
+): { holderId?: HolderId; entityId?: EntityID } {
+  if (inv.holder !== undefined && inv.entity !== undefined) {
+    throw new CliError("INVALID_ARGS",
+      "pass --holder or --entity, not both: --holder reads a holder directly, --entity runs the resolution cascade");
+  }
+  if (inv.holder !== undefined) return { holderId: asHolderId(inv.holder) };
+  if (inv.entity !== undefined) return { entityId: asEntityID(inv.entity) };
+  if (required) {
+    throw new CliError("INVALID_ARGS",
+      "this read is always somebody's: pass --holder <holderId> or --entity <entityId>. " +
+      "There is no way to ask what is true.");
+  }
+  return {};
 }
 
 async function assembleToolArgs(
@@ -148,13 +240,20 @@ async function assembleToolArgs(
       merged = { ...(fromStdin as Record<string, unknown>) };
     }
   }
-  if (inv.command === "register-fact" && merged["observation"] === undefined) {
+  // The provenance presets survive the rename (§5.3): `--source` used to be
+  // wired only to the now-deleted `register-fact`, so Hermes/Leeloo's live-play
+  // flag would have died silently with it. Every record in the bundle that did
+  // not bring its own observation gets the preset's.
+  if (inv.command === "commit-narrative" && (inv.source !== undefined || inv.observationOverride !== undefined)) {
     const sceneId = await currentSceneId(deps, campaignIdFromInv(inv));
-    merged["observation"] = buildObservation(
-      inv.source,
-      inv.observationOverride,
-      sceneId
-    );
+    const observation = buildObservation(inv.source, inv.observationOverride, sceneId);
+    const records = merged["records"];
+    if (Array.isArray(records)) {
+      merged["records"] = records.map(r => {
+        const row = r as Record<string, unknown>;
+        return row["observation"] === undefined ? { ...row, observation } : row;
+      });
+    }
   }
   return merged;
 }

@@ -28,8 +28,8 @@ describe("parseArgv", () => {
   });
 
   it("treats `<cmd> --help` as help for that command", () => {
-    const r = parseArgv(["register-fact", "--help"]);
-    expect(r.command).toBe("register-fact");
+    const r = parseArgv(["commit-narrative", "--help"]);
+    expect(r.command).toBe("commit-narrative");
     expect(r.help).toBe(true);
   });
 

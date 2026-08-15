@@ -4,6 +4,5 @@ export {
   decideAdvanceTurn,
   decideConfirmEntityMatch,
   decideCreateEntity,
-  decideRegisterFact,
   decideSetScene,
 } from "./decisions.js";

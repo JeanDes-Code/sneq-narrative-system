@@ -3,11 +3,12 @@ import type { Observation } from "../domain/observation.js";
 import { CliError } from "./errors.js";
 
 const SOURCE_PRESETS: ReadonlySet<SourcePreset> = new Set([
-  "gm-narration", "player-utterance", "dice-roll", "system"
+  "gm-narration", "player-utterance", "dice-roll", "system", "out-of-band"
 ]);
 
 const FLAGS_WITH_VALUE = new Set([
-  "--db", "--campaign", "--config", "--source", "--observation", "--args", "--embedding-dim"
+  "--db", "--campaign", "--config", "--source", "--observation", "--args", "--embedding-dim",
+  "--holder", "--entity", "--days"
 ]);
 
 export function parseArgv(argv: string[]): ParsedInvocation {
@@ -21,6 +22,9 @@ export function parseArgv(argv: string[]): ParsedInvocation {
   let argsInline: unknown | undefined;
   let help = false;
   let embeddingDim: number | undefined;
+  let holder: string | undefined;
+  let entity: string | undefined;
+  let days: number | undefined;
 
   let i = 0;
 
@@ -67,6 +71,16 @@ export function parseArgv(argv: string[]): ParsedInvocation {
         break;
       case "--observation": observationOverride = parseJsonFlag("--observation", next) as Partial<Observation> | undefined; break;
       case "--args": argsInline = parseJsonFlag("--args", next); break;
+      case "--holder": holder = next; break;
+      case "--entity": entity = next; break;
+      case "--days": {
+        const parsed = Number(next);
+        if (!Number.isInteger(parsed) || parsed < 0) {
+          throw new CliError("INVALID_ARGS", `--days must be a non-negative integer, got: ${next}`);
+        }
+        days = parsed;
+        break;
+      }
       case "--embedding-dim": {
         const parsed = Number(next);
         if (!Number.isInteger(parsed) || parsed < 0) {
@@ -93,7 +107,10 @@ export function parseArgv(argv: string[]): ParsedInvocation {
     observationOverride,
     argsInline,
     help,
-    embeddingDim
+    embeddingDim,
+    holder,
+    entity,
+    days
   };
 }
 

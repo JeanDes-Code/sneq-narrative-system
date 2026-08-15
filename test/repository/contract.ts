@@ -1,10 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import type { Repository } from "../../src/repository/interface.js";
 import type { Entity } from "../../src/domain/entity.js";
-import type { AttributFige } from "../../src/domain/attribute.js";
-import type { Observation } from "../../src/domain/observation.js";
-import type { CampaignId } from "../../src/domain/ids.js";
-import { asCampaignId, asEntityID, asFactId, asSceneId } from "../../src/domain/ids.js";
+import { asCampaignId, asEntityID, asSceneId } from "../../src/domain/ids.js";
 
 export const DIM = 4;
 const cid = asCampaignId("c1");
@@ -14,17 +11,6 @@ function entity(id: string, over: Partial<Entity> = {}): Entity {
     campaignId: cid, id: asEntityID(id), type: "PERSONNAGE", name: id,
     nomConnu: true, aliases: [], tags: [], createdAt: 0,
     embedding: null, embeddingRefreshedAt: null, ...over
-  };
-}
-
-const obs: Observation = {
-  source: "GM_NARRATION", method: "DIALOGUE_DIRECT", timestamp: 0
-};
-
-function fact(eid: string, key: string, value: string, turn = 1): AttributFige & { campaignId: CampaignId } {
-  return {
-    campaignId: cid, factId: asFactId(`f_${eid}_${key}_${turn}`), entityId: asEntityID(eid),
-    key, value: { type: "STRING", value }, category: "HISTORIQUE", observation: obs, turn
   };
 }
 
@@ -68,14 +54,12 @@ export function repositoryContract(name: string, makeRepo: () => Repository | Pr
 
     it("deleteCampaign purges entities, facts, scenes and turns", async () => {
       await repo.upsertEntity(entity("e1"));
-      await repo.appendFact(fact("e1", "metier", "forgeron"));
       await repo.upsertScene({ campaignId: cid, id: asSceneId("s1"), locationId: asEntityID("e1"), presentEntityIds: [], description: "d", createdAtTurn: 1 });
       await repo.appendTurn({ campaignId: cid, turnNumber: 1, summary: null, sceneId: asSceneId("s1"), createdAt: 0 });
       await repo.deleteCampaign(cid);
       expect(await repo.listCampaigns()).toEqual([]);
       await repo.createCampaign({ id: cid, name: "Contract", createdAt: 0, embeddingDim: DIM });
       expect(await repo.getEntity(cid, asEntityID("e1"))).toBeNull();
-      expect(await repo.getFigedAttributes(cid, asEntityID("e1"))).toEqual([]);
       expect(await repo.currentScene(cid)).toBeNull();
       expect(await repo.latestTurn(cid)).toBeNull();
     });
@@ -85,7 +69,6 @@ export function repositoryContract(name: string, makeRepo: () => Repository | Pr
       const missing = /campaign "c1" not found/i;
 
       await expect(repo.upsertEntity(entity("orphan"))).rejects.toThrow(missing);
-      await expect(repo.appendFact(fact("orphan", "role", "ghost"))).rejects.toThrow(missing);
       await expect(repo.upsertPotentialite(cid, {
         entiteId: asEntityID("orphan"),
         attribut: "role",
@@ -212,23 +195,47 @@ export function repositoryContract(name: string, makeRepo: () => Repository | Pr
       expect(await repo.searchEntitiesByVector(cid, q, { topK: 1 })).toHaveLength(1);
     });
 
+    // §14.5 — the dimension used to be chosen at campaign creation and then
+    // immutable, with no reindex path in the contract at all. That is very
+    // likely why 4/4 consumers picked 0.
+    it("setEmbeddingDim moves the campaign and clears vectors; reindexEmbeddings refills them", async () => {
+      await repo.upsertEntity(entity("e1", { embedding: new Float32Array([1, 0, 0, 0]), embeddingRefreshedAt: 1 }));
+
+      await repo.setEmbeddingDim(cid, DIM + 2);
+      expect((await repo.listCampaigns())[0]!.embeddingDim).toBe(DIM + 2);
+      // Cleared, not converted: a vector of the old dimension is unreadable at
+      // the new one, and keeping it would rank on noise.
+      expect((await repo.getEntity(cid, asEntityID("e1")))!.embedding).toBeNull();
+      expect(await repo.searchEntitiesByVector(cid, new Float32Array(DIM + 2), { topK: 5 })).toEqual([]);
+
+      await repo.reindexEmbeddings(cid, [
+        { entityId: asEntityID("e1"), vector: new Float32Array([1, 0, 0, 0, 0, 0]) }
+      ]);
+      const hits = await repo.searchEntitiesByVector(cid, new Float32Array([1, 0, 0, 0, 0, 0]), { topK: 5 });
+      expect(hits.map(h => String(h.entity.id))).toEqual(["e1"]);
+    });
+
+    it("reindexEmbeddings rejects a vector of the wrong dimension, naming the migration", async () => {
+      await repo.upsertEntity(entity("e1"));
+      await expect(repo.reindexEmbeddings(cid, [
+        { entityId: asEntityID("e1"), vector: new Float32Array(DIM + 1) }
+      ])).rejects.toThrow(/setEmbeddingDim/);
+    });
+
+    it("reindexEmbeddings skips an entity that no longer exists rather than failing the batch", async () => {
+      await repo.upsertEntity(entity("e1"));
+      await expect(repo.reindexEmbeddings(cid, [
+        { entityId: asEntityID("gone"), vector: new Float32Array(DIM) },
+        { entityId: asEntityID("e1"),   vector: new Float32Array([1, 0, 0, 0]) }
+      ])).resolves.toBeUndefined();
+      expect((await repo.getEntity(cid, asEntityID("e1")))!.embedding).not.toBeNull();
+    });
+
     it("topEntities orders by embeddingRefreshedAt desc and limits", async () => {
       await repo.upsertEntity(entity("a", { embeddingRefreshedAt: 100 }));
       await repo.upsertEntity(entity("b", { embeddingRefreshedAt: 300 }));
       await repo.upsertEntity(entity("c", { embeddingRefreshedAt: 200 }));
       expect((await repo.topEntities(cid, 2)).map(e => String(e.id))).toEqual(["b", "c"]);
-    });
-
-    it("facts: replace-on-same-key, query filters", async () => {
-      await repo.appendFact(fact("e1", "metier", "forgeron", 1));
-      await repo.appendFact(fact("e1", "metier", "capitaine", 2));
-      await repo.appendFact(fact("e1", "ville", "Valmure", 3));
-      const all = await repo.getFigedAttributes(cid, asEntityID("e1"));
-      expect(all).toHaveLength(2);
-      expect(all.find(f => f.key === "metier")?.value).toEqual({ type: "STRING", value: "capitaine" });
-      expect(await repo.queryFacts(cid, { attributeKey: "ville" })).toHaveLength(1);
-      expect(await repo.queryFacts(cid, { entityId: asEntityID("e1"), minTurn: 3 })).toHaveLength(1);
-      expect(await repo.queryFacts(cid, { category: "HISTORIQUE", maxTurn: 2 })).toHaveLength(1);
     });
 
     it("potentialites: upsert / get / remove", async () => {
@@ -268,11 +275,9 @@ export function repositoryContract(name: string, makeRepo: () => Repository | Pr
       expect(await repo.getEntity(cid, asEntityID("kept"))).not.toBeNull();
       await expect(repo.transaction(async tx => {
         await tx.upsertEntity(entity("ghost"));
-        await tx.appendFact(fact("ghost", "k", "v"));
         throw new Error("boom");
       })).rejects.toThrow("boom");
       expect(await repo.getEntity(cid, asEntityID("ghost"))).toBeNull();
-      expect(await repo.getFigedAttributes(cid, asEntityID("ghost"))).toEqual([]);
     });
   });
 }

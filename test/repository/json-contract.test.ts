@@ -126,8 +126,6 @@ describe("JsonFileRepository · v1 data migration (#17 #18 #23)", () => {
     const events = await repo.getEvents(c1);
     expect(events).toHaveLength(1);
     expect(events[0]!.acts[0]!.verb).toBe("LEGACY_CANON");
-    const facts = await repo.getFigedAttributes(c1, asEntityID("e1"));
-    expect("fiabilite" in (facts[0]!.observation as unknown as Record<string, unknown>)).toBe(false);
     expect((await repo.listMigrationFindings(c1)).map(f => f.kind)).toEqual(["TYPE_MISMATCH_WITH_CANON"]);
     await repo.close();
   });

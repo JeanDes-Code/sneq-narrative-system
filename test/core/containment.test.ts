@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   surfaceTokensOf, validateSuppliedTokens, forbiddenTokensFor,
-  checkContainment, assertContainment, type TokenWorld
+  checkContainment, assertContainment, PUBLIC_TAG, type TokenWorld
 } from "../../src/core/containment.js";
 import { SneqContainmentError } from "../../src/errors.js";
 import type { NarrativeEvent } from "../../src/domain/event.js";
@@ -120,5 +120,94 @@ describe("containment (§7.3): the toll-keeper test", () => {
       expect((e as SneqContainmentError).present).toEqual(["gourdin"]);
       expect((e as SneqContainmentError).forbidden.length).toBeGreaterThan(0);
     }
+  });
+});
+
+/**
+ * The floor forbids the NAMES of an unlearned event's place, participants and
+ * objects. That is right for people and secrets and wrong for landmarks: a
+ * tavern that appears in one secret meeting becomes unmentionable to the whole
+ * town, and the host's own scene description stops passing its own pre-flight
+ * check. `public` is the authored, per-entity exemption.
+ */
+describe("the public-token exemption", () => {
+  const publicWorld: TokenWorld = {
+    events: [tollEvent],
+    records: [verdict],
+    entities: entities.map(e =>
+      e.id === "place-valmure" ? { ...e, tags: [PUBLIC_TAG] } : e)
+  };
+
+  it("a place name everybody knows stops being withheld", () => {
+    expect(forbiddenTokensFor(world, [])).toContain("valmure");
+    expect(forbiddenTokensFor(publicWorld, [])).not.toContain("valmure");
+  });
+
+  it("exempts the entity's aliases too, not only its canonical name", () => {
+    const withAliases: TokenWorld = {
+      ...world,
+      entities: entities.map(e =>
+        e.id === "gabelou" ? { ...e, tags: [PUBLIC_TAG] } : e)
+    };
+    const forbidden = forbiddenTokensFor(withAliases, []);
+    expect(forbidden).not.toContain("maître orin");
+    expect(forbidden).not.toContain("le péager");
+  });
+
+  // The exemption is about identity, not about what happened. A public place
+  // does not make the secret that happened there public.
+  it("does NOT exempt what happened there", () => {
+    const forbidden = forbiddenTokensFor(publicWorld, []);
+    expect(forbidden).toContain("gourdin");
+    expect(forbidden).toContain("la gabelle");
+    expect(forbidden).toContain("quatre jours de geôle");
+  });
+
+  it("an untagged entity is unaffected — the exemption is opt-in, never a default", () => {
+    expect(forbiddenTokensFor(publicWorld, [])).toContain("jehan");
+  });
+
+  /**
+   * The exemption matches identity, not strings. A secret whose textual value
+   * happens to spell a public entity's name is still a secret — freeing the
+   * name by string match would hand the secret over with it.
+   *
+   * Concretely: declare the faction "Les Corbeaux" public, and a holder who
+   * merely knows Selin must still not be able to be told that Selin serves
+   * them, because the allegiance record was never learned.
+   */
+  it("does NOT free a secret whose declared value spells a public entity's name", () => {
+    const allegiance: OfficialRecord = {
+      recordId: asRecordId("r-allegiance"), campaignId: cid,
+      entityId: asEntityID("actor"), key: "allegeance",
+      value: { type: "STRING", value: "Les Corbeaux" }, category: "SECRET",
+      authoredBy: asEntityID("gabelou"), route: "OFFICIAL",
+      observation: { source: "SYSTEM", method: "DOCUMENT", timestamp: 0 },
+      day: 1, turn: 1, surfaceTokens: []
+    };
+    const factionWorld: TokenWorld = {
+      events: [], records: [allegiance],
+      entities: [
+        ...entities,
+        { id: asEntityID("faction"), name: "Les Corbeaux", aliases: [], tags: [PUBLIC_TAG] }
+      ]
+    };
+    expect(forbiddenTokensFor(factionWorld, [])).toContain("les corbeaux");
+  });
+
+  it("still frees the same name when no unlearned subject declares it", () => {
+    const factionWorld: TokenWorld = {
+      events: [], records: [],
+      entities: [{ id: asEntityID("faction"), name: "Les Corbeaux", aliases: [], tags: [PUBLIC_TAG] }]
+    };
+    expect(forbiddenTokensFor(factionWorld, [])).not.toContain("les corbeaux");
+  });
+
+  it("the host's own scene description passes once the place is public", () => {
+    const sceneDescription = "Vous êtes à Valmure, sous une pluie fine.";
+    expect(() => assertContainment(world, [], asHolderId("h"), sceneDescription))
+      .toThrow(SneqContainmentError);
+    expect(() => assertContainment(publicWorld, [], asHolderId("h"), sceneDescription))
+      .not.toThrow();
   });
 });

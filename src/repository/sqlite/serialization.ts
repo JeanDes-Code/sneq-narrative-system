@@ -1,5 +1,4 @@
 import type { Entity } from "../../domain/entity.js";
-import type { AttributFige } from "../../domain/attribute.js";
 import type { Potentialite } from "../../domain/potentialite.js";
 import type { AreteGCN, NoeudGCN } from "../../domain/gcn.js";
 import type { CampaignId } from "../../domain/ids.js";
@@ -53,42 +52,6 @@ export function rowToEntity(row: EntityRow, embeddingBuf: Buffer | null): Entity
     createdAt: row.created_at,
     embeddingRefreshedAt: row.embedding_refreshed_at,
     embedding
-  };
-}
-
-export interface FigedRow {
-  campaign_id: string;
-  entity_id: string;
-  attribute_key: string;
-  fact_id: string;
-  value: string;
-  category: string;
-  observation: string;
-  turn: number;
-}
-
-export function figedToRow(f: AttributFige & { campaignId: CampaignId }): FigedRow {
-  return {
-    campaign_id: f.campaignId,
-    entity_id: f.entityId,
-    attribute_key: f.key,
-    fact_id: f.factId,
-    value: JSON.stringify(f.value),
-    category: f.category,
-    observation: JSON.stringify(f.observation),
-    turn: f.turn
-  };
-}
-
-export function rowToFiged(row: FigedRow): AttributFige {
-  return {
-    factId: asFactId(row.fact_id),
-    entityId: asEntityID(row.entity_id),
-    key: row.attribute_key,
-    value: JSON.parse(row.value) as AttributFige["value"],
-    category: row.category as AttributFige["category"],
-    observation: JSON.parse(row.observation) as AttributFige["observation"],
-    turn: row.turn
   };
 }
 

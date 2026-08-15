@@ -48,7 +48,7 @@ export class Engine {
 
   private readonly embedder: Embedder | null;
 
-  constructor(cfg: EngineConfig) {
+  constructor(private readonly cfg: EngineConfig) {
     this.repo = cfg.repository;
     this.router = cfg.routerInstance ?? new Router(cfg.router, cfg._routerDeps ?? createDefaultDeps());
     if (cfg.writeStrategy) {
@@ -102,7 +102,9 @@ export class Engine {
       writeStrategy: this.writes, embedder: this.embedder,
       userPrompt: this.userPrompt, preGen: this.preGen,
       narrationGate: this.narrationGate, logger: this.logger,
-      lifecycle
+      lifecycle,
+      ...(this.cfg.maxDispatchFanout !== undefined ? { maxDispatchFanout: this.cfg.maxDispatchFanout } : {}),
+      ...(this.cfg.salienceWeights !== undefined ? { salienceWeights: this.cfg.salienceWeights } : {})
     });
     this.contexts.set(id, { context, lifecycle });
     return context;

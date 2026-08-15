@@ -35,7 +35,6 @@ const routerDeps = { resolveProvider: () => provider };
 
 function injectedStrategy(): AtomicWriteStrategy {
   return {
-    registerFact: vi.fn(async () => ({ factId: null, contradictions: [] })),
     addConstraint: vi.fn(async (command) => ({ constraintId: command.constraintId })),
     createEntity: vi.fn(async (command) => ({
       status: "created" as const,
@@ -118,13 +117,13 @@ describe("atomic write strategy selection", () => {
       preGen: new PreGenerationRegistry(),
       narrationGate: new NarrationGateRegistry({
         async validate() {
-          return { ok: true, extractedNames: [], issues: [] };
+          return { ok: true, verdict: "PASS" as const, extractedNames: [], issues: [] };
         },
       }),
       logger: noopLogger,
     });
 
-    await expect(campaign.advanceTurn("one")).resolves.toEqual({ turnNumber: 1 });
+    await expect(campaign.advanceTurn({ summary: "one" })).resolves.toMatchObject({ turnNumber: 1, worldDay: 0 });
     expect(await repository.latestTurn(campaignId)).toMatchObject({ turnNumber: 1, summary: "one" });
   });
 
@@ -257,6 +256,7 @@ describe("atomic write strategy selection", () => {
         attributeKey: "loyalty",
         rule: { type: "REGEX", pattern: "duke" },
         justification: "a",
+        role: { role: "REGLE_MONDE", ruleId: "ra" },
         createdAt: 1,
       }),
       strategy.addConstraint({
@@ -267,6 +267,7 @@ describe("atomic write strategy selection", () => {
         attributeKey: "loyalty",
         rule: { type: "REGEX", pattern: "king" },
         justification: "b",
+        role: { role: "REGLE_MONDE", ruleId: "rb" },
         createdAt: 2,
       }),
     ]);
@@ -309,40 +310,25 @@ describe("atomic write strategy selection", () => {
     const campaign = await engine.createCampaign({ id: campaignId, name: "Atomic", embeddingDim: 0 });
     const entityId = asEntityID("e1");
 
-    await campaign.registerFact({
-      entityId,
-      attributeKey: "role",
-      value: { type: "STRING", value: "allié" },
-      category: "SOCIAL",
-      observation: {
-        source: "GM_NARRATION",
-        method: "DIALOGUE_DIRECT",
-        timestamp: 0,
-      },
-    });
     await campaign.addConstraint({
       entityId,
       attributeKey: "loyalty",
       rule: { type: "REGEX", pattern: "duke|king" },
       justification: "politics",
+      role: { role: "REGLE_MONDE", ruleId: "r1" },
     });
     await campaign.setScene({
       locationEntityId: entityId,
       presentEntityIds: [],
       description: "La forge",
     });
-    await campaign.advanceTurn("suite");
+    await campaign.advanceTurn({ summary: "suite" });
     await campaign.confirmEntityMatch({
       mention: "the captain",
       entityId,
       type: "PERSONNAGE",
     });
 
-    expect(strategy.registerFact).toHaveBeenCalledWith(expect.objectContaining({
-      campaignId,
-      entityId,
-      attributeKey: "role",
-    }));
     expect(strategy.addConstraint).toHaveBeenCalledWith(expect.objectContaining({
       campaignId,
       entityId,
@@ -367,7 +353,6 @@ describe("atomic write strategy selection", () => {
     }));
 
     for (const method of [
-      strategy.registerFact,
       strategy.addConstraint,
       strategy.setScene,
       strategy.advanceTurn,

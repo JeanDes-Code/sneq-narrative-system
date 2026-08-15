@@ -2,7 +2,10 @@ import { mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { InMemoryRepository, emptyMemoryState, type MemoryState } from "../memory/index.js";
 import { migrateLegacyCampaign } from "../../core/migrate-legacy.js";
+import { bootstrapPlan } from "../../atomic/bootstrap.js";
 import { asCampaignId } from "../../domain/ids.js";
+import type { CampaignId } from "../../domain/ids.js";
+import type { LegacyFact } from "../../domain/migration.js";
 
 export interface JsonFileRepositoryOptions {
   /** Path of the JSON store (created on first write; parent dirs created). */
@@ -50,8 +53,15 @@ export function jsonFileRepository(opts: JsonFileRepositoryOptions): JsonFileRep
   return new JsonFileRepository(opts);
 }
 
-/** v2 adds the 0.5.0 ledger collections; a v1 file loads with an empty ledger. */
+/**
+ * v2 adds the 0.5.0 ledger collections and drops `facts`: `AttributFige` is a
+ * clean break at 0.5.0 (§2.6, no alias), so a v1 file's fact store is read once
+ * by the migration and never written again.
+ */
 interface PersistedShape { version: 1 | 2; dim: number | null; state: MemoryState; }
+
+/** The v1 fact store, as it still sits in an old file on disk. */
+type LegacyFactStore = Map<string, Map<string, LegacyFact & { campaignId: CampaignId }>>;
 
 function encode(state: MemoryState, dim: number | null): string {
   return JSON.stringify({ version: 2, dim, state }, (_k, v: unknown) => {
@@ -81,8 +91,10 @@ function tryLoad(path: string): { dim: number | null; state: MemoryState } | nul
   if (parsed.version !== 1 && parsed.version !== 2) {
     throw new Error(`unsupported sneq json store version: ${String((parsed as { version: unknown }).version)} (this build reads versions 1-2)`);
   }
+  const legacyFacts = (parsed.state as unknown as { facts?: LegacyFactStore }).facts;
   const state: MemoryState = { ...emptyMemoryState(), ...parsed.state };
-  if (parsed.version === 1) migrateV1State(state);
+  delete (state as unknown as { facts?: unknown }).facts;
+  if (parsed.version === 1) migrateV1State(state, legacyFacts);
   return { dim: parsed.dim, state };
 }
 
@@ -90,24 +102,37 @@ function tryLoad(path: string): { dim: number | null; state: MemoryState } | nul
  * The migration epoch for v1 files (§4, #17 #18 #23) — same pure core as the
  * SQLite v5 data step, so the two adapters cannot drift.
  */
-function migrateV1State(state: MemoryState): void {
+function migrateV1State(state: MemoryState, legacyFacts?: LegacyFactStore): void {
   for (const campaignId of state.campaigns.keys()) {
     const cid = asCampaignId(campaignId);
-    const factsMap = state.facts.get(campaignId);
+    const factsMap = legacyFacts?.get(campaignId);
     const potMap = state.potentialites.get(campaignId);
     const out = migrateLegacyCampaign({
       campaignId: cid,
       facts: [...(factsMap?.values() ?? [])],
       potentialites: [...(potMap?.values() ?? [])]
     });
-    if (factsMap) {
-      for (const f of out.cleanedFacts) factsMap.set(`${f.entityId}|${f.key}`, f);
-    }
+    // `cleanedFacts` (#18) is not written back: the LEGACY_FACT canonical rows
+    // below already carry the cleaned observation, and the v1 fact store has no
+    // reader left.
     const canon = new Map(out.canonicalAttributes.map(r => [`${r.entityId}|${r.key}`, r] as const));
     if (canon.size > 0) state.canonicalAttributes.set(campaignId, canon);
     if (out.legacyEvents.length > 0) {
       state.events.set(campaignId, new Map(out.legacyEvents.map(e => [String(e.eventId), e] as const)));
     }
     if (out.findings.length > 0) state.migrationFindings.set(campaignId, out.findings);
+
+    // Same reason as the SQLite path: a migrated campaign with no default group
+    // has no floor to the holder cascade, so nobody can hold anything.
+    const plan = bootstrapPlan(cid, 0);
+    const entities = state.entities.get(campaignId) ?? new Map();
+    if (!entities.has(plan.realmEntity.id)) {
+      entities.set(plan.realmEntity.id, plan.realmEntity);
+      state.entities.set(campaignId, entities);
+      const holders = state.holders.get(campaignId) ?? new Map();
+      holders.set(String(plan.defaultGroup.holderId), plan.defaultGroup);
+      state.holders.set(campaignId, holders);
+      state.dispatchPolicies.set(campaignId, plan.policy);
+    }
   }
 }

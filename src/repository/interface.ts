@@ -1,5 +1,5 @@
 import type { Entity } from "../domain/entity.js";
-import type { AttributFige, CanonicalAttribute } from "../domain/attribute.js";
+import type { CanonicalAttribute } from "../domain/attribute.js";
 import type { MigrationFinding } from "../domain/migration.js";
 import type { Potentialite } from "../domain/potentialite.js";
 import type { AreteGCN, NoeudGCN } from "../domain/gcn.js";
@@ -10,17 +10,9 @@ import type { OfficialRecord } from "../domain/record.js";
 import type { Holder } from "../domain/holder.js";
 import type { Carriage, CarriageEffect, DispatchPolicy } from "../domain/carriage.js";
 import type { ProvisionalInvention, InventionTransition, InventionStatus } from "../domain/invention.js";
-import type { CampaignId, CarriageId, EntityID, FactId, InventionId } from "../domain/ids.js";
+import type { CampaignId, CarriageId, EntityID, InventionId } from "../domain/ids.js";
 
 export interface EntityWithScore { entity: Entity; score: number; }
-
-export interface FactQuery {
-  entityId?: EntityID;
-  attributeKey?: string;
-  category?: import("../domain/attribute.js").CategorieAttribut;
-  minTurn?: number;
-  maxTurn?: number;
-}
 
 export interface VectorSearchOpts {
   topK: number;
@@ -61,11 +53,6 @@ export interface Repository {
   searchEntitiesByVector(campaignId: CampaignId, vec: Float32Array, opts: VectorSearchOpts): Promise<EntityWithScore[]>;
   /** Return up to `k` entities for the campaign, ordered by `embeddingRefreshedAt` descending. */
   topEntities(campaignId: CampaignId, k: number): Promise<Entity[]>;
-
-  // Facts (RC)
-  appendFact(f: AttributFige & { campaignId: CampaignId }): Promise<{ factId: FactId }>;
-  getFigedAttributes(campaignId: CampaignId, entityId: EntityID): Promise<AttributFige[]>;
-  queryFacts(campaignId: CampaignId, query: FactQuery): Promise<AttributFige[]>;
 
   // Potentialities
   upsertPotentialite(campaignId: CampaignId, p: Potentialite): Promise<void>;
@@ -121,6 +108,20 @@ export interface Repository {
   // Dispatch policy home (#15) — campaign state; empty until authored.
   getDispatchPolicy(campaignId: CampaignId): Promise<DispatchPolicy>;
   setDispatchPolicy(campaignId: CampaignId, p: DispatchPolicy): Promise<void>;
+
+  // Embedding dimension migration (§14.5). `embeddingDim` used to be chosen at
+  // campaign creation and then immutable, with no reindex path anywhere in the
+  // contract — so `0` (no vectors) was the only choice that committed to
+  // nothing, which is what 4/4 consumers picked. These two make moving between
+  // rungs a supported migration instead of "start a new campaign".
+  //
+  // Call order matters: `setEmbeddingDim` first (it clears every stored vector,
+  // because a vector of the old dimension is unreadable at the new one), then
+  // `reindexEmbeddings` with freshly computed vectors. Doing only the first
+  // leaves a campaign that resolves by alias alone until the reindex lands —
+  // degraded, never wrong.
+  setEmbeddingDim(campaignId: CampaignId, dim: number): Promise<void>;
+  reindexEmbeddings(campaignId: CampaignId, vectors: Array<{ entityId: EntityID; vector: Float32Array }>): Promise<void>;
 
   // Transactional
   transaction<T>(fn: (tx: Repository) => Promise<T>): Promise<T>;

@@ -9,7 +9,7 @@ import type { Potentialite } from "../domain/potentialite.js";
 import type { CampaignId, CarriageId, ConstraintId, EntityID, EventId, FactId, InventionId, RecordId } from "../domain/ids.js";
 import { SneqContradictionError, SneqValidationError, type IntraCommitConflict } from "../errors.js";
 import { validateSuppliedTokens } from "./containment.js";
-import { decidePromotion } from "./promotion.js";
+import { decidePromotion, detectUptake } from "./promotion.js";
 
 export interface CommitEventInput {
   eventId: EventId;
@@ -46,6 +46,19 @@ export interface CommitNarrativeBundle {
   holders?: Holder[];
   /** Additive (#15): routes and rules accrete, they never replace. */
   policy?: Partial<DispatchPolicy>;
+  /**
+   * The player's raw text this turn (§11 phase A). The engine substring-searches
+   * it for every provisional invention's known `surfaceTokens` and adds the
+   * `PLAYER_UPTAKE` evidence itself (#25) — promotion is detected at commit
+   * time, never claimed by the model (§2.6).
+   *
+   * Uptake needs an event to point at, so this only fires when the bundle
+   * carries one: the utterance belongs on the ledger before it can promote
+   * anything. Before 0.5.0 no tool, CLI command or bundle field ever handed
+   * SNEQ this text, which is what made the model the judge of its own
+   * inventions.
+   */
+  playerUtterance?: string;
 }
 
 export interface CommitContext {
@@ -200,9 +213,25 @@ export function decideCommitNarrative(bundle: CommitNarrativeBundle, ctx: Commit
   }));
 
   // -- promotions (§2.6): the collapse loop, with quarantine (#23) ------------
+  // Engine-detected uptake first (#25, §11 phase A), then whatever evidence the
+  // caller supplied for the three kinds only the world can witness. A caller
+  // cannot fake PLAYER_UPTAKE past this: the detection re-runs here from the
+  // raw text and dedups by inventionId.
+  const detected: Array<{ inventionId: InventionId; evidence: PromotionEvidence }> = [];
+  if (bundle.playerUtterance !== undefined && event) {
+    for (const inventionId of detectUptake(bundle.playerUtterance, ctx.inventions, turn)) {
+      detected.push({ inventionId, evidence: { kind: "PLAYER_UPTAKE", eventId: event.eventId } });
+    }
+  }
+  const seenInvention = new Set<string>(detected.map(d => String(d.inventionId)));
+  const allEvidence = [
+    ...detected,
+    ...(bundle.promotionEvidence ?? []).filter(e => !seenInvention.has(String(e.inventionId)))
+  ];
+
   const transitions: InventionTransition[] = [];
   const quarantined: ConstraintId[] = [];
-  for (const { inventionId, evidence } of bundle.promotionEvidence ?? []) {
+  for (const { inventionId, evidence } of allEvidence) {
     const invention = ctx.inventions.find(i => i.inventionId === inventionId);
     if (!invention || invention.status !== "PROVISIONAL") continue;
     const constraints = ctx.potentialites

@@ -1,6 +1,7 @@
 import type { EntityID, EventId, FactId, InventionId } from "./ids.js";
 import type { Observation } from "./observation.js";
 
+
 export type AttributValue =
   | { type: "STRING";     value: string }
   | { type: "NUMBER";     value: number }
@@ -19,17 +20,6 @@ export type CategorieAttribut =
   | "SECRET"
   | "ETAT"
   | "POSSESSION";
-
-/** 0.3-era canonical fact. Dies with `register_fact` (slice 4); no alias (§2.6). */
-export interface AttributFige {
-  factId: FactId;
-  entityId: EntityID;
-  key: string;
-  value: AttributValue;
-  category: CategorieAttribut;
-  observation: Observation;
-  turn: number;
-}
 
 /** Exactly the three producers of the projection rule (#27). */
 export type CanonicalSource =

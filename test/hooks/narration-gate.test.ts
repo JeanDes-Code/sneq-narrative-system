@@ -7,12 +7,12 @@ import {
   type ValidationReport
 } from "../../src/hooks/narration-gate.js";
 
-const okReport: ValidationReport = { ok: true, extractedNames: [], issues: [] };
+const okReport: ValidationReport = { ok: true, verdict: "PASS" as const, extractedNames: [], issues: [] };
 
 function fakeHook(label: string): NarrationGateHook {
   return {
     async validate(_input, _ctx) {
-      return { ok: true, extractedNames: [label], issues: [] };
+      return { ok: true, verdict: "PASS" as const, extractedNames: [label], issues: [] };
     }
   };
 }

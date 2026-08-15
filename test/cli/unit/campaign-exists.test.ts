@@ -38,7 +38,10 @@ describe("campaign-exists CLI", () => {
         observationOverride: undefined,
         argsInline: undefined,
         help: false,
-        embeddingDim: undefined
+        embeddingDim: undefined,
+        holder: undefined,
+        entity: undefined,
+        days: undefined
       },
       { stdin: io.stdin, stdout: io.stdout, engine }
     );
@@ -60,7 +63,10 @@ describe("campaign-exists CLI", () => {
         observationOverride: undefined,
         argsInline: undefined,
         help: false,
-        embeddingDim: undefined
+        embeddingDim: undefined,
+        holder: undefined,
+        entity: undefined,
+        days: undefined
       },
       { stdin: io.stdin, stdout: io.stdout, engine }
     );

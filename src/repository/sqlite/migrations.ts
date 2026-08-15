@@ -1,6 +1,7 @@
 import type BetterSqlite3 from "better-sqlite3";
 import { migrateLegacyCampaign } from "../../core/migrate-legacy.js";
-import type { AttributFige } from "../../domain/attribute.js";
+import { bootstrapPlan } from "../../atomic/bootstrap.js";
+import type { LegacyFact } from "../../domain/migration.js";
 import type { Potentialite } from "../../domain/potentialite.js";
 import { asCampaignId } from "../../domain/ids.js";
 import type { CampaignId } from "../../domain/ids.js";
@@ -283,7 +284,7 @@ function migrateLegacyData(db: BetterSqlite3.Database): void {
       factId: r.fact_id, entityId: r.entity_id, key: r.attribute_key,
       value: JSON.parse(r.value), category: r.category,
       observation: JSON.parse(r.observation), turn: r.turn
-    })) as Array<AttributFige & { campaignId: CampaignId }>;
+    })) as Array<LegacyFact & { campaignId: CampaignId }>;
     const potentialites = potRows.map(r => ({
       entiteId: r.entity_id, attribut: r.attribute_key, etat: r.etat,
       contraintes: JSON.parse(r.contraintes), contexteGeneratif: JSON.parse(r.contexte_generatif)
@@ -311,6 +312,25 @@ function migrateLegacyData(db: BetterSqlite3.Database): void {
     for (const finding of out.findings) {
       db.prepare(`INSERT INTO migration_findings (campaign_id, payload) VALUES (?, ?)`)
         .run(campaignId, JSON.stringify(finding));
+    }
+
+    // A migrated campaign needs the §2.3 bootstrap as much as a fresh one:
+    // without the default group there is no floor to the holder cascade, so
+    // deriveBeliefs cannot answer for anybody and the campaign is unplayable.
+    // Same pure plan createCampaign uses, so the two cannot drift.
+    const plan = bootstrapPlan(campaignId, 0);
+    const realmExists = db.prepare(`SELECT 1 FROM entities WHERE campaign_id = ? AND id = ?`)
+      .get(campaignId, plan.realmEntity.id);
+    if (!realmExists) {
+      const e = plan.realmEntity;
+      db.prepare(
+        `INSERT INTO entities (campaign_id, id, type, name, nom_connu, aliases, tags, created_at, embedding_refreshed_at, description)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, NULL, ?)`
+      ).run(campaignId, e.id, e.type, e.name, 1, JSON.stringify(e.aliases), JSON.stringify(e.tags), e.createdAt, e.description ?? null);
+      db.prepare(`INSERT OR REPLACE INTO holders (campaign_id, holder_id, kind, payload) VALUES (?, ?, ?, ?)`)
+        .run(campaignId, plan.defaultGroup.holderId, plan.defaultGroup.kind, JSON.stringify(plan.defaultGroup));
+      db.prepare(`INSERT OR REPLACE INTO dispatch_policies (campaign_id, policy) VALUES (?, ?)`)
+        .run(campaignId, JSON.stringify(plan.policy));
     }
   }
 }

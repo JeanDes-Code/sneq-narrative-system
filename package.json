@@ -1,6 +1,6 @@
 {
   "name": "sneq-engine",
-  "version": "0.3.1",
+  "version": "0.5.0",
   "packageManager": "pnpm@10.30.3",
   "description": "Bookkeeping engine for turn-based AI-narrated games (SNEQ V2) \u2014 canonical entities, facts, scenes and turns for AI game masters",
   "type": "module",

@@ -1,6 +1,8 @@
 import { normalizeAlias } from "../resolver/normalize.js";
+import type { ContrainteSource } from "../domain/potentialite.js";
 import type {
   AddConstraintDecision,
+  ConstraintRole,
   AddConstraintDecisionInput,
   AdvanceTurnDecision,
   AdvanceTurnDecisionInput,
@@ -8,16 +10,24 @@ import type {
   ConfirmEntityMatchDecisionInput,
   CreateEntityDecision,
   CreateEntityDecisionInput,
-  RegisterFactDecision,
-  RegisterFactDecisionInput,
   SetSceneDecision,
   SetSceneDecisionInput,
 } from "./types.js";
 
+/** The caller's declared role, as the stored `ContrainteSource` (#19). */
+function constraintSourceOf(role: ConstraintRole): ContrainteSource {
+  switch (role.role) {
+    case "REGLE_MONDE":    return { kind: "REGLE_MONDE",    ruleId: role.ruleId };
+    case "INFERENCE_IA":   return { kind: "INFERENCE_IA",   confidence: role.confidence };
+    case "FAIT_CANONIQUE": return { kind: "FAIT_CANONIQUE", factId: role.factId };
+    case "RELATION":       return { kind: "RELATION",       edgeKey: role.edgeKey };
+  }
+}
+
 export function decideAddConstraint(input: AddConstraintDecisionInput): AddConstraintDecision {
   const constraint = {
     id: input.constraintId,
-    source: { kind: "INFERENCE_IA" as const, confidence: 0.7 },
+    source: constraintSourceOf(input.role),
     createdAt: input.createdAt,
     regle: input.rule,
     justificationNarrative: input.justification,
@@ -79,27 +89,6 @@ export function decideCreateEntity(input: CreateEntityDecisionInput): CreateEnti
   return {
     entity: input.candidate,
     result: { status: "created", entityId: input.candidate.id, isNew: true },
-  };
-}
-
-export function decideRegisterFact(input: RegisterFactDecisionInput): RegisterFactDecision {
-  const contradictions = input.existing.filter(
-    (fact) => JSON.stringify(fact.value) !== JSON.stringify(input.value),
-  );
-  if (contradictions.length > 0) return { fact: null, contradictions };
-
-  return {
-    fact: {
-      campaignId: input.campaignId,
-      factId: input.factId,
-      entityId: input.entityId,
-      key: input.attributeKey,
-      value: input.value,
-      category: input.category,
-      observation: input.observation,
-      turn: input.latestTurnNumber,
-    },
-    contradictions: [],
   };
 }
 

@@ -38,6 +38,35 @@ export function ensureVecTable(db: BetterSqlite3.Database, dim: number): void {
   db.prepare(`INSERT OR REPLACE INTO meta (key, value) VALUES ('embedding_dim', ?)`).run(String(dim));
 }
 
+/**
+ * §14.5's migration, at the only granularity `vec0` allows: the virtual table
+ * carries the dimension in its schema, so moving rungs means dropping and
+ * recreating it. One database file therefore holds exactly one dimension —
+ * which is why the caller must check that no *other* campaign still has
+ * vectors before calling this.
+ */
+export function recreateVecTable(db: BetterSqlite3.Database, dim: number): void {
+  db.exec(`DROP TABLE IF EXISTS entity_vec`);
+  db.prepare(`DELETE FROM meta WHERE key = 'embedding_dim'`).run();
+  if (dim > 0) {
+    db.exec(`CREATE VIRTUAL TABLE entity_vec USING vec0(entity_id TEXT PRIMARY KEY, embedding FLOAT[${dim}] distance_metric=cosine)`);
+  }
+  db.prepare(`INSERT OR REPLACE INTO meta (key, value) VALUES ('embedding_dim', ?)`).run(String(dim));
+}
+
+/** Entity ids (campaign-scoped) that still hold a vector, for a campaign other than `exceptCampaignId`. */
+export function campaignsWithVectors(db: BetterSqlite3.Database, exceptCampaignId: string): string[] {
+  const exists = db.prepare(`SELECT name FROM sqlite_master WHERE type='table' AND name='entity_vec'`).get();
+  if (!exists) return [];
+  const rows = db.prepare(`SELECT entity_id FROM entity_vec`).all() as Array<{ entity_id: string }>;
+  const others = new Set<string>();
+  for (const r of rows) {
+    const cid = r.entity_id.slice(0, r.entity_id.indexOf("|"));
+    if (cid && cid !== exceptCampaignId) others.add(cid);
+  }
+  return [...others];
+}
+
 function vecKey(campaignId: string, entityId: string): string {
   return `${campaignId}|${entityId}`;
 }

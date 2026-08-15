@@ -182,43 +182,95 @@ describe("CLI e2e — 10 tool commands", () => {
     expect((r.out as { isNew: boolean }).isNew).toBe(true);
   });
 
-  it("register-fact fills observation from --source default", async () => {
+  it("commit-narrative writes an act's `sets` into canon and moves the day", async () => {
     const mention = await call([
       "mention-entity", "--db", dbPath, "--campaign", "c1",
       "--args", '{"canonicalName":"Aldric","type":"PERSONNAGE","description":"smith"}'
     ]);
     const entityId = (mention.out as { entityId: string }).entityId;
     const r = await call([
-      "register-fact", "--db", dbPath, "--campaign", "c1",
+      "commit-narrative", "--db", dbPath, "--campaign", "c1",
       "--args", JSON.stringify({
-        entityId, attributeKey: "metier", category: "HISTORIQUE",
-        value: { type: "STRING", value: "capitaine" }
+        operationId: "op-1",
+        daysElapsed: 2,
+        event: {
+          eventId: "ev1", gravity: 1,
+          circumstance: "Aldric prend le commandement de la garde.",
+          participants: [entityId], surfaceTokens: [],
+          acts: [{
+            actorId: entityId, verb: "TAKES_COMMAND",
+            sets: { entityId, key: "metier", value: { type: "STRING", value: "capitaine" }, category: "HISTORIQUE" }
+          }]
+        }
       })
     ]);
     expect(r.code).toBe(0);
-    expect((r.out as { factId: string | null }).factId).not.toBeNull();
+    const out = r.out as { newWorldDay: number; eventId: string; replayed: boolean };
+    expect(out.newWorldDay).toBe(2);
+    expect(out.eventId).toBe("ev1");
+    expect(out.replayed).toBe(false);
   });
 
-  it("register-fact accepts --source player-utterance", async () => {
+  it("commit-narrative replays on the same operationId instead of writing twice (#29)", async () => {
+    const mention = await call([
+      "mention-entity", "--db", dbPath, "--campaign", "c1",
+      "--args", '{"canonicalName":"Aldric","type":"PERSONNAGE","description":"smith"}'
+    ]);
+    const entityId = (mention.out as { entityId: string }).entityId;
+    const bundle = JSON.stringify({
+      operationId: "op-retry",
+      daysElapsed: 1,
+      event: {
+        eventId: "ev-retry", gravity: 0, circumstance: "Aldric ferre un cheval.",
+        participants: [entityId], surfaceTokens: [],
+        acts: [{ actorId: entityId, verb: "SHOES_HORSE" }]
+      }
+    });
+    const first = await call(["commit-narrative", "--db", dbPath, "--campaign", "c1", "--args", bundle]);
+    const retry = await call(["commit-narrative", "--db", dbPath, "--campaign", "c1", "--args", bundle]);
+    expect((first.out as { replayed: boolean }).replayed).toBe(false);
+    expect((retry.out as { replayed: boolean }).replayed).toBe(true);
+    expect((retry.out as { newWorldDay: number }).newWorldDay).toBe(1);
+  });
+
+  it("commit-narrative rejects a free-text name where an entity id belongs", async () => {
+    const r = await call([
+      "commit-narrative", "--db", dbPath, "--campaign", "c1",
+      "--args", JSON.stringify({
+        operationId: "op-bad", daysElapsed: 0,
+        event: {
+          eventId: "ev-bad", gravity: 0, circumstance: "le forgeron parle",
+          participants: ["le forgeron"], surfaceTokens: [],
+          acts: [{ actorId: "le forgeron", verb: "SPEAKS" }]
+        }
+      })
+    ]);
+    expect(r.code).toBe(1);
+    expect((r.out as { code: string }).code).toBe("ENTITY_NOT_FOUND");
+  });
+
+  it("--source out-of-band lands on a record that brought no observation (#18/#22)", async () => {
     const mention = await call([
       "mention-entity", "--db", dbPath, "--campaign", "c1",
       "--args", '{"canonicalName":"Aldric","type":"PERSONNAGE","description":"smith"}'
     ]);
     const entityId = (mention.out as { entityId: string }).entityId;
     const r = await call([
-      "register-fact", "--db", dbPath, "--campaign", "c1",
-      "--source", "player-utterance",
+      "commit-narrative", "--db", dbPath, "--campaign", "c1",
+      "--source", "out-of-band",
       "--args", JSON.stringify({
-        entityId, attributeKey: "rumeur", category: "HISTORIQUE",
-        value: { type: "STRING", value: "déserteur" }
+        operationId: "op-oob", daysElapsed: 0,
+        records: [{
+          recordId: "rec-1", entityId, key: "rumeur",
+          value: { type: "STRING", value: "déserteur" }, category: "HISTORIQUE",
+          authoredBy: entityId, route: "RUMOUR", surfaceTokens: []
+        }]
       })
     ]);
     expect(r.code).toBe(0);
-    const facts = await call([
-      "get-relevant-facts", "--db", dbPath, "--campaign", "c1",
-      "--args", JSON.stringify({ entityId, attributeKeys: ["rumeur"] })
-    ]);
-    expect((facts.out as Array<{ observation: { source: string } }>)[0]?.observation.source).toBe("PLAYER_UTTERANCE");
+    const doctor = await call(["doctor", "--db", dbPath, "--campaign", "c1"]);
+    const checks = (doctor.out as { checks: Array<{ id: string; message: string }> }).checks;
+    expect(checks.find(c => c.id === "out-of-band-audited")?.message).toMatch(/1 record/);
   });
 
   it("set-scene + advance-turn round-trip", async () => {
@@ -270,17 +322,54 @@ describe("CLI e2e — 10 tool commands", () => {
     expect((r.out as { recommendsNew: boolean }).recommendsNew).toBe(true);
   });
 
-  it("get-relevant-facts returns [] for an entity with no facts", async () => {
+  // #21's third state: an empty belief list is an answer, and it comes with a
+  // line saying so. The Cassius Vorentius bug was a plausible-empty standing in
+  // for a null.
+  it("get-holder-context returns beliefs: [] plus an explain line for a holder who knows nothing", async () => {
     const mention = await call([
       "mention-entity", "--db", dbPath, "--campaign", "c1",
       "--args", '{"canonicalName":"Aldric","type":"PERSONNAGE","description":"smith"}'
     ]);
     const entityId = (mention.out as { entityId: string }).entityId;
-    const r = await call([
-      "get-relevant-facts", "--db", dbPath, "--campaign", "c1",
-      "--args", JSON.stringify({ entityId })
+    const r = await call(["get-holder-context", "--db", dbPath, "--campaign", "c1", "--entity", entityId]);
+    expect(r.code).toBe(0);
+    const ctx = r.out as { beliefs: unknown[]; explain: string; road: string; holderId: string };
+    expect(ctx.beliefs).toEqual([]);
+    expect(ctx.explain).toMatch(/knows nothing/i);
+    expect(ctx.road).toBe("DEFAULT_GROUP");
+  });
+
+  it("get-holder-context refuses to answer without a holder — every read is somebody's", async () => {
+    const r = await call(["get-holder-context", "--db", dbPath, "--campaign", "c1"]);
+    expect(r.code).toBe(1);
+    expect((r.out as { code: string }).code).toBe("INVALID_ARGS");
+  });
+
+  it("get-holder-context distinguishes an unknown holder from a holder who knows nothing", async () => {
+    const r = await call(["get-holder-context", "--db", dbPath, "--campaign", "c1", "--holder", "h_nobody"]);
+    expect(r.code).toBe(1);
+    expect((r.out as { code: string }).code).toBe("HOLDER_NOT_FOUND");
+  });
+
+  it("doctor reports on a fresh bootstrapped campaign", async () => {
+    const r = await call(["doctor", "--db", dbPath, "--campaign", "c1"]);
+    const report = r.out as { status: string; checks: Array<{ id: string; status: string }> };
+    expect(report.checks.find(c => c.id === "holders-present")?.status).toBe("PASS");
+    expect(report.checks.find(c => c.id === "no-omniscient-read")?.status).toBe("PASS");
+  });
+
+  it("show/set-dispatch-policy: additive, never a replacement (#15)", async () => {
+    const before = await call(["show-dispatch-policy", "--db", dbPath, "--campaign", "c1"]);
+    const ruleCount = (before.out as { rules: unknown[] }).rules.length;
+    const after = await call([
+      "set-dispatch-policy", "--db", dbPath, "--campaign", "c1",
+      "--args", JSON.stringify({
+        routes: [{ fromPlaceId: "p1", toPlaceId: "p2", route: "OFFICIAL", travelDays: 3 }]
+      })
     ]);
-    expect(r.out).toEqual([]);
+    const policy = after.out as { routes: unknown[]; rules: unknown[] };
+    expect(policy.routes).toHaveLength(1);
+    expect(policy.rules).toHaveLength(ruleCount);
   });
 
   it("reads args from stdin when --args is absent", async () => {
@@ -290,21 +379,30 @@ describe("CLI e2e — 10 tool commands", () => {
     expect((mention.out as { isNew: boolean }).isNew).toBe(true);
   });
 
-  it("register-fact returns exit 0 with contradictions when fact already figed", async () => {
+  // Replace-on-key is state EVOLUTION now (#27), not a contradiction to
+  // adjudicate: history lives in the ledger, canon holds current state.
+  it("two commits on the same key replace rather than contradict", async () => {
     const mention = await call([
       "mention-entity", "--db", dbPath, "--campaign", "c1",
       "--args", '{"canonicalName":"Aldric","type":"PERSONNAGE","description":"smith"}'
     ]);
     const entityId = (mention.out as { entityId: string }).entityId;
-    const baseArgs = (val: string) => JSON.stringify({
-      entityId, attributeKey: "metier", category: "HISTORIQUE",
-      value: { type: "STRING", value: val }
+    const bundle = (op: string, val: string) => JSON.stringify({
+      operationId: op, daysElapsed: 1,
+      event: {
+        eventId: `ev-${op}`, gravity: 0, circumstance: `Aldric devient ${val}.`,
+        participants: [entityId], surfaceTokens: [],
+        acts: [{
+          actorId: entityId, verb: "BECOMES",
+          sets: { entityId, key: "metier", value: { type: "STRING", value: val }, category: "HISTORIQUE" }
+        }]
+      }
     });
-    await call(["register-fact", "--db", dbPath, "--campaign", "c1", "--args", baseArgs("capitaine")]);
-    const second = await call(["register-fact", "--db", dbPath, "--campaign", "c1", "--args", baseArgs("simple soldat")]);
+    const first = await call(["commit-narrative", "--db", dbPath, "--campaign", "c1", "--args", bundle("op-a", "capitaine")]);
+    const second = await call(["commit-narrative", "--db", dbPath, "--campaign", "c1", "--args", bundle("op-b", "simple soldat")]);
+    expect(first.code).toBe(0);
     expect(second.code).toBe(0);
-    expect((second.out as { factId: string | null; contradictions: unknown[] }).factId).toBeNull();
-    expect((second.out as { contradictions: unknown[] }).contradictions.length).toBeGreaterThan(0);
+    expect((second.out as { newWorldDay: number }).newWorldDay).toBe(2);
   });
 
   it("lookup-entity returns candidates when ambiguous, never prompts", async () => {
@@ -327,8 +425,8 @@ describe("CLI e2e — 10 tool commands", () => {
 
   it("returns VALIDATION_FAILED on bad args shape", async () => {
     const r = await call([
-      "register-fact", "--db", dbPath, "--campaign", "c1",
-      "--args", '{"entityId":"x"}'  // missing attributeKey, value, category
+      "commit-narrative", "--db", dbPath, "--campaign", "c1",
+      "--args", '{"operationId":"op-x"}'  // missing the required daysElapsed
     ]);
     expect(r.code).toBe(1);
     expect((r.out as { code: string }).code).toBe("VALIDATION_FAILED");
@@ -399,10 +497,25 @@ describe("CLI e2e — prepare-turn", () => {
     return { code, out: text ? JSON.parse(text) : null };
   }
 
-  it("returns {scene:null, presentEntities:[]} on a fresh campaign with no scene", async () => {
+  // `scene: null` is a literal, distinguishable state (#21): nobody has said
+  // where the player is. Ask the human, never guess.
+  it("returns the frame with scene: null on a fresh campaign with no scene", async () => {
     const r = await call(["prepare-turn", "--db", dbPath, "--campaign", "c1"]);
     expect(r.code).toBe(0);
-    expect(r.out).toEqual({ scene: null, presentEntities: [] });
+    expect(r.out).toEqual({ day: 0, turn: 0, scene: null, presentEntities: [], holder: null });
+  });
+
+  it("carries the holder's context when asked for one, and names the road (#21)", async () => {
+    const mention = await call([
+      "mention-entity", "--db", dbPath, "--campaign", "c1",
+      "--args", '{"canonicalName":"Aldric","type":"PERSONNAGE","description":"smith"}'
+    ]);
+    const entityId = (mention.out as { entityId: string }).entityId;
+    const r = await call(["prepare-turn", "--db", dbPath, "--campaign", "c1", "--entity", entityId]);
+    expect(r.code).toBe(0);
+    const out = r.out as { holder: { road: string; beliefs: unknown[] } | null };
+    expect(out.holder?.road).toBe("DEFAULT_GROUP");
+    expect(out.holder?.beliefs).toEqual([]);
   });
 });
 
@@ -467,11 +580,11 @@ describe("CLI e2e — help", () => {
   it("<cmd> --help prints command-specific help", async () => {
     const engine = makeEngine(dbPath);
     const out = captureStdout();
-    const code = await run(parseArgv(["register-fact", "--help"]), {
+    const code = await run(parseArgv(["commit-narrative", "--help"]), {
       stdin: emptyStdin(), stdout: out.stream, engine
     });
     expect(code).toBe(0);
-    expect(out.lines.join("")).toMatch(/sneq-engine register-fact/);
+    expect(out.lines.join("")).toMatch(/sneq-engine commit-narrative/);
     await engine.close();
   });
 });

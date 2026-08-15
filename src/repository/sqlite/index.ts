@@ -2,7 +2,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import Database from "better-sqlite3";
 import type BetterSqlite3 from "better-sqlite3";
 import type {
-  Repository, CampaignMeta, VectorSearchOpts, EntityWithScore, FactQuery, CarriageQuery
+  Repository, CampaignMeta, VectorSearchOpts, EntityWithScore, CarriageQuery
 } from "../interface.js";
 import { OPERATION_RETENTION } from "../interface.js";
 import type { NarrativeEvent } from "../../domain/event.js";
@@ -11,21 +11,20 @@ import type { Holder } from "../../domain/holder.js";
 import type { Carriage, CarriageEffect, DispatchPolicy } from "../../domain/carriage.js";
 import type { ProvisionalInvention, InventionTransition, InventionStatus } from "../../domain/invention.js";
 import type { Entity, EntityType } from "../../domain/entity.js";
-import type { AttributFige, CanonicalAttribute } from "../../domain/attribute.js";
+import type { CanonicalAttribute } from "../../domain/attribute.js";
 import type { MigrationFinding } from "../../domain/migration.js";
 import type { Potentialite } from "../../domain/potentialite.js";
 import type { AreteGCN, NoeudGCN } from "../../domain/gcn.js";
 import type { Scene } from "../../domain/scene.js";
 import type { Turn } from "../../domain/turn.js";
-import type { CampaignId, EntityID, EventId, FactId } from "../../domain/ids.js";
-import { asCampaignId, asFactId } from "../../domain/ids.js";
+import type { CampaignId, EntityID, EventId } from "../../domain/ids.js";
+import { asCampaignId } from "../../domain/ids.js";
 import { runMigrations } from "./migrations.js";
-import { loadVec, ensureVecTable, upsertVec, searchVec, deleteVecForCampaign, deleteVecForEntity } from "./vec.js";
+import { loadVec, ensureVecTable, upsertVec, searchVec, deleteVecForCampaign, deleteVecForEntity, recreateVecTable, campaignsWithVectors } from "./vec.js";
 import { normalizeAlias, normalizeText } from "../../resolver/normalize.js";
-import { SneqCampaignNotFoundError } from "../../errors.js";
+import { SneqCampaignNotFoundError, SneqEmbeddingDimError } from "../../errors.js";
 import {
   entityToRow, rowToEntity, type EntityRow,
-  figedToRow, rowToFiged, type FigedRow,
   potentialiteToRow, rowToPotentialite, type PotentialiteRow,
   nodeToRow, rowToNode, type NodeRow,
   edgeToRow, rowToEdge, type EdgeRow
@@ -242,36 +241,46 @@ export class SqliteRepository implements Repository {
     return result;
   }
 
-  async appendFact(f: AttributFige & { campaignId: CampaignId }): Promise<{ factId: FactId }> {
-    this.assertCampaignExists(f.campaignId);
-    const row = figedToRow(f);
-    this.db.prepare(`
-      INSERT OR REPLACE INTO figed
-        (campaign_id, entity_id, attribute_key, fact_id, value, category, observation, turn)
-      VALUES (@campaign_id, @entity_id, @attribute_key, @fact_id, @value, @category, @observation, @turn)
-    `).run(row);
-    return { factId: asFactId(row.fact_id) };
+  async setEmbeddingDim(campaignId: CampaignId, dim: number): Promise<void> {
+    this.assertCampaignExists(campaignId);
+    if (!Number.isInteger(dim) || dim < 0) {
+      throw new Error(`setEmbeddingDim: dim must be a non-negative integer (0 = no vectors), got ${dim}`);
+    }
+    if (dim === this.dim) return;
+    // `vec0` carries the dimension in the virtual table's schema, so one
+    // database file holds exactly one dimension. Recreating it would silently
+    // destroy another campaign's vectors — refuse instead (§14.5).
+    const others = campaignsWithVectors(this.db, campaignId);
+    if (others.length > 0) {
+      throw new Error(
+        `setEmbeddingDim: this database file also stores vectors for campaign(s) ${others.map(c => JSON.stringify(c)).join(", ")} ` +
+        `at dim ${this.dim}, and sqlite-vec keeps one dimension per file. Move this campaign to its own database file, ` +
+        `or reindex every campaign in this file to ${dim} together.`
+      );
+    }
+    if (dim > 0) loadVec(this.db);
+    recreateVecTable(this.db, dim);
+    this.db.prepare(`UPDATE campaigns SET embedding_dim = ? WHERE id = ?`).run(dim, campaignId);
+    this.db.prepare(`UPDATE entities SET embedding_refreshed_at = NULL WHERE campaign_id = ?`).run(campaignId);
+    this.dim = dim;
   }
 
-  async getFigedAttributes(campaignId: CampaignId, entityId: EntityID): Promise<AttributFige[]> {
-    const rows = this.db.prepare(
-      `SELECT * FROM figed WHERE campaign_id = ? AND entity_id = ? ORDER BY turn`
-    ).all(campaignId, entityId) as FigedRow[];
-    return rows.map(rowToFiged);
-  }
-
-  async queryFacts(campaignId: CampaignId, query: FactQuery): Promise<AttributFige[]> {
-    const clauses: string[] = ["campaign_id = ?"];
-    const params: unknown[] = [campaignId];
-    if (query.entityId)     { clauses.push("entity_id = ?");     params.push(query.entityId); }
-    if (query.attributeKey) { clauses.push("attribute_key = ?"); params.push(query.attributeKey); }
-    if (query.category)     { clauses.push("category = ?");      params.push(query.category); }
-    if (query.minTurn !== undefined) { clauses.push("turn >= ?"); params.push(query.minTurn); }
-    if (query.maxTurn !== undefined) { clauses.push("turn <= ?"); params.push(query.maxTurn); }
-    const rows = this.db.prepare(
-      `SELECT * FROM figed WHERE ${clauses.join(" AND ")} ORDER BY turn`
-    ).all(...params) as FigedRow[];
-    return rows.map(rowToFiged);
+  async reindexEmbeddings(
+    campaignId: CampaignId,
+    vectors: Array<{ entityId: EntityID; vector: Float32Array }>
+  ): Promise<void> {
+    this.assertCampaignExists(campaignId);
+    const stored = this.dim ?? 0;
+    for (const { entityId, vector } of vectors) {
+      if (vector.length !== stored) {
+        throw new SneqEmbeddingDimError(campaignId, stored, vector.length);
+      }
+      const known = this.db.prepare(`SELECT 1 FROM entities WHERE campaign_id = ? AND id = ?`).get(campaignId, entityId);
+      if (!known) continue;   // an entity deleted since the vectors were computed is not an error
+      upsertVec(this.db, campaignId, entityId, vector);
+      this.db.prepare(`UPDATE entities SET embedding_refreshed_at = ? WHERE campaign_id = ? AND id = ?`)
+        .run(Date.now(), campaignId, entityId);
+    }
   }
 
   async upsertPotentialite(campaignId: CampaignId, p: Potentialite): Promise<void> {

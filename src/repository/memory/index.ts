@@ -1,9 +1,9 @@
 import type {
-  Repository, CampaignMeta, FactQuery, VectorSearchOpts, EntityWithScore, CarriageQuery
+  Repository, CampaignMeta, VectorSearchOpts, EntityWithScore, CarriageQuery
 } from "../interface.js";
 import { OPERATION_RETENTION } from "../interface.js";
 import type { Entity, EntityType } from "../../domain/entity.js";
-import type { AttributFige, CanonicalAttribute } from "../../domain/attribute.js";
+import type { CanonicalAttribute } from "../../domain/attribute.js";
 import type { MigrationFinding } from "../../domain/migration.js";
 import type { Potentialite } from "../../domain/potentialite.js";
 import type { AreteGCN, NoeudGCN } from "../../domain/gcn.js";
@@ -15,16 +15,14 @@ import type { Holder } from "../../domain/holder.js";
 import type { Carriage, CarriageEffect, DispatchPolicy } from "../../domain/carriage.js";
 import type { ProvisionalInvention, InventionTransition, InventionStatus } from "../../domain/invention.js";
 import { AsyncLocalStorage } from "node:async_hooks";
-import type { CampaignId, CarriageId, EntityID, FactId, InventionId } from "../../domain/ids.js";
-import { asFactId } from "../../domain/ids.js";
+import type { CampaignId, CarriageId, EntityID, InventionId } from "../../domain/ids.js";
 import { normalizeAlias, normalizeText } from "../../resolver/normalize.js";
-import { SneqCampaignNotFoundError } from "../../errors.js";
+import { SneqCampaignNotFoundError, SneqEmbeddingDimError } from "../../errors.js";
 
 export interface MemoryState {
   campaigns: Map<string, CampaignMeta>;
   entityRevisions: Map<string, number>;
   entities: Map<string, Map<string, Entity>>;
-  facts: Map<string, Map<string, AttributFige & { campaignId: CampaignId }>>;
   potentialites: Map<string, Map<string, Potentialite>>;
   nodes: Map<string, Map<string, NoeudGCN>>;
   edges: Map<string, Map<string, AreteGCN>>;
@@ -49,7 +47,7 @@ export interface MemoryState {
 
 export function emptyMemoryState(): MemoryState {
   return {
-    campaigns: new Map(), entityRevisions: new Map(), entities: new Map(), facts: new Map(),
+    campaigns: new Map(), entityRevisions: new Map(), entities: new Map(),
     potentialites: new Map(), nodes: new Map(), edges: new Map(), turns: new Map(), scenes: new Map(),
     events: new Map(), records: new Map(), holders: new Map(), carriages: new Map(),
     carriageEffects: new Map(), inventions: new Map(), inventionTransitions: new Map(),
@@ -116,7 +114,7 @@ export class InMemoryRepository implements Repository {
 
   private async deleteCampaignNow(id: CampaignId): Promise<void> {
     this.state.campaigns.delete(id);
-    for (const bucket of [this.state.entities, this.state.facts, this.state.potentialites,
+    for (const bucket of [this.state.entities, this.state.potentialites,
                           this.state.nodes, this.state.edges, this.state.turns, this.state.scenes,
                           this.state.events, this.state.records, this.state.holders,
                           this.state.carriages, this.state.carriageEffects, this.state.inventions,
@@ -159,7 +157,7 @@ export class InMemoryRepository implements Repository {
         throw new Error(`entity "${e.id}" has an embedding but this repository has no vector store (embeddingDim=${this.dim ?? "unset"})`);
       }
       if (e.embedding.length !== this.dim) {
-        throw new Error(`embedding dim mismatch for entity "${e.id}": got ${e.embedding.length}, repository stores ${this.dim}. Did the embedding model change? Keep one model per database.`);
+        throw new SneqEmbeddingDimError(e.campaignId, this.dim, e.embedding.length);
       }
     }
     this.entitiesOf(e.campaignId).set(e.id, structuredClone(e));
@@ -205,45 +203,44 @@ export class InMemoryRepository implements Repository {
     return hits.sort((a, b) => b.score - a.score).slice(0, opts.topK);
   }
 
+  async setEmbeddingDim(campaignId: CampaignId, dim: number): Promise<void> {
+    const meta = this.state.campaigns.get(campaignId);
+    if (!meta) throw new SneqCampaignNotFoundError(campaignId);
+    // Every stored vector is unreadable at the new dimension, so it goes. The
+    // campaign resolves by alias until reindexEmbeddings lands (§14.5).
+    for (const e of this.entitiesOf(campaignId).values()) {
+      e.embedding = null;
+      e.embeddingRefreshedAt = null;
+    }
+    this.state.campaigns.set(campaignId, { ...meta, embeddingDim: dim });
+    this.dim = dim;
+    await this.mutated();
+  }
+
+  async reindexEmbeddings(
+    campaignId: CampaignId,
+    vectors: Array<{ entityId: EntityID; vector: Float32Array }>
+  ): Promise<void> {
+    const meta = this.state.campaigns.get(campaignId);
+    if (!meta) throw new SneqCampaignNotFoundError(campaignId);
+    const entities = this.entitiesOf(campaignId);
+    for (const { entityId, vector } of vectors) {
+      if (vector.length !== meta.embeddingDim) {
+        throw new SneqEmbeddingDimError(campaignId, meta.embeddingDim, vector.length);
+      }
+      const e = entities.get(entityId);
+      if (!e) continue;   // an entity deleted since the vectors were computed is not an error
+      e.embedding = new Float32Array(vector);
+      e.embeddingRefreshedAt = Date.now();
+    }
+    await this.mutated();
+  }
+
   async topEntities(campaignId: CampaignId, k: number): Promise<Entity[]> {
     return [...(this.state.entities.get(campaignId)?.values() ?? [])]
       .sort((a, b) => (b.embeddingRefreshedAt ?? -1) - (a.embeddingRefreshedAt ?? -1))
       .slice(0, k)
       .map(e => structuredClone(e));
-  }
-
-  // -- facts --------------------------------------------------------------------
-
-  private factsOf(cid: CampaignId): Map<string, AttributFige & { campaignId: CampaignId }> {
-    let m = this.state.facts.get(cid);
-    if (!m) { m = new Map(); this.state.facts.set(cid, m); }
-    return m;
-  }
-
-  async appendFact(f: AttributFige & { campaignId: CampaignId }): Promise<{ factId: FactId }> {
-    this.assertCampaignExists(f.campaignId);
-    this.factsOf(f.campaignId).set(`${f.entityId}|${f.key}`, structuredClone(f));
-    await this.mutated();
-    return { factId: asFactId(f.factId) };
-  }
-
-  async getFigedAttributes(campaignId: CampaignId, entityId: EntityID): Promise<AttributFige[]> {
-    return [...(this.state.facts.get(campaignId)?.values() ?? [])]
-      .filter(f => f.entityId === entityId)
-      .sort((a, b) => a.turn - b.turn)
-      .map(f => structuredClone(f));
-  }
-
-  async queryFacts(campaignId: CampaignId, q: FactQuery): Promise<AttributFige[]> {
-    return [...(this.state.facts.get(campaignId)?.values() ?? [])]
-      .filter(f =>
-        (q.entityId === undefined || f.entityId === q.entityId) &&
-        (q.attributeKey === undefined || f.key === q.attributeKey) &&
-        (q.category === undefined || f.category === q.category) &&
-        (q.minTurn === undefined || f.turn >= q.minTurn) &&
-        (q.maxTurn === undefined || f.turn <= q.maxTurn))
-      .sort((a, b) => a.turn - b.turn)
-      .map(f => structuredClone(f));
   }
 
   // -- potentialites --------------------------------------------------------------

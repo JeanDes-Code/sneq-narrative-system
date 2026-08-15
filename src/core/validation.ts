@@ -1,10 +1,15 @@
-import type { AttributValue, AttributFige } from "../domain/attribute.js";
+import type { AttributValue, CanonicalAttribute } from "../domain/attribute.js";
 import type { Contrainte, RegleContrainte } from "../domain/potentialite.js";
 
 export interface ValidationContext {
   strictContraintes: ReadonlyArray<Contrainte>;
   softContraintes: ReadonlyArray<Contrainte>;
-  existingFiged: ReadonlyArray<AttributFige>;
+  /**
+   * Canon rows for the same (entity, key). Reserved for `CONTRADICTION_RC`,
+   * which nothing produces yet — `decidePromotion` runs its own canon check
+   * (§2.6) and passes `[]` here.
+   */
+  existingCanon: ReadonlyArray<CanonicalAttribute>;
 }
 
 export type ErrorType = "FORMAT" | "CONTRAINTE_STRICTE" | "CONTRADICTION_RC";

@@ -14,7 +14,7 @@ function strict(rule: Contrainte["regle"], note = "x"): Contrainte {
 
 describe("validation", () => {
   it("format: rejects undefined value type", () => {
-    const ctx: ValidationContext = { strictContraintes: [], softContraintes: [], existingFiged: [] };
+    const ctx: ValidationContext = { strictContraintes: [], softContraintes: [], existingCanon: [] };
     const r = validateValue({ type: "STRING", value: "x" } as AttributValue, ctx);
     expect(r.valide).toBe(true);
   });
@@ -24,7 +24,7 @@ describe("validation", () => {
     const allowed: AttributValue[] = [{ type: "STRING", value: "warrior" }];
     const ctx: ValidationContext = {
       strictContraintes: [strict({ type: "DOIT_ETRE", valeurs: allowed })],
-      softContraintes: [], existingFiged: []
+      softContraintes: [], existingCanon: []
     };
     const r = validateValue(v, ctx);
     expect(r.valide).toBe(false);
@@ -35,7 +35,7 @@ describe("validation", () => {
     const v: AttributValue = { type: "STRING", value: "wizard" };
     const ctx: ValidationContext = {
       strictContraintes: [strict({ type: "NE_PEUT_PAS_ETRE", valeurs: [v] })],
-      softContraintes: [], existingFiged: []
+      softContraintes: [], existingCanon: []
     };
     expect(validateValue(v, ctx).valide).toBe(false);
   });
@@ -43,7 +43,7 @@ describe("validation", () => {
   it("strict RANGE_NUMERIQUE: rejects out-of-range number", () => {
     const ctx: ValidationContext = {
       strictContraintes: [strict({ type: "RANGE_NUMERIQUE", min: 20, max: 60 })],
-      softContraintes: [], existingFiged: []
+      softContraintes: [], existingCanon: []
     };
     expect(validateValue({ type: "NUMBER", value: 80 }, ctx).valide).toBe(false);
     expect(validateValue({ type: "NUMBER", value: 30 }, ctx).valide).toBe(true);
@@ -52,7 +52,7 @@ describe("validation", () => {
   it("strict REGEX: rejects non-matching string", () => {
     const ctx: ValidationContext = {
       strictContraintes: [strict({ type: "REGEX", pattern: "^[A-Z][a-z]+$" })],
-      softContraintes: [], existingFiged: []
+      softContraintes: [], existingCanon: []
     };
     expect(validateValue({ type: "STRING", value: "ALLCAPS" }, ctx).valide).toBe(false);
     expect(validateValue({ type: "STRING", value: "Aldric" }, ctx).valide).toBe(true);
@@ -62,7 +62,7 @@ describe("validation", () => {
     const ctx: ValidationContext = {
       strictContraintes: [],
       softContraintes: [strict({ type: "NE_PEUT_PAS_ETRE", valeurs: [{ type: "STRING", value: "x" }] })],
-      existingFiged: []
+      existingCanon: []
     };
     const r = validateValue({ type: "STRING", value: "x" }, ctx);
     expect(r.valide).toBe(true);

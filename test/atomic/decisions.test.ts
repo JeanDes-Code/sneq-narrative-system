@@ -5,34 +5,14 @@ import {
   decideAdvanceTurn,
   decideConfirmEntityMatch,
   decideCreateEntity,
-  decideRegisterFact,
   decideSetScene,
 } from "../../src/atomic/decisions.js";
-import type { AttributFige } from "../../src/domain/attribute.js";
 import type { Entity } from "../../src/domain/entity.js";
 import { asCampaignId, asConstraintId, asEntityID, asFactId, asSceneId } from "../../src/domain/ids.js";
 import type { Potentialite } from "../../src/domain/potentialite.js";
 
 const campaignId = asCampaignId("c1");
 const entityId = asEntityID("e1");
-const observation = {
-  source: "GM_NARRATION",
-  method: "DIALOGUE_DIRECT",
-  timestamp: 10,
-} as const;
-
-function existing(value: string): AttributFige {
-  return {
-    factId: asFactId("old"),
-    entityId,
-    key: "role",
-    value: { type: "STRING", value },
-    category: "SOCIAL",
-    observation,
-    turn: 1,
-  };
-}
-
 function entity(overrides: Partial<Entity> = {}): Entity {
   return {
     campaignId,
@@ -53,41 +33,6 @@ function entity(overrides: Partial<Entity> = {}): Entity {
 const candidate = entity({ id: asEntityID("candidate"), name: "Captain Roric" });
 
 describe("atomic decisions", () => {
-  it("rejects a contradictory fact without producing a write", () => {
-    const result = decideRegisterFact({
-      operationId: "op-register",
-      campaignId,
-      factId: asFactId("new"),
-      entityId,
-      attributeKey: "role",
-      value: { type: "STRING", value: "traître" },
-      category: "SOCIAL",
-      observation,
-      existing: [existing("allié")],
-      latestTurnNumber: 2,
-    });
-
-    expect(result).toEqual({ fact: null, contradictions: [existing("allié")] });
-  });
-
-  it("builds a fact at the latest turn when compatible", () => {
-    const result = decideRegisterFact({
-      operationId: "op-register",
-      campaignId,
-      factId: asFactId("new"),
-      entityId,
-      attributeKey: "role",
-      value: { type: "STRING", value: "allié" },
-      category: "SOCIAL",
-      observation,
-      existing: [existing("allié")],
-      latestTurnNumber: 3,
-    });
-
-    expect(result.fact).toMatchObject({ factId: asFactId("new"), turn: 3 });
-    expect(result.contradictions).toEqual([]);
-  });
-
   it("builds scene and next turn atomically", () => {
     const result = decideSetScene({
       operationId: "op-scene",
@@ -127,6 +72,7 @@ describe("atomic decisions", () => {
       attributeKey: "loyalty",
       rule: { type: "REGEX", pattern: "duke|king" },
       justification: "political pressure",
+      role: { role: "REGLE_MONDE", ruleId: "r1" },
       createdAt: 40,
       existing: null,
     });
@@ -137,9 +83,11 @@ describe("atomic decisions", () => {
       attribut: "loyalty",
       etat: "CONTRAINT",
     });
+    // #19: the founding is the caller's declared role now, never a hardcoded
+    // INFERENCE_IA — which is what left REGLE_MONDE with no producer at all.
     expect(result.potentialite.contraintes).toContainEqual({
       id: constraintId,
-      source: { kind: "INFERENCE_IA", confidence: 0.7 },
+      source: { kind: "REGLE_MONDE", ruleId: "r1" },
       createdAt: 40,
       regle: { type: "REGEX", pattern: "duke|king" },
       justificationNarrative: "political pressure",
@@ -168,6 +116,7 @@ describe("atomic decisions", () => {
       attributeKey: "loyalty",
       rule: { type: "REGEX", pattern: "king" },
       justification: "new",
+      role: { role: "INFERENCE_IA", confidence: 0.4 },
       createdAt: 2,
       existing,
     });
