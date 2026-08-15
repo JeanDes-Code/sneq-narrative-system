@@ -14,6 +14,14 @@ import { ADVERTISED_TOOL_NAMES } from "../tools/adapters.js";
  */
 export type CheckStatus = "PASS" | "WARN" | "FAIL" | "INFO";
 
+/**
+ * Events needed before the gravity distribution is worth judging. Three events
+ * all at 0 is a quiet afternoon, not a deaf world, and a fresh campaign should
+ * not open with a warning it cannot act on. Below this the line reports the
+ * histogram as `INFO` and judges nothing.
+ */
+const GRAVITY_SAMPLE_FLOOR = 8;
+
 export interface DoctorCheck {
   id: string;
   status: CheckStatus;
@@ -188,7 +196,39 @@ export function runDoctor(input: DoctorInput): DoctorReport {
         `${[...new Set(input.migrationFindings.map(f => f.kind))].join(", ")}. ` +
         `They were never auto-fixed (guessing) and never deleted (data loss) — repair them by hand.`);
 
-  // 11. The one authored hole in the floor, counted because it is one.
+  // 11. Gravity is the model's to answer — a 0–3 band is a closed question, and
+  //     nothing in the ledger can derive how much a thing mattered. So this does
+  //     not police it. But it is 40% of salience (`salience.ts:11,23`) and gates
+  //     all auto-dispatch (`commit-narrative.ts:171`), and until now no counter
+  //     ever looked at the answers. Count it, do not lock it — the move already
+  //     made for OUT_OF_BAND (#22) and the public tag (#46).
+  const gravities = input.events.map(e => e.gravity);
+  const histogram = [0, 1, 2, 3].map(band => gravities.filter(g => g === band).length);
+  const shape = histogram.map((n, band) => `${band}:${n}`).join("  ");
+
+  if (gravities.length === 0) {
+    add("gravity-distribution", "INFO", "No events yet, so there is no gravity distribution to read.");
+  } else if (gravities.length < GRAVITY_SAMPLE_FLOOR) {
+    add("gravity-distribution", "INFO",
+      `Gravity so far — ${shape} — over ${gravities.length} event(s). Too few to read a habit into: a quiet ` +
+      `afternoon is not a deaf world. This line starts judging at ${GRAVITY_SAMPLE_FLOOR} events.`);
+  } else if (histogram[0] === gravities.length) {
+    add("gravity-distribution", "WARN",
+      `All ${gravities.length} events were committed at gravity 0 — ${shape}. Dispatch only fires above 0, so not ` +
+      `one carriage has ever left: every holder outside the room where things happen stays ignorant forever, and no ` +
+      `other counter shows it. Nothing is broken in the engine — the narrator is answering the same way every time. ` +
+      `Check what your prompt tells it gravity means.`);
+  } else if (histogram[3] === gravities.length) {
+    add("gravity-distribution", "WARN",
+      `All ${gravities.length} events were committed at gravity 3 — ${shape}. Every event clears every rule, so the ` +
+      `fan-out cap is choosing who hears what instead of your policy (see the truncated count). When everything is ` +
+      `grave, nothing is. Check what your prompt tells it gravity means.`);
+  } else {
+    add("gravity-distribution", "PASS",
+      `Gravity spreads over ${gravities.length} events — ${shape}. The narrator is discriminating, not answering by reflex.`);
+  }
+
+  // 12. The one authored hole in the floor, counted because it is one.
   add("public-entities", "INFO",
     input.publicEntities.length === 0
       ? "No entity is declared public. Every name in an unlearned event is withheld — including landmarks, which will " +
@@ -198,7 +238,7 @@ export function runDoctor(input: DoctorInput): DoctorReport {
         `${input.publicEntities.length > 8 ? ", …" : ""}. What happened to them is still withheld; only the name is not. ` +
         `Each one is a deliberate hole in the floor — a person or a secret should never be in this list.`);
 
-  // 12-13. Two §12.4 lines nothing persisted can answer. Said out loud rather
+  // 13-14. Two §12.4 lines nothing persisted can answer. Said out loud rather
   // than quietly dropped, so the checklist stays honest about its own reach.
   add("containment-assertions", "INFO",
     "assertContainment is a pre-flight call the host makes over each composed payload (§11 phase D). " +
