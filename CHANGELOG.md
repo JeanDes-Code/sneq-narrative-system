@@ -5,7 +5,7 @@ this file says *what* changed, that one says *what to do about it*.
 
 Versions follow semver with the pre-1.0 caveat: a minor bump may break.
 
-## Unreleased
+## 0.6.1 — the model stops writing its own uptake
 
 ### Breaking
 

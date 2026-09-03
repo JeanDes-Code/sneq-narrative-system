@@ -9,7 +9,7 @@ the whole design landed as one release.
 
 ---
 
-## Unreleased
+## 0.6.1 — the model stops writing its own uptake
 
 **No database migration. No schema change. No tool added or removed.** If your
 integration never hand-wrote `PLAYER_UPTAKE` evidence, upgrading is `npm i` and nothing
@@ -229,7 +229,7 @@ A campaign that always answers `daysElapsed: 0` will have carriages on the road 
 Pass the player's raw text as `commit_narrative.playerUtterance`. The engine
 substring-searches it for the surface tokens of every provisional invention and promotes
 what the player took up. Do **not** hand-write `PLAYER_UPTAKE` evidence. This release
-did not enforce that: a hand-written entry passed through and promoted. The Unreleased
+did not enforce that: a hand-written entry passed through and promoted. The 0.6.1
 section above makes the engine refuse it (#52).
 
 An invention contradicted by canon is now **silently rejected** — no error, no interrupt.

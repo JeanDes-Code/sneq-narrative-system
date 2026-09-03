@@ -1,4 +1,4 @@
-export const SNEQ_ENGINE_VERSION = "0.6.0";
+export const SNEQ_ENGINE_VERSION = "0.6.1";
 
 // Engine + CampaignContext
 export { Engine, type NewCampaignInput } from "./engine.js";

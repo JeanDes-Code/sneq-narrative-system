@@ -12964,7 +12964,7 @@ deliberate, authored, per-entity weakening — `doctor` counts them.
 
 # Variable: SNEQ\_ENGINE\_VERSION
 
-> `const` **SNEQ\_ENGINE\_VERSION**: `"0.6.0"` = `"0.6.0"`
+> `const` **SNEQ\_ENGINE\_VERSION**: `"0.6.1"` = `"0.6.1"`
 
 [**sneq-engine API**](#sneq-engine-api)
 
