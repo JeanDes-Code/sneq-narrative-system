@@ -87,7 +87,7 @@ Discover it from `MISSION.md § Tool surface`; this is the standing baseline.
 
 | Tool | Command | Note |
 |---|---|---|
-| unit tests | `pnpm test` | excludes `test/integration/**` |
+| unit tests | `pnpm test` | excludes `test/integration/**`; needs `pnpm build` first, since `test/cli/smoke.test.ts` runs `dist/cli.js` |
 | one file, one test | `pnpm vitest run test/core/x.test.ts`, `pnpm vitest run -t "name"` | |
 | typecheck | `pnpm typecheck` | the only lint; strict flags in `tsconfig.json` |
 | build | `pnpm build` | cleans `dist/` first |
@@ -213,4 +213,13 @@ See `### Amends:` under Protected vocabulary. Nothing else yet.
 
 ## Patina
 
-Nothing yet. First run pending.
+- 2026-09-03 — First run, #52, gate `merge`. The session had started in the parent directory, not
+  in the repo, so this skill and its hooks never loaded. The meta-session read the two files by hand
+  and kept the guard's discipline itself. Start a mission session inside the repo.
+- 2026-09-03 — `better-sqlite3@11` has no prebuilt binary for Node 26 and its source does not compile
+  against it, so `pnpm install` fails on a machine whose default Node is newer than 22. CI runs 20
+  and 22; the local baseline must run under one of those too (mise or nvm, and pnpm under that
+  Node, not the standalone binary).
+- 2026-09-03 — The issue's own fix snippet did not compile: it read `e.kind` where the element is
+  `{ inventionId, evidence: { kind } }`. Code in an issue is a claim like its prose. The brief
+  handed the executor the contradiction, and the executor settled it before writing.
