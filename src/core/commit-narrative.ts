@@ -42,6 +42,10 @@ export interface CommitNarrativeBundle {
   carriages?: CommitCarriageInput[];
   carriageEffects?: Array<Omit<CarriageEffect, "campaignId">>;
   inventions?: Array<Omit<ProvisionalInvention, "campaignId" | "introducedAtTurn" | "introducedOnDay" | "status" | "lastReferencedTurn">>;
+  /**
+   * The three kinds only the world can witness are the caller's to supply.
+   * `PLAYER_UPTAKE` is refused: the engine derives it from `playerUtterance` (#52).
+   */
   promotionEvidence?: Array<{ inventionId: InventionId; evidence: PromotionEvidence }>;
   holders?: Holder[];
   /** Additive (#15): routes and rules accrete, they never replace. */
@@ -278,10 +282,22 @@ export function decideCommitNarrative(bundle: CommitNarrativeBundle, ctx: Commit
   }));
 
   // -- promotions (§2.6): the collapse loop, with quarantine (#23) ------------
-  // Engine-detected uptake first (#25, §11 phase A), then whatever evidence the
-  // caller supplied for the three kinds only the world can witness. A caller
-  // cannot fake PLAYER_UPTAKE past this: the detection re-runs here from the
-  // raw text and dedups by inventionId.
+  // PLAYER_UPTAKE is the one kind the engine derives itself: detectUptake reads
+  // the raw playerUtterance (#25, §11 phase A). A caller-supplied PLAYER_UPTAKE
+  // is refused (#52). decidePromotion never reads the kind, so a faked one would
+  // promote like any other and leave a route in the audit trail that never
+  // happened. The three kinds only the world can witness stay caller-supplied,
+  // deduped by inventionId behind the engine's own detection.
+  for (const e of bundle.promotionEvidence ?? []) {
+    if (e.evidence.kind !== "PLAYER_UPTAKE") continue;
+    throw new SneqValidationError([{
+      type: "FORMAT",
+      message: `promotionEvidence carries PLAYER_UPTAKE for invention "${String(e.inventionId)}". Only the engine may ` +
+        `write that kind: it searches the player's raw text for the invention's surfaceTokens itself, so a caller ` +
+        `supplying it is the model recording a promotion route that never happened. Drop the entry and pass the ` +
+        `player's text as playerUtterance (#52).`
+    }]);
+  }
   const detected: Array<{ inventionId: InventionId; evidence: PromotionEvidence }> = [];
   if (bundle.playerUtterance !== undefined && event) {
     for (const inventionId of detectUptake(bundle.playerUtterance, ctx.inventions, turn)) {

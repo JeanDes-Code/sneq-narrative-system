@@ -5742,6 +5742,9 @@ Additive (#15): routes and rules accrete, they never replace.
 
 > `optional` **promotionEvidence?**: `object`[]
 
+The three kinds only the world can witness are the caller's to supply.
+`PLAYER_UPTAKE` is refused: the engine derives it from `playerUtterance` (#52).
+
 #### evidence
 
 > **evidence**: [`PromotionEvidence`](#type-alias-promotionevidence)

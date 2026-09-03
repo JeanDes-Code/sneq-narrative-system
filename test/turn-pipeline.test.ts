@@ -260,7 +260,7 @@ describe("the turn pipeline (§11), end to end", () => {
     expect(ingested.uptake).toEqual(["inv_bran"]);
 
     // The detection that counts, at commit, from the raw text — not from a
-    // promotionEvidence[] the model could have written itself.
+    // promotionEvidence[] the model wrote itself, which commit refuses (#52).
     const result = await campaign.commitNarrative({
       operationId: "op-uptake",
       daysElapsed: 1,
