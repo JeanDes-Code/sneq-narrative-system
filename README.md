@@ -373,7 +373,7 @@ SNEQ_INTEGRATION_SMOKE=1 pnpm test    # include integration smoke (needs API key
 
 ## Feedback
 
-If you are building something with this — a TTRPG companion, a game, a Discord campaign, something I did not think of — I want to hear about it. What worked, what broke, what is missing. Open an [issue](https://github.com/JeanDes-Code/sneq-narrative-system/issues) or write to contact@jean-desauw.fr. Real usage decides what gets built next.
+If you are building something with this — a TTRPG companion, a game, a Discord campaign, something I did not think of — I want to hear about it: open a [Discussion](https://github.com/JeanDes-Code/sneq-narrative-system/discussions). What broke or what is missing belongs in an [issue](https://github.com/JeanDes-Code/sneq-narrative-system/issues). You can also write to contact@jean-desauw.fr. Real usage decides what gets built next.
 
 ## License
 
