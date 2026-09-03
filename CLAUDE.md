@@ -36,7 +36,7 @@ CI runs typecheck, build, test on Node 20 and 22, then regenerates `docs/api.md`
 - Run `pnpm docs:build` and commit the result whenever the public API moves. The script is `docs:build`, not `docs` (`pnpm docs` is npm's own command and exits 0 doing nothing useful).
 - Re-export anything new and public from `src/index.ts`. Typedoc only sees what that file exports.
 - One PR per change. Jean gates every merge. A git tag means "this commit is a release"; publishing to npm is a separate act Jean does by hand.
-- Bump `SNEQ_ENGINE_VERSION` in `src/index.ts` with `package.json`. `test/smoke.test.ts` pins both and fails on a mismatch.
+- A version bump touches three places: `package.json`, `SNEQ_ENGINE_VERSION` in `src/index.ts`, and the literal in `test/smoke.test.ts` under "exports version constant". Miss one and `pnpm test` fails on the mismatch.
 
 ## Architecture
 
