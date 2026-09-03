@@ -1,4 +1,4 @@
-<!-- vendored from jean-ai-os/protocols/MISSION-PROTOCOL.md @ 0995540 le 2026-09-03
+<!-- vendored from jean-ai-os/protocols/MISSION-PROTOCOL.md @ ca2f801 le 2026-09-03
      Généré. Ne pas éditer ici : la prochaine re-vendorisation écrase. Voir § Self-improvement. -->
 # Mission protocol
 
@@ -324,6 +324,33 @@ paragraph. That one had spread to five places in the deliverable. Retracting the
 leaving the downstream ones is worse than not retracting at all: the document then contradicts
 itself, and the reader cannot tell which half to trust.
 
+# A loop polishes, it does not decide
+
+Some units are not one dispatch but a loop: builders and critics alternating for hours against a
+bar, with nobody watching. A loop is the most expensive thing a mission can start and the least
+able to change course once started. Two rules hold for every loop, whatever it builds.
+
+**A loop starts only on a settled premise.** Before round one the human has approved the brief,
+the direction, and the bar: a shape document, a design system, a reference captured to disk. A
+loop launched on an open premise optimises toward a bar nobody chose, for hours, and ends on a high
+score for the wrong thing. One published run outside this setup polished a product page for
+79 minutes into something that looked finished and matched nothing of the brand it was for. The
+loop had picked the direction because nobody had. So the premise rule above applies here first,
+and hardest: settle, then loop. A loop is the second pass over a minimum that already exists,
+never the first pass.
+
+**The critic judges the artifact blind.** A critic gets the bar and the artifact, nothing else: no
+builder report, no diff, no account of the effort. A judge who knows how hard the builder tried
+discounts the result. This is "verify the artifact, not the claim" applied to the agent you hand
+the verifying to, and it holds outside loops too. A verifier dispatched on any unit gets the bar
+and the thing, not the executor's summary of the thing.
+
+A running loop is one unit in flight. `STATE.md` names the run, its bound, and the last round you
+read; a loop whose bound is not written down is not bounded.
+
+**SLOT — loops.** *The repo answers: which builder/critic loop exists here, for which medium, under
+which bound, and where its runs write?* Leave empty when there is none.
+
 # Briefing an executor: the sentence that pays for itself
 
 Put this in every fix brief, verbatim in spirit: **"Confirm this diagnosis yourself before changing
@@ -334,6 +361,11 @@ fix* applies it; an executor told to *confirm first* comes back with the real ca
 has stopped a wrong fix from landing in a shared CI gate, where it would have made the bug **more**
 frequent while looking like a repair.
 
+- **The brief carries the bar, readable by someone who did not build.** Three parts: the task,
+  the method, and what done looks like when checked without trusting the executor's word. A test
+  that fails first, the issue's own text, a reference on disk, the commands inside the doc. A
+  critic can only judge blind (see § A loop polishes) when the bar exists apart from the builder's
+  report. A brief whose bar is "make it good" has no critic, only a second opinion.
 - **Give the executor the contradiction, not the conclusion.** When a report disagrees with a
   ticket's own text — the ticket says X is broken, the code says X was fixed and Y is the real gap —
   hand over both, ask it to settle, then correct the ticket.
@@ -425,3 +457,7 @@ Distilled 2026-08-23 from the three `/mission` skills then in use, which share 1
 and no shared bodies. They descend from one ancestor, so their overlap is one discovery copied three
 times, not three independent findings. What argues for these rules is the opposite fact: two very
 different repos both **added** to the set without ever removing from it.
+
+2026-09-03: § A loop polishes and the bar line in § Briefing an executor. Taken from a builder/critic
+loop skill in use on game repos, after a published run of the same pattern on a product page
+showed what the loop does to an open premise. The loop tooling itself stays a slot.

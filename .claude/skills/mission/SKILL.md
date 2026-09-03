@@ -135,6 +135,11 @@ The mission closes when npm reads back the version.
   is on `main`.
 - `node -e "import('./dist/index.js').then(m => console.log(m.SNEQ_ENGINE_VERSION))"` after a build.
 
+## Loops
+
+*Empty. No builder/critic loop runs in this repo today. When one does, name the medium, the bound
+it runs under, and where its rounds write.*
+
 ## Reviewers
 
 - **CI on Node 20 and 22** is a reviewer. Its typecheck, build, test and `docs/api.md` diff are read

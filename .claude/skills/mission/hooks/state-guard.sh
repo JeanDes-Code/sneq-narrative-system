@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# vendored from jean-ai-os/protocols/mission-hooks/state-guard.sh @ 0995540 le 2026-09-03 — généré, ne pas éditer ici
+# vendored from jean-ai-os/protocols/mission-hooks/state-guard.sh @ ca2f801 le 2026-09-03. Généré, ne pas éditer ici.
 # Mission state guard. One script, four Claude Code hook events; the event name arrives in the
 # JSON on stdin. Source: jean-ai-os/protocols/mission-hooks/state-guard.sh, vendored per repo by
 # /mission-init next to PROTOCOL.md. Edit the source, then re-vendor.
