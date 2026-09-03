@@ -43,3 +43,6 @@ yarn-error.log*
 
 # Generated TypeDoc HTML/markdown source (we commit only docs/api.md)
 docs/typedoc/
+
+# Mission state (see .claude/skills/mission)
+.claude-runs/
