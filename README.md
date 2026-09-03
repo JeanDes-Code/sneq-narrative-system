@@ -1,5 +1,8 @@
 # sneq-narrative-system
 
+[![npm version](https://img.shields.io/npm/v/sneq-engine)](https://www.npmjs.com/package/sneq-engine)
+[![npm total downloads](https://img.shields.io/npm/d18m/sneq-engine)](https://www.npmjs.com/package/sneq-engine)
+
 A narrative-state engine for AI-narrated games — TTRPGs with an AI Game Master, AI-driven RPGs, agent-played campaigns on Discord, anything where the AI invents the world and you don't want it forgetting what it invented.
 
 > **Status:** V2 — published on npm as [`sneq-engine`](https://www.npmjs.com/package/sneq-engine). Bindings to specific consumers (TTRPG app, Hermes-Agent on Discord) are separate follow-ups.
