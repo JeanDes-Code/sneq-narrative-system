@@ -371,6 +371,10 @@ pnpm docs:build      # regenerate docs/api.md from TypeDoc (CI fails on a stale 
 SNEQ_INTEGRATION_SMOKE=1 pnpm test    # include integration smoke (needs API keys)
 ```
 
+## Feedback
+
+If you are building something with this — a TTRPG companion, a game, a Discord campaign, something I did not think of — I want to hear about it. What worked, what broke, what is missing. Open an [issue](https://github.com/JeanDes-Code/sneq-narrative-system/issues) or write to contact@jean-desauw.fr. Real usage decides what gets built next.
+
 ## License
 
 MIT — see [`LICENSE`](./LICENSE).
