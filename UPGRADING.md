@@ -9,6 +9,46 @@ the whole design landed as one release.
 
 ---
 
+## Unreleased
+
+**No database migration. No schema change. No tool added or removed.** If your
+integration never hand-wrote `PLAYER_UPTAKE` evidence, upgrading is `npm i` and nothing
+else.
+
+### Breaking — `commit_narrative`'s `promotionEvidence[]`
+
+A caller may no longer supply `PLAYER_UPTAKE`. The engine derives that kind itself, by
+searching `playerUtterance` for each provisional invention's `surfaceTokens`. A
+hand-written one is refused with a `SneqValidationError`, and the refusal rejects the
+**whole bundle** — event, records, inventions and all — so a caller that hits this writes
+nothing at all that turn. It makes no difference whether the engine would also have
+detected uptake for that invention.
+
+**What to do.** Drop the entry and pass the player's raw text:
+
+```ts
+await campaign.commitNarrative({
+  operationId, daysElapsed,
+  playerUtterance: playerText,   // the engine writes PLAYER_UPTAKE from this
+  event: { /* … */ }
+});
+```
+
+The other three kinds are unchanged. `WORLD_CONSEQUENCE`, `RECONFIRMATION` and
+`OFFICIAL_RECORD` are things only the world can witness, so the caller still supplies
+them.
+
+**Why.** The 0.5.0 notes below said a hand-written `PLAYER_UPTAKE` "will not outrank"
+the engine's detection. That held when the engine had detected the same uptake, and was
+false for an invention it had not. The merge deduped by `inventionId` and never read the
+kind, so a `PLAYER_UPTAKE` for an invention the engine did not detect passed through and
+promoted. It promoted no more than a truthful `WORLD_CONSEQUENCE` would, but
+the `InventionTransition` recorded a promotion route that never happened. That is the
+model writing an effect, and it is now refused like the 0.5.1 token guard and the 0.6.0
+`standing` guard (#52).
+
+---
+
 ## 0.6.0 — the model stops writing its own standing
 
 **No database migration. No schema change. No tool added or removed.** If your
@@ -188,8 +228,9 @@ A campaign that always answers `daysElapsed: 0` will have carriages on the road 
 
 Pass the player's raw text as `commit_narrative.playerUtterance`. The engine
 substring-searches it for the surface tokens of every provisional invention and promotes
-what the player took up. Do **not** hand-write `PLAYER_UPTAKE` evidence: the detection
-re-runs at commit and yours will not outrank it.
+what the player took up. Do **not** hand-write `PLAYER_UPTAKE` evidence. This release
+did not enforce that: a hand-written entry passed through and promoted. The Unreleased
+section above makes the engine refuse it (#52).
 
 An invention contradicted by canon is now **silently rejected** — no error, no interrupt.
 0.3's `register_fact` returned contradictions to adjudicate; that path is gone. Replacing a

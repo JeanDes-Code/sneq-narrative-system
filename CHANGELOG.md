@@ -5,6 +5,39 @@ this file says *what* changed, that one says *what to do about it*.
 
 Versions follow semver with the pre-1.0 caveat: a minor bump may break.
 
+## Unreleased
+
+### Breaking
+
+- **`commit_narrative` refuses a caller-supplied `PLAYER_UPTAKE`**
+  ([#52](https://github.com/JeanDes-Code/sneq-narrative-system/issues/52)).
+  `PLAYER_UPTAKE` is the one promotion kind the engine derives itself:
+  `detectUptake` searches `playerUtterance` for each provisional invention's
+  `surfaceTokens`. The comment above the merge said a caller could not fake it
+  past that detection. It could. The merge deduped by `inventionId` only and
+  never read the kind, so a hand-written `PLAYER_UPTAKE` for an invention the
+  engine did not detect passed straight through.
+
+  It did not widen what can be promoted. `decidePromotion` never reads the kind
+  either, so a faked `PLAYER_UPTAKE` promoted exactly what a truthful
+  `WORLD_CONSEQUENCE` would. What it corrupted is the audit trail: the
+  `InventionTransition` recorded a promotion route that never happened, and
+  anything asking *why did this become canon* got a wrong answer. That is the
+  model writing an effect, the same class as 0.5.1's token guard and 0.6.0's
+  `standing` guard.
+
+  Refusal takes the same posture as both: `SneqValidationError`, fail-closed and
+  atomic. One faked entry rejects the whole bundle, a rejected bundle writes
+  nothing, and the message names the corrective call. Whether the engine also
+  detected uptake for that invention makes no difference; the entry is refused
+  either way.
+
+  Breaking for a caller that hand-wrote `PLAYER_UPTAKE` as a convenience. Drop
+  the entry and pass the player's raw text as `playerUtterance`; the engine
+  derives the evidence. The other three kinds, `WORLD_CONSEQUENCE`,
+  `RECONFIRMATION` and `OFFICIAL_RECORD`, are unchanged: only the world can
+  witness those, so the caller still supplies them.
+
 ## 0.6.0 — the model stops writing its own standing
 
 0.5.0 closed the hole where the model chose what would promote its own

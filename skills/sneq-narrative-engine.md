@@ -84,7 +84,7 @@ Ten of them. Consult `docs/api.md` for exact parameter shapes; this is the *when
 - **`sneq__commit_narrative({ operationId, daysElapsed, … })`** — the single write. Carries the turn's event, official records, carriages, provisional inventions, holders and dispatch policy additions. Atomic: all of it or none.
 
   - **`daysElapsed` is required.** Zero is legal — a conversation in one room takes no time. Leaving it out is not, and a campaign that always answers `0` will be caught by the frozen-clock check, because carriages will be on the road forever.
-  - **`playerUtterance`** — hand over the player's raw text. The engine substring-searches it for the surface tokens of every provisional invention and promotes what the player took up. This is not yours to decide.
+  - **`playerUtterance`** — hand over the player's raw text. The engine substring-searches it for the surface tokens of every provisional invention and promotes what the player took up. This is not yours to decide. Never supply `PLAYER_UPTAKE` in `promotionEvidence` yourself: the engine refuses it, whole bundle included, and derives it from `playerUtterance` (#52).
   - **An act reaches canon only through its explicit `sets`.** The engine never reads `verb`. `{ verb: "WALKS" }` records that it happened and changes nothing; `sets: { entityId, key, value, category }` changes canon. An assertion with no act to hang on lands in the provisional layer whatever you label it.
   - **Retry with the same `operationId`** and you get the recorded result back, not a second write.
 

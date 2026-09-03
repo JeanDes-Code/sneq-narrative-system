@@ -56,7 +56,7 @@ The split exists so an out-of-tree store (a Convex adapter, say) can run the sam
 
 **The perspective seam.** `getHolderContext` is the only read of world knowledge, and it is always somebody's. There is no "what is true" call on the tool surface. `assertContainment` checks a composed prompt against that guarantee before the model call.
 
-**The model must not write effects.** This is the recurring theme of 0.5.x and 0.6.0. Values the model supplies that change engine behaviour are either derived by the engine, refused loudly, or counted by `doctor`. The pattern for a refusal: fail-closed, whole bundle rejected, nothing written, `SneqValidationError` names the corrective call. See `CHANGELOG.md` for the `standing` and invention-token cases. Open issue #52 is another instance of this class.
+**The model must not write effects.** This is the recurring theme of 0.5.x and 0.6.0. Values the model supplies that change engine behaviour are either derived by the engine, refused loudly, or counted by `doctor`. The pattern for a refusal: fail-closed, whole bundle rejected, nothing written, `SneqValidationError` names the corrective call. See `CHANGELOG.md` for the `standing` and invention-token cases. #52 (a caller-supplied `PLAYER_UPTAKE` passed the merge) was another instance.
 
 **Repository contract.** `src/repository/interface.ts` is the interface. Three adapters ship: `sqlite/` (better-sqlite3 + sqlite-vec), `memory/`, `json/`. `test/repository/contract.ts` and `ledger-contract.ts` are the shared suites. A new adapter is done when they pass. Each adapter test file just calls `repositoryContract(name, factory)`.
 

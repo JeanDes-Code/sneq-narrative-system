@@ -160,7 +160,7 @@ describe("decideCommitNarrative — the single write (§5.1)", () => {
       status: "PROVISIONAL" as const, lastReferencedTurn: 3, surfaceTokens: ["Aldo"]
     };
     const plan = decideCommitNarrative(bundle({
-      promotionEvidence: [{ inventionId: asInventionId("i1"), evidence: { kind: "PLAYER_UPTAKE", eventId: asEventId("e1") } }]
+      promotionEvidence: [{ inventionId: asInventionId("i1"), evidence: { kind: "WORLD_CONSEQUENCE", eventId: asEventId("e1") } }]
     }), ctx({ inventions: [invention] }));
     expect(plan.transitions.map(t => t.to)).toEqual(["PROMOTED"]);
     const keys = plan.canonicalUpdates.map(r => r.key).sort();
@@ -177,7 +177,7 @@ describe("decideCommitNarrative — the single write (§5.1)", () => {
       status: "PROVISIONAL" as const, lastReferencedTurn: 3, surfaceTokens: ["Aldo"]
     };
     const plan = decideCommitNarrative(bundle({
-      promotionEvidence: [{ inventionId: asInventionId("i1"), evidence: { kind: "PLAYER_UPTAKE", eventId: asEventId("e1") } }]
+      promotionEvidence: [{ inventionId: asInventionId("i1"), evidence: { kind: "WORLD_CONSEQUENCE", eventId: asEventId("e1") } }]
     }), ctx({
       inventions: [invention],
       potentialites: [{
@@ -311,5 +311,80 @@ describe("holders[] may create a holder, never re-price one (#46)", () => {
   it("dispatch still finds its communities now that the context carries every holder", () => {
     const plan = decideCommitNarrative(bundle(), ctx());
     expect(plan.carriages.length).toBeGreaterThan(0);
+  });
+});
+
+/**
+ * PLAYER_UPTAKE is the one promotion kind the engine derives itself, by
+ * searching `playerUtterance` for each provisional invention's surfaceTokens.
+ * The merge below used to dedup by inventionId only and never read the kind,
+ * so a hand-written PLAYER_UPTAKE for an invention the engine did not detect
+ * passed through. `decidePromotion` never reads the kind either, so it promoted
+ * exactly what a truthful WORLD_CONSEQUENCE would; what it corrupted is the
+ * audit trail, which recorded a promotion route that never happened. The model
+ * writing an effect, again — refused like the token and standing guards (#52).
+ */
+describe("promotionEvidence[] refuses a caller-supplied PLAYER_UPTAKE (#52)", () => {
+  const ALDO = {
+    inventionId: asInventionId("i1"), campaignId: cid, entityId: asEntityID("passeur"),
+    attributeKey: "nom", value: { type: "STRING" as const, value: "Aldo" }, category: "IDENTITE" as const,
+    sourceNarration: "un passeur nommé Aldo", confidence: 0.5, introducedAtTurn: 3, introducedOnDay: 2,
+    status: "PROVISIONAL" as const, lastReferencedTurn: 3, surfaceTokens: ["Aldo"]
+  };
+  const MIRA = {
+    ...ALDO, inventionId: asInventionId("i2"), entityId: asEntityID("guide"),
+    value: { type: "STRING" as const, value: "Mira" }, sourceNarration: "une guide nommée Mira", surfaceTokens: ["Mira"]
+  };
+  const fakedUptake = (id: string) =>
+    ({ inventionId: asInventionId(id), evidence: { kind: "PLAYER_UPTAKE" as const, eventId: asEventId("e1") } });
+  // Returns the refusal's message, so each case can pin WHICH guard fired.
+  const refusedWith = (run: () => unknown): string => {
+    try { run(); } catch (e) {
+      expect(e).toBeInstanceOf(SneqValidationError);
+      return (e as SneqValidationError).details.map(d => d.message).join(" ");
+    }
+    throw new Error("expected the bundle to be refused");
+  };
+
+  it("refuses a PLAYER_UPTAKE the engine did not detect, and names playerUtterance as the corrective call", () => {
+    try {
+      decideCommitNarrative(
+        bundle({ promotionEvidence: [fakedUptake("i1")] }),
+        ctx({ inventions: [ALDO] })
+      );
+      throw new Error("expected the bundle to be refused");
+    } catch (e) {
+      expect(e).toBeInstanceOf(SneqValidationError);
+      expect((e as SneqValidationError).details[0]!.message).toContain("playerUtterance");
+    }
+  });
+
+  it("refuses it even when the engine detects the same uptake itself — the entry is never the caller's to write", () => {
+    expect(refusedWith(() => decideCommitNarrative(
+      bundle({ playerUtterance: "Je cherche Aldo au port.", promotionEvidence: [fakedUptake("i1")] }),
+      ctx({ inventions: [ALDO] })
+    ))).toMatch(/PLAYER_UPTAKE for invention "i1"/);
+  });
+
+  it("rejects the whole bundle, so a legitimate WORLD_CONSEQUENCE beside one faked entry plans nothing (fail-closed)", () => {
+    expect(refusedWith(() => decideCommitNarrative(
+      bundle({
+        promotionEvidence: [
+          { inventionId: asInventionId("i1"), evidence: { kind: "WORLD_CONSEQUENCE", eventId: asEventId("e1") } },
+          fakedUptake("i2")
+        ]
+      }),
+      ctx({ inventions: [ALDO, MIRA] })
+    ))).toMatch(/PLAYER_UPTAKE for invention "i2"/);
+  });
+
+  it("still promotes on the engine's own detection: playerUtterance alone yields a PLAYER_UPTAKE transition", () => {
+    const plan = decideCommitNarrative(
+      bundle({ playerUtterance: "Je cherche Aldo au port." }),
+      ctx({ inventions: [ALDO] })
+    );
+    expect(plan.transitions).toHaveLength(1);
+    expect(plan.transitions[0]!.to).toBe("PROMOTED");
+    expect(plan.transitions[0]!.evidence).toEqual({ kind: "PLAYER_UPTAKE", eventId: asEventId("e1") });
   });
 });

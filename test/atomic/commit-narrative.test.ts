@@ -3,7 +3,7 @@ import { InMemoryRepository } from "../../src/repository/memory/index.js";
 import type { Repository } from "../../src/repository/interface.js";
 import { commitNarrative } from "../../src/atomic/commit-narrative.js";
 import type { CommitNarrativeBundle } from "../../src/core/commit-narrative.js";
-import { asCampaignId, asEntityID, asEventId, asHolderId } from "../../src/domain/ids.js";
+import { asCampaignId, asEntityID, asEventId, asHolderId, asInventionId } from "../../src/domain/ids.js";
 import { SneqValidationError } from "../../src/errors.js";
 
 const cid = asCampaignId("c1");
@@ -76,6 +76,35 @@ describe("commitNarrative — one bundle or nothing (§7.5)", () => {
     expect(stored && stored.kind === "GROUP" ? stored.standing : null).toBe(0.5);
     expect(await repo.getEvents(cid)).toHaveLength(0);   // atomic: the event went nowhere either
     expect(await repo.getWorldDay(cid)).toBe(0);
+  });
+
+  it("refuses a bundle carrying a caller-supplied PLAYER_UPTAKE, and writes nothing at all (#52)", async () => {
+    const provisional = (id: string, entity: string, name: string) => ({
+      inventionId: asInventionId(id), campaignId: cid, entityId: asEntityID(entity),
+      attributeKey: "nom", value: { type: "STRING" as const, value: name }, category: "IDENTITE" as const,
+      sourceNarration: `un passeur nommé ${name}`, confidence: 0.5, introducedAtTurn: 0, introducedOnDay: 0,
+      status: "PROVISIONAL" as const, lastReferencedTurn: 0, surfaceTokens: [name]
+    });
+    await repo.appendInvention(provisional("i-aldo", "passeur", "Aldo"));
+    await repo.appendInvention(provisional("i-mira", "guide", "Mira"));
+
+    const attempt = commitNarrative(repo, bundle("op-faked", {
+      promotionEvidence: [
+        { inventionId: asInventionId("i-aldo"), evidence: { kind: "WORLD_CONSEQUENCE", eventId: asEventId("e-op-faked") } },
+        { inventionId: asInventionId("i-mira"), evidence: { kind: "PLAYER_UPTAKE", eventId: asEventId("e-op-faked") } }
+      ]
+    }));
+    await expect(attempt).rejects.toThrow(SneqValidationError);
+    await expect(attempt).rejects.toMatchObject({
+      details: [{ message: expect.stringMatching(/PLAYER_UPTAKE for invention "i-mira"/) }]
+    });
+
+    expect(await repo.getEvents(cid)).toHaveLength(0);   // atomic: the legitimate half went nowhere either
+    expect(await repo.getWorldDay(cid)).toBe(0);
+    expect(await repo.listInventionTransitions(cid)).toEqual([]);
+    expect((await repo.listInventions(cid, "PROVISIONAL")).map(i => String(i.inventionId)).sort())
+      .toEqual(["i-aldo", "i-mira"]);
+    expect(await repo.findOperation(cid, "op-faked")).toBeNull();
   });
 
   it("the host path keeps its authority — upsertHolder still sets standing (§5.3)", async () => {
