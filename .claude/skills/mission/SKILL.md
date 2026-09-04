@@ -238,8 +238,9 @@ See `### Amends:` under Protected vocabulary. Nothing else yet.
   committed to `main` and the owner published from there, so npm recorded a `gitHead` ahead of
   the tag. Neither move changed a published byte, but the invariant this repo keeps is tag =
   `main` = `gitHead`. Tag as late as possible: re-read `main` immediately before tagging, and
-  read `gitHead` back from npm after the publish rather than assuming the tag matches.
+  read `gitHead` back from npm after the publish rather than assuming the tag matches. The shape of this
+  one is now `PROTOCOL.md` § Handing a gated action over; what stays here is which files it names.
 - 2026-09-04 — `npm publish` runs `prepublishOnly`, which is `pnpm build && pnpm test`. On a
   machine whose default Node cannot build `better-sqlite3`, the publish fails inside its own
   hook. Hand the owner a publish command that puts the working Node on `PATH` first, never a
-  bare `npm publish`.
+  bare `npm publish`. Same section of `PROTOCOL.md` carries the general form.
