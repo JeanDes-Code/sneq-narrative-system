@@ -96,6 +96,7 @@ Discover it from `MISSION.md § Tool surface`; this is the standing baseline.
 | the CLI | `node dist/cli.js <command> --db ./tmp.db --campaign <id>` | after `pnpm build`; `*.db` is gitignored |
 | GitHub | `gh issue`, `gh pr`, `gh pr checks` | authenticated as the owner |
 | npm | `npm view sneq-engine version` | read only; publishing is the owner's |
+| publish | `npm publish` | the owner's, with the OTP. `prepublishOnly` runs `pnpm build && pnpm test`, so it needs the same Node the baseline runs under |
 
 ## Play: land an issue
 
@@ -228,3 +229,17 @@ See `### Amends:` under Protected vocabulary. Nothing else yet.
 - 2026-09-03 — The issue's own fix snippet did not compile: it read `e.kind` where the element is
   `{ inventionId, evidence: { kind } }`. Code in an issue is a claim like its prose. The brief
   handed the executor the contradiction, and the executor settled it before writing.
+- 2026-09-04 — Release 0.6.1, gate `release`. The version lives in **three** places, not the two
+  `CLAUDE.md` claimed: `package.json`, `SNEQ_ENGINE_VERSION`, and a literal in the smoke test.
+  Le Chariot found the third by running the suite after the bump, and the fix went into the
+  release commit itself. A bump verified only by reading is a bump half done.
+- 2026-09-04 — The tag raced the owner twice. It was placed on the release merge, then the owner
+  pushed README commits, and `README.md` ships in the tarball; it was moved, then another session
+  committed to `main` and the owner published from there, so npm recorded a `gitHead` ahead of
+  the tag. Neither move changed a published byte, but the invariant this repo keeps is tag =
+  `main` = `gitHead`. Tag as late as possible: re-read `main` immediately before tagging, and
+  read `gitHead` back from npm after the publish rather than assuming the tag matches.
+- 2026-09-04 — `npm publish` runs `prepublishOnly`, which is `pnpm build && pnpm test`. On a
+  machine whose default Node cannot build `better-sqlite3`, the publish fails inside its own
+  hook. Hand the owner a publish command that puts the working Node on `PATH` first, never a
+  bare `npm publish`.
