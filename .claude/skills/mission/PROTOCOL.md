@@ -1,4 +1,4 @@
-<!-- vendored from jean-ai-os/protocols/MISSION-PROTOCOL.md @ ca2f801 le 2026-09-03
+<!-- vendored from jean-ai-os/protocols/MISSION-PROTOCOL.md @ 31d9b3c le 2026-09-05
      Généré. Ne pas éditer ici : la prochaine re-vendorisation écrase. Voir § Self-improvement. -->
 # Mission protocol
 
@@ -261,6 +261,29 @@ it answered a different question than the one that mattered.
 **SLOT — cheap checks here.** *The repo answers: which one-line commands read back real state in this
 repo?*
 
+# Handing a gated action over does not end your part in it
+
+The human's gates mean you prepare and they act. Two things go wrong in the gap between those, and
+both look like success from where you sit.
+
+**A stamp you place on a moving branch is the previous rule at its most expensive.** Anything that
+marks one commit as *the* one — a release tag, a pinned reference, a recorded baseline — is only
+true while nobody pushes. During one release the tag was placed on the merge that closed the work,
+then the human pushed documentation commits, and those documents shipped inside the published
+artifact; the tag was moved, then another session committed and the human published from there, so
+the registry recorded an origin one commit ahead of the tag again. No published byte differed
+either time, and the invariant still broke twice. So place the stamp as late as the sequence allows,
+re-read the branch head in the same breath as stamping it, and afterwards read back **what the
+outcome recorded** — the registry's own origin field, the artifact's own metadata — instead of
+assuming it matches what you prepared.
+
+**The command you hand over runs in their shell, not yours.** It inherits their environment, and it
+may fire the project's own pre-action hooks: a publish that builds and tests first, a push that runs
+a guard. Your baseline passed because your shell had been set up for it over the preceding hours,
+and none of that setup is in the one line you paste. So hand over a command that carries what it
+needs, and say which part is load-bearing. A bare verb — publish, deploy, release — is a command
+that works on your machine.
+
 # An agent that SENT A REPORT is not an agent that has FINISHED
 
 The mirror of the rule above, and it fails in the more dangerous direction. A report reads like an
@@ -461,3 +484,8 @@ different repos both **added** to the set without ever removing from it.
 2026-09-03: § A loop polishes and the bar line in § Briefing an executor. Taken from a builder/critic
 loop skill in use on game repos, after a published run of the same pattern on a product page
 showed what the loop does to an open premise. The loop tooling itself stays a slot.
+
+2026-09-05: § Handing a gated action over. Promoted from one repo's delta after a library release,
+where the tag raced the human's own commits twice and a bare publish command would have failed
+inside the project's own pre-publish hook. The repo keeps the version of both lessons that names
+its files and its toolchain; what is here is the shape.
