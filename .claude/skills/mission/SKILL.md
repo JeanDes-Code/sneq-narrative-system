@@ -24,7 +24,7 @@ same directory four other repos use. Missions must not write anywhere else in th
 
 Before the first dispatch:
 
-1. **Read `CLAUDE.md`**, then the latest hand-off in `docs/tech/` (the highest-numbered file). Section
+1. **Read `AGENT.md`**, then the latest hand-off in `docs/tech/` (the highest-numbered file). Section
    numbers cited in code comments (§5.1, §7.2, §11) refer to `docs/tech/9-*.md`, the design of
    record. Every hand-off names the commit its line numbers come from. Read at that commit or
    re-locate by symbol.
@@ -161,7 +161,7 @@ it runs under, and where its rounds write.*
 - A rule an agent using the engine must follow: `skills/sneq-narrative-engine.md`, which ships in
   the npm package and is what consumers' agents read. `UPGRADING.md` when the rule changed between
   versions.
-- A rule a developer of the engine must follow: `CLAUDE.md`.
+- A rule a developer of the engine must follow: `AGENT.md`.
 - A misuse that a campaign's state can reveal: a `doctor` check in `src/core/doctor.ts`, which
   names the corrective call.
 - Deferred work: a GitHub issue that cites `file:line` at a named commit.
@@ -201,7 +201,7 @@ Six signals mean less than they look like they mean. All six have happened.
 
 A mission does not overrule what already governs this repo. Precedence, highest first:
 
-1. **The repo's `CLAUDE.md`**: the three layers and their direction (`domain`, then `core` which is pure, then
+1. **The repo's `AGENT.md`**: the three layers and their direction (`domain`, then `core` which is pure, then
    `atomic` which executes), the ledger is append-only, beliefs are never stored, the model must not
    write effects, every public symbol goes through `src/index.ts`, `docs/api.md` is regenerated
    and committed when the API moves.
