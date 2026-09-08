@@ -1,8 +1,8 @@
 {
   "name": "sneq-engine",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "packageManager": "pnpm@10.30.3",
-  "description": "Bookkeeping engine for turn-based AI-narrated games (SNEQ V2) \u2014 canonical entities, facts, scenes and turns for AI game masters",
+  "description": "Narrative state and character knowledge for AI game masters, with entity resolution, atomic turn commits, and a JSON CLI.",
   "type": "module",
   "license": "MIT",
   "repository": {

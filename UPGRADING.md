@@ -9,6 +9,11 @@ the whole design landed as one release.
 
 ---
 
+## 0.6.2
+
+Documentation and package metadata only. No API changes or campaign migration.
+The existing runtime and SQLite peer requirements are unchanged.
+
 ## 0.6.1 — the model stops writing its own uptake
 
 **No database migration. No schema change. No tool added or removed.** If your

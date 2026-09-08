@@ -1,52 +1,44 @@
-# sneq-narrative-system
+# sneq-engine
 
 [![npm version](https://img.shields.io/npm/v/sneq-engine)](https://www.npmjs.com/package/sneq-engine)
 [![npm total downloads](https://img.shields.io/npm/d18m/sneq-engine)](https://www.npmjs.com/package/sneq-engine)
 
-A narrative-state engine for AI-narrated games — TTRPGs with an AI Game Master, AI-driven RPGs, agent-played campaigns on Discord, anything where the AI invents the world and you don't want it forgetting what it invented.
+A TypeScript engine for AI-narrated games. Track canonical entities, commit narrative events, and query what each character knows.
 
-> **Status:** V2 — published on npm as [`sneq-engine`](https://www.npmjs.com/package/sneq-engine). Bindings to specific consumers (TTRPG app, Hermes-Agent on Discord) are separate follow-ups.
+Your host controls the prompt and narration. SNEQ stores world state, resolves entity mentions, and tracks how news reaches characters.
+Use it from a Node.js app or through the JSON CLI from an agent runtime such as Hermes-Agent.
 
----
+Node.js 20+, ESM only. The only required dependency is `zod`; storage and provider SDKs are optional peers.
+The package is pre-1.0. Read [UPGRADING.md](https://github.com/JeanDes-Code/sneq-narrative-system/blob/main/UPGRADING.md) before updating an existing campaign, including patch releases with stricter validation.
 
 ## What problem this solves
 
-When an LLM plays GM, two things break over a real campaign:
+An AI Game Master can invent a blacksmith in one turn and contradict that character in the next.
+It can also give a distant character news they never learned.
+SNEQ gives the host a record of the world and a separate view of what each character knows.
 
-1. **It forgets.** Three sessions in, the blacksmith's name has drifted, the village your character liberated has a different geography, the secret it hinted at last week has been silently rewritten.
-2. **It forks canon.** Even within a single session, the model will happily invent a "captain of the guard" who is structurally the same person as the captain you met in chapter one — under a different name, with a different personality, in a different city.
+SNEQ stands for *Système Narratif à État Quantique*. Invented details can stay provisional until a validated promotion makes them canon.
+The original design lives in [SNEQ/](https://github.com/JeanDes-Code/sneq-narrative-system/tree/main/SNEQ/); the current knowledge model is specified in [the stratified knowledge spec](https://github.com/JeanDes-Code/sneq-narrative-system/blob/main/docs/tech/9-sneq-v04-stratified-knowledge-spec-2026-08-06.md).
 
-`sneq-engine` is a **bookkeeping library** that sits next to your GM agent. You drive the narration; the engine tracks canonical entities, facts, scenes, and turns, resolves new mentions against the existing world, and refuses to let the model fork reality.
+## What the engine does
 
-It implements the SNEQ model — **Système Narratif à État Quantique** — a narrative engine where invented detail stays provisional until the fiction takes it up, then collapses into canon. The original v1 design lives in [`SNEQ/`](./SNEQ/). 0.5.0 also adds the piece v1 only gestured at: **knowledge is per character**. Events happen at a place, witnesses know them immediately, and everyone else learns them when news physically reaches them — or never.
+- Resolves mentions through aliases, vectors, an LLM judge, then user adjudication. Without embeddings, resolution starts with exact names and aliases.
+- Returns `needsAdjudication` and candidates when `mentionEntity` finds an unresolved ambiguity. The host chooses an existing entity or explicitly creates another.
+- Derives knowledge for a holder, meaning a character or group. Witnesses know an event; others learn through delivered news or accessible records.
+- Tracks a world clock and news delivery over routes declared by the host, with travel time, standing and realm rules.
+- Commits a narrative bundle atomically, with replay protection through `operationId`. The event ledger is append-only; current attributes are derived from it.
+- Keeps inventions provisional until promotion passes the engine's rules. Player uptake comes from `playerUtterance`; the model cannot submit its own `PLAYER_UPTAKE` evidence.
+- Checks composed prompts and narration for known forbidden tokens. The host calls `assertContainment` before generation and `validateNarration({ holderId, narration })` before showing the result.
+- Exposes ten model tools, a JSON CLI and `doctor` diagnostics for campaign state and authoring gaps.
 
-0.5.0 drops v1's constraint propagation through the relation graph. A jealous partner reacts when they *learn*, not by graph contagion; the propagation machinery had zero call sites and has been removed.
-
-## What V2 ships
-
-- **Bookkeeping library** in TypeScript (Node 20+, ESM). No GM logic; you stay in control of prose.
-- **Multi-campaign** — one Engine instance, many campaigns, scoped by `campaignId`.
-- **Layered entity resolution** — `alias → vector → LLM judge → user-prompt` cascade for "is this the same NPC as 3 sessions ago?". Runs **keyless** in a degraded alias-only mode (omit the embeddings tier, `embeddingDim: 0`). Worth being honest about: this is what most real deployments run, not a demo setting — and it removes the vector rung entirely, so resolution is exact-name-or-alias only. `setEmbeddingDim` + `reindexEmbeddings` let a campaign move between dimensions later; before 0.5.0 the choice was permanent, which is very likely why everyone picked `0`.
-- **Anti-fork guard** — `mention_entity` refuses to silently create a near-duplicate when resolution is ambiguous: it returns `needsAdjudication: true` + candidates so the caller decides (re-use an id, or re-call with `force: true`).
-- **Provider router** with three task tiers (`heavy` / `light` / optional `embeddings`), each with primary + fallback chain and real retry/backoff. Built-in adapters for DeepSeek, Mistral, Together, OpenRouter (fetch-based, zero deps), plus Anthropic and Google GenAI (lazy-loaded — their SDKs are genuinely optional peers), and a `custom` escape hatch.
-- **Per-holder knowledge (the perspective seam)** — `getHolderContext` is the *only* read of world knowledge, and it is always somebody's. There is no "what is true" call on the tool surface, so a character cannot leak a fact the API never handed over. `assertContainment` lets the host submit its final composed prompt and get that guarantee checked before the model call. Landmarks tagged `public` keep their *name* mentionable; what happened there does not.
-- **A world clock, and news that travels** — events carry a day and a place; carriages carry news along declared routes at declared speeds, subject to standing and realm borders. A holder can be honestly ignorant of yesterday's news two towns over.
-- **One atomic write** — `commit_narrative` takes the whole turn as one bundle, idempotent by `operationId`. No more five order-sensitive writes in an agent loop.
-- **Three repository adapters** behind one contract: SQLite + sqlite-vec (file-based, zero ops), in-memory (`sneq-engine/memory`, zero deps, brute-force cosine), and JSON-file (`sneq-engine/json`, atomic write-through, human-readable saves). The shared contract test suite is the seam's specification.
-- **Tool-call protocol** — Zod-validated tool schemas + ready-to-drop-in adapter shapes for Anthropic, OpenAI-compatible, and Gemini SDKs (10 advertised tools). Branded ids are checked at the tool boundary: a free-text name where an id belongs is rejected with the call that fixes it, instead of succeeding silently.
-- **A conformance checklist** — `sneq-engine doctor --campaign <id>` says *why* a campaign is misbehaving instead of leaving you an impression.
-- **Agent-discoverable skill** — drop [`skills/sneq-narrative-engine.md`](./skills/sneq-narrative-engine.md) into a Claude Code / Hermes-Agent skills dir and the agent learns when to call which engine tool.
-
-## Stack policy
-
-The default router excludes **OpenAI** and **xAI/Grok**. The `custom` provider escape hatch lets the host wire whatever they want — but the shipped defaults reflect a deliberate stack choice. See [`docs/superpowers/specs/2026-05-19-sneq-v2-engine-design.md`](./docs/superpowers/specs/2026-05-19-sneq-v2-engine-design.md) §6 for the full rationale.
+Containment checks match tokens; they do not detect every paraphrase or semantic contradiction.
+The host must use the checks and decide how to repair or block a rejected narration.
 
 ## Install
 
 ```bash
-pnpm add sneq-engine      # only hard dependency: zod
-# or, for the CLI alone:
-npm i -g sneq-engine      # puts the `sneq-engine` binary on your PATH
+npm install sneq-engine
+# or: pnpm add sneq-engine
 ```
 
 To hack on the engine itself, clone the repo and see [Development](#development).
@@ -56,72 +48,108 @@ Optional peers, **only for what you actually use** (the core import never touche
 | You use | Install |
 |---|---|
 | `sneq-engine/memory` or `sneq-engine/json` | nothing |
-| `sneq-engine/sqlite` without vectors (`embeddingDim: 0`) | `better-sqlite3` |
-| `sneq-engine/sqlite` with vector resolution | `better-sqlite3 sqlite-vec` |
+| `sneq-engine/sqlite` without vectors (`embeddingDim: 0`) | `better-sqlite3@^11` |
+| `sneq-engine/sqlite` with vector resolution | `better-sqlite3@^11 sqlite-vec@^0.1` |
 | DeepSeek / Mistral / Together / OpenRouter / any OpenAI-compatible | nothing (fetch-based) |
-| the Anthropic provider | `@anthropic-ai/sdk` |
-| the Google GenAI provider | `@google/generative-ai` |
+| the Anthropic provider | `"@anthropic-ai/sdk@>=0.30.0 <1"` |
+| the Google GenAI provider | `"@google/generative-ai@>=0.21.0 <1"` |
 
-## Quick start — zero config, zero keys
+## Quick start without API keys
 
-No API keys, no native modules: the in-memory adapter plus alias-only resolution.
-This is the smallest thing that works — perfect for a demo mode or a prototype.
+Create an entity, find it by alias, commit an event, and read the witness's knowledge.
+The in-memory store needs no native modules. Save this as `demo.mjs` and run `node demo.mjs` after installing the package.
 
-```ts
-import { Engine, asCampaignId } from "sneq-engine";
+```js
+import { Engine, asCampaignId, asEventId, defaultRouterConfig } from "sneq-engine";
 import { memoryRepository } from "sneq-engine/memory";
 
+// Keep the chat tiers, but omit embeddings for alias-only resolution.
+const { heavy, light } = defaultRouterConfig().tiers;
 const engine = new Engine({
-  repository: memoryRepository(),         // or jsonFileRepository({ path: "./save.json" })
-  router: { tiers: {
-    heavy: { primary: { provider: "openai-compatible", baseUrl: "https://api.deepseek.com/v1", apiKeyEnv: "DEEPSEEK_API_KEY", model: "deepseek-chat" }, fallbacks: [] },
-    light: { primary: { provider: "openai-compatible", baseUrl: "https://api.deepseek.com/v1", apiKeyEnv: "DEEPSEEK_API_KEY", model: "deepseek-chat" }, fallbacks: [] }
-    // no embeddings tier → alias-only resolution, no embeddings key needed
-  } }
+  repository: memoryRepository(),
+  router: { tiers: { heavy, light } },
 });
 
-const campaign = await engine.createCampaign({
-  id: asCampaignId("demo"), name: "Demo", embeddingDim: 0   // 0 = no vectors
-});
-```
+try {
+  const campaign = await engine.createCampaign({
+    id: asCampaignId("demo"), name: "Valmure", embeddingDim: 0,
+  });
 
-With a chat key present the LLM judge still disambiguates multi-alias hits; with no
-keys at all the engine stays fully functional on exact-alias resolution.
-
-## Quick start — full cascade (SQLite + vectors)
-
-```ts
-import { Engine, defaultRouterConfig, asCampaignId } from "sneq-engine";
-import { sqliteRepository } from "sneq-engine/sqlite";
-
-const engine = new Engine({
-  repository: sqliteRepository({ path: "./my-campaign.db", embeddingDim: 768 }),
-  router: defaultRouterConfig()
-});
-
-const campaign = await engine.createCampaign({
-  id: asCampaignId("campaign-1"),
-  name: "The Forgeron of Valmure",
-  embeddingDim: 768
-});
-
-// Player says "I look for the blacksmith"
-const r = await campaign.resolveEntity({ mention: "the blacksmith" });
-if (r.match) {
-  console.log("Known:", r.match.name);
-} else {
-  await campaign.mentionEntity({
-    canonicalName: "Aldric Fervent",
+  const smith = await campaign.mentionEntity({
+    canonicalName: "Aldric",
     type: "PERSONNAGE",
     aliases: ["the blacksmith"],
-    description: "A grizzled smith with haunted eyes."
+    description: "The village blacksmith.",
   });
+  if (smith.needsAdjudication) {
+    throw new Error("Choose an existing entity or confirm a new one before continuing.");
+  }
+
+  const resolved = await campaign.resolveEntity({ mention: "the blacksmith" });
+  console.log(resolved.match?.name); // Aldric
+
+  await campaign.commitNarrative({
+    operationId: "demo-event-1", // Reuse on retry; the last 100 IDs are retained.
+    daysElapsed: 1,
+    event: {
+      eventId: asEventId("ev-demo-1"),
+      gravity: 1,
+      circumstance: "Aldric burns the missing ledger.",
+      participants: [smith.entityId],
+      surfaceTokens: ["the missing ledger"],
+      acts: [{ actorId: smith.entityId, verb: "BURNS" }],
+    },
+  });
+
+  const context = await campaign.getHolderContext({ entityId: smith.entityId });
+  console.log(context.day);                  // 1
+  console.log(context.beliefs[0]?.certainty); // WITNESSED
+} finally {
+  await engine.close();
 }
 ```
 
-## Distributed stores — opt-in atomic writes
+This example makes no provider calls. Ambiguous alias matches may call the LLM judge when credentials are configured.
+Without keys, unresolved ambiguity goes back to the caller. Alias-only resolution does not find semantic near-duplicates with unrelated names.
 
-Local repositories keep the historical API unchanged:
+The built-in repositories retain the last 100 committed operation IDs per campaign. Retries outside that window are not deduplicated.
+
+An event's `verb` describes the action for the host. To change a canonical attribute, include an explicit `sets` payload on the act.
+
+## Persistent storage and vector resolution
+
+Replace the memory adapter in the example with either of these stores:
+
+```ts
+import { jsonFileRepository } from "sneq-engine/json";
+
+const jsonStore = jsonFileRepository({ path: "./save.json", embeddingDim: 0 });
+```
+
+Or, after installing `better-sqlite3@^11`:
+
+```ts
+import { sqliteRepository } from "sneq-engine/sqlite";
+
+const sqliteStore = sqliteRepository({ path: "./campaign.db", embeddingDim: 0 });
+```
+
+Pass the chosen store as `repository` in `new Engine(...)`. Reopen a saved campaign with `engine.campaign(asCampaignId("demo"))` instead of creating it again.
+JSON saves support one process; do not use them with concurrent writers. SQLite uses a native module, so its supported Node versions depend on `better-sqlite3`.
+
+To add vector resolution, configure a `router.tiers.embeddings` provider and install `sqlite-vec@^0.1` if using SQLite.
+The provider output, repository and campaign must use the same nonzero `embeddingDim`.
+Omitting the embeddings tier **and** using `embeddingDim: 0` gives alias-only operation; setting the dimension alone does not disable provider calls.
+Use `setEmbeddingDim` and `reindexEmbeddings` for an existing store; see [the API reference](https://github.com/JeanDes-Code/sneq-narrative-system/blob/main/docs/api.md).
+
+The router supports `heavy`, `light` and optional `embeddings` tiers, each with retry and fallback settings.
+DeepSeek, Mistral, Together and OpenRouter use the fetch-based `openai-compatible` adapter.
+Anthropic and Google GenAI use their optional SDK peers; `custom` accepts a host-provided adapter.
+The default router excludes OpenAI and xAI/Grok by choice. Hosts can supply their own router configuration.
+
+## Distributed stores and atomic writes
+
+Local repositories provide transactions:
 
 ```ts
 new Engine({
@@ -148,21 +176,20 @@ const engine = new Engine({
   routerInstance: sharedRouter,
 });
 
-engine.routerClient() === sharedRouter; // true — the host and canon share one Router
+engine.routerClient() === sharedRouter; // true; the host and canon share one Router
 ```
 
 The strategy owns the atomic execution of `setScene`, `advanceTurn`, entity confirmation,
 constraint append (`addConstraint`), and canonical entity creation (`createEntity`).
 Pure command decisions are available from `sneq-engine/atomic` so an adapter can run
-SNEQ's rules inside its store transaction without importing a framework into the engine —
-including **`decideCommitNarrative`**, which is how an out-of-tree store shares the single
-write's rules instead of re-deriving promotion, dispatch and contradiction by hand.
+SNEQ's rules inside its store transaction without importing a framework into the engine.
+`decideCommitNarrative` exposes the rules for promotion, dispatch and contradiction checks to these adapters.
 
 `commit_narrative` itself needs a real transaction, and there is no honest way to fake one:
 an access-only store implements it against `decideCommitNarrative`.
 
 Every command carries an `operationId` generated once per logical engine call and stable across its
-retries. **The engine does not deduplicate on it** — the built-in repository-backed strategy ignores
+retries. **For these individual commands, the built-in strategy does not deduplicate on it**; the built-in repository-backed strategy ignores
 the field and is an in-process `Repository.transaction(fn)`. If you need exactly-once semantics over a
 transport that can lose a response after the store committed, your distributed strategy implements the
 dedup, keyed on that ID, and returns the original result. The token exists so you can; it is not a
@@ -172,7 +199,7 @@ Canonical creation is optimistic: `mentionEntity()` reads a per-campaign `entity
 embeds outside any transaction, then asks the strategy to `createEntity` only if the revision is
 unchanged. If canon moved under it the create returns `stale` and the engine re-resolves against the
 newer world before retrying (bounded, then `SneqConcurrentEntityCreationError`). A distributed strategy
-must **not** record a non-terminal `stale` result in its idempotency store — only terminal
+must **not** record a non-terminal `stale` result in its idempotency store; only terminal
 create/existing/conflict results are deduplicated.
 
 For asynchronous web adjudication, `mentionEntity()` still returns `needsAdjudication`. A later
@@ -189,154 +216,138 @@ await campaign.confirmEntityMatch({
 This complements the synchronous `UserPromptRegistry`; it does not replace it. File-backed agents
 such as Hermes can continue using their current prompt handler and repository configuration.
 
-## CLI usage (out-of-process consumers)
+## CLI usage
 
-For agents that can't (or don't want to) embed the TypeScript library — Hermes-Agent
-on Discord, scripts in other languages, smoke-test sessions — install the package and
-use the `sneq-engine` binary. Every call reads/writes a single line of JSON on stdout.
+The CLI uses SQLite. Install its peer alongside the package; the library's memory and JSON adapters do not change the CLI storage backend.
 
 ```bash
-# Create a campaign
-sneq-engine init-campaign --db ./campaign.db --campaign forge-de-valmure \
-  --args '{"name":"La Forge de Valmure","embeddingDim":768}'
-
-# Resolve a mention
-sneq-engine lookup-entity --db ./campaign.db --campaign forge-de-valmure \
-  --args '{"mention":"the blacksmith","type":"PERSONNAGE"}'
-
-# The single write. daysElapsed is required — the fiction declares its own time.
-# An act reaches canon only through its explicit `sets`; the engine never reads `verb`.
-sneq-engine commit-narrative --db ./campaign.db --campaign forge-de-valmure \
-  --args '{"operationId":"op-1","daysElapsed":1,"event":{"eventId":"ev-1","gravity":1,
-           "circumstance":"Aldric prend le commandement.","participants":["ent_abc"],
-           "surfaceTokens":[],"acts":[{"actorId":"ent_abc","verb":"TAKES_COMMAND",
-           "sets":{"entityId":"ent_abc","key":"metier","category":"HISTORIQUE",
-                   "value":{"type":"STRING","value":"capitaine"}}}]}}'
-
-# What ONE character knows. There is no read for what is true.
-sneq-engine get-holder-context --db ./campaign.db --campaign forge-de-valmure --entity ent_abc
-
-# Out-of-band time only: downtime, a session break. In-fiction time rides on commit-narrative.
-sneq-engine advance-turn --db ./campaign.db --campaign forge-de-valmure --days 7
-
-# Why is this campaign misbehaving?
-sneq-engine doctor --db ./campaign.db --campaign forge-de-valmure
-
-# Args via stdin work too
-echo '{"entityId":"ent_abc"}' | sneq-engine get-entity --db ./campaign.db --campaign forge-de-valmure
-
-# Probe whether a campaign is initialized (no throw on missing)
-sneq-engine campaign-exists --db ./campaign.db --campaign forge-de-valmure
-
-# Wake-up probe: the frame only — day, turn, scene, who is present by identity.
-# Add --holder/--entity and it also carries that holder's knowledge.
-sneq-engine prepare-turn --db ./campaign.db --campaign forge-de-valmure
-
-# Validate a candidate narration before flushing to the player
-sneq-engine validate-narration --db ./campaign.db --campaign forge-de-valmure \
-  --args '{"narration":"Mira rejoint Aldric à Valmure.","strict":true}'
+npm install sneq-engine better-sqlite3@^11
 ```
 
-- **18 commands**: the 9 tool dispatcher entries (`lookup-entity`, `get-entity`, `get-holder-context`, `suggest-existing`, `mention-entity`, `commit-narrative`, `add-constraint`, `set-scene`, `advance-turn`) plus three conveniences (`init-campaign`, `get-scene`, `campaign-exists`), one defensive validation command (`validate-narration`), one orchestration command (`prepare-turn`), holder authoring (`upsert-holder`), the dispatch policy pair (`show-dispatch-policy`, `set-dispatch-policy`), and the conformance checklist (`doctor`).
-- `--holder <id>` / `--entity <id>` / `--days <N>` are the three flags that do **not** travel through `--args`. They break the convention deliberately: they are typed by hand every turn of live play.
-- `--source out-of-band` is the sanctioned road for "the human confirmed this outside the fiction". It travels the normal commit path, may be back-dated, and `doctor` counts it — so laundering invention through it is visible in one line.
-- `doctor` exits `1` on a FAIL, so a wrapper script or CI step can gate on it. A WARN is worth reading, not worth failing a build over.
-- Exit codes: `0` on success, `1` on user/validation errors, `2` on internal errors.
-- Errors emit `{"error":"…","code":"…","details":…}` on stdout — never on stderr.
-- Provider keys (`ANTHROPIC_API_KEY`, `MISTRAL_API_KEY`, etc.) are read from env.
-  Use `--config <path>` to override the router config.
-- `--embedding-dim` is only needed at `init-campaign` (existing DBs remember their dim).
-  The default derives from the config's embeddings primary (768 with the default config);
-  pass `0` for alias-only campaigns with no embeddings provider at all.
-- Run `sneq-engine --help` or `sneq-engine <command> --help` for usage details.
-- Full spec: [`docs/superpowers/specs/2026-05-20-sneq-cli-design.md`](docs/superpowers/specs/2026-05-20-sneq-cli-design.md) (initial CLI) + [`docs/superpowers/specs/2026-05-21-sneq-defensive-features-design.md`](docs/superpowers/specs/2026-05-21-sneq-defensive-features-design.md) (defensive features).
+For a keyless campaign, save the following as `sneq.config.json`. The router still requires chat tiers, but this configuration has no embeddings tier.
+
+```json
+{
+  "router": {
+    "tiers": {
+      "heavy": {
+        "primary": { "provider": "openai-compatible", "baseUrl": "https://api.deepseek.com/v1", "apiKeyEnv": "DEEPSEEK_API_KEY", "model": "deepseek-chat" },
+        "fallbacks": []
+      },
+      "light": {
+        "primary": { "provider": "openai-compatible", "baseUrl": "https://api.deepseek.com/v1", "apiKeyEnv": "DEEPSEEK_API_KEY", "model": "deepseek-chat" },
+        "fallbacks": []
+      }
+    }
+  }
+}
+```
+
+Run these commands in a fresh directory containing that config:
+
+```bash
+npx sneq-engine init-campaign --db ./campaign.db --campaign demo \
+  --config ./sneq.config.json --embedding-dim 0 --args '{"name":"Valmure"}'
+
+npx sneq-engine mention-entity --db ./campaign.db --campaign demo \
+  --config ./sneq.config.json \
+  --args '{"canonicalName":"Aldric","type":"PERSONNAGE","aliases":["the blacksmith"],"description":"The village blacksmith."}'
+
+npx sneq-engine lookup-entity --db ./campaign.db --campaign demo \
+  --config ./sneq.config.json --args '{"mention":"the blacksmith"}'
+
+npx sneq-engine prepare-turn --db ./campaign.db --campaign demo \
+  --config ./sneq.config.json
+
+npx sneq-engine doctor --db ./campaign.db --campaign demo \
+  --config ./sneq.config.json
+```
+
+`lookup-entity` returns Aldric's generated ID and name. Use that ID in later calls; entity names are not IDs.
+Pass `--config` on every invocation. Existing databases remember their vector dimension, but the CLI loads router settings on each call.
+
+Commands return one line of JSON on stdout, including errors. Help prints plain text.
+Exit codes are `0` for success, `1` for user or validation errors, and `2` for internal errors.
+`doctor` exits `1` when a check fails; warnings alone do not fail the command.
+
+Use `--args` or JSON on stdin for tool arguments. `--holder`, `--entity` and `--days` are convenience flags for supported commands.
+`prepare-turn` returns the scene and clock; add `--holder` or `--entity` to include that holder's knowledge.
+`advance-turn --days N` advances out-of-band time; in-fiction time belongs in `commit-narrative.daysElapsed`.
+
+Run `npx sneq-engine --help` for the command list, or `npx sneq-engine <command> --help` for its arguments.
+The [agent guide](https://github.com/JeanDes-Code/sneq-narrative-system/blob/main/skills/sneq-narrative-engine.md) explains when to call each tool.
 
 ## Wiring as agent tools
 
 ```ts
 import { Engine } from "sneq-engine";
+import type { CampaignContext } from "sneq-engine";
 
 // Get the tool schemas in the shape your model wants (10 advertised tools):
 const anthropicTools = Engine.tools.anthropic;
-const openaiTools    = Engine.tools.openai;
+const compatibleTools = Engine.tools.openai;
 const geminiTools    = Engine.tools.gemini;
 
-// Pass into your model call. When the model emits a tool call, dispatch it:
-const result = await campaign.handleToolCall(name, args);
+// With a CampaignContext from the quick start, dispatch each model tool call:
+async function handleToolCall(campaign: CampaignContext, name: string, args: unknown) {
+  return campaign.handleToolCall(name, args);
+}
 ```
 
-The full tool reference (when to call what, in narrative terms) lives in [`skills/sneq-narrative-engine.md`](./skills/sneq-narrative-engine.md). The authoritative signatures live in [`docs/api.md`](./docs/api.md).
+Call host-only methods such as `ingestPlayerInput`, `assertContainment` and `upsertHolder` from your orchestration code.
+The model tools alone do not run the full turn pipeline.
+Pass `holderId` to `validateNarration` to include containment; without it, the method only checks entity mentions.
+Existing holders cannot change standing through `commit_narrative`; host authoring uses `upsertHolder`.
+Pass raw `playerUtterance` for player uptake instead of adding `PLAYER_UPTAKE` to `promotionEvidence`.
+
+The full tool reference (when to call what, in narrative terms) lives in [`skills/sneq-narrative-engine.md`](https://github.com/JeanDes-Code/sneq-narrative-system/blob/main/skills/sneq-narrative-engine.md). The authoritative signatures live in [`docs/api.md`](https://github.com/JeanDes-Code/sneq-narrative-system/blob/main/docs/api.md).
 
 ## Architecture
 
-The turn pipeline is the contract; the ten tools are one supported binding of it.
-SNEQ owns the **decisions** and requires **sight of the payload** — it never owns your prompt.
+The host runs the turn pipeline. Model tools expose part of it; host code composes the prompt and enforces the checks.
 
-```
-  your host / GM agent
-        │
-        │  A  ingestPlayerInput ─────────► mentions resolved, uptake detected
-        │  B  getHolderContext  ─────────► what THIS holder knows, ranked
-        │  C  renderContextBlock / filterTranscript
-        │  D  assertContainment(payload) ─► throws before the model call
-        │  E  ── your LLM call ── (Router optional)
-        │  F  validateNarration ─────────► PASS | REPAIR | BLOCK
-        │  G  commitNarrative(bundle) ───► one write, atomic, idempotent
-        │  H  advanceTurn({days}) ───────► out-of-band clock + world health
-        ▼
- ┌──────────────────────────────────────────────────────────────┐
- │  Engine (facade) · engine.campaign(id).…                     │
- └───┬──────────────────────────────────────────────────────────┘
-     │
-     ├─ the perspective seam ──────────────────────────────────┐
-     │    deriveBeliefs   holder cascade   containment          │
-     │    (pure, never stored)                                  │
-     │        ▲              ▲                                  │
-     │        │              │                                  │
-     ├─ the ledger (APPEND-ONLY) ────────────────────────────┐  │
-     │    events · records · carriages · carriage effects    │  │
-     │    holders · inventions · invention transitions       │  │
-     │        │                                              │  │
-     │        └── deterministic fold ──► CanonicalAttribute   │  │
-     │            (current state; rebuild(ledger) === it)    │  │
-     └───────────────────────────────────────────────────────┘  │
-     │                                                          │
-     ├─ Resolver cascade · Router tiers · Tools · Hooks ─────────┘
-     │
-     ▼
- Repository contract — SQLite+sqlite-vec / in-memory / JSON-file
-   (no event mutation method exists on this surface; that is the point)
+```text
+Player input -> ingestPlayerInput
+            -> getHolderContext
+            -> renderContextBlock / filterTranscript
+            -> assertContainment on the composed prompt
+            -> your LLM call
+            -> validateNarration({ holderId, narration })
+            -> commitNarrative
+
+Out-of-band time -> advanceTurn({ days })
+
+Engine / CampaignContext
+    -> pure core decisions
+    -> atomic execution
+    -> repository (SQLite, memory, JSON, or a host adapter)
 ```
 
-Two things the picture is making a claim about. **The ledger has no mutation path** — the
-contract test asserts the absence of one, which is unusual and deliberate. And **beliefs are
-never stored**: they are a pure function of (events, records, carriages, effects, holders,
-today), so there is no cache to go stale and no second source of truth to disagree.
+The repository contract has no event mutation method. `CanonicalAttribute` is a deterministic projection of the ledger.
+`deriveBeliefs` computes knowledge from events, records, deliveries, holders and the current day; beliefs are not stored.
+The [turn pipeline test](https://github.com/JeanDes-Code/sneq-narrative-system/blob/main/test/turn-pipeline.test.ts) exercises the phases together.
 
 ## Documentation
 
 | File | Audience |
 |---|---|
-| [`UPGRADING.md`](./UPGRADING.md) | Existing consumers (CLI agents like Hermes, in-process apps) — version migration guide, agent-executable |
-| [`docs/api.md`](./docs/api.md) | TypeScript developers — full API reference (TypeDoc-generated) |
-| [`skills/sneq-narrative-engine.md`](./skills/sneq-narrative-engine.md) | Claude Code / Hermes / agent runtimes — when to invoke which tool |
-| [`docs/superpowers/specs/`](./docs/superpowers/specs/) | V2 design spec (markdown + HTML brief) |
-| [`docs/superpowers/plans/`](./docs/superpowers/plans/) | Implementation plan with per-task TDD steps |
-| [`SNEQ/`](./SNEQ/) | Original v1 design docs (in French) — the conceptual foundation |
+| [`UPGRADING.md`](https://github.com/JeanDes-Code/sneq-narrative-system/blob/main/UPGRADING.md) | Existing consumers (CLI agents like Hermes, in-process apps); version migration guide, agent-executable |
+| [`docs/api.md`](https://github.com/JeanDes-Code/sneq-narrative-system/blob/main/docs/api.md) | TypeScript developers; full API reference (TypeDoc-generated) |
+| [`skills/sneq-narrative-engine.md`](https://github.com/JeanDes-Code/sneq-narrative-system/blob/main/skills/sneq-narrative-engine.md) | Claude Code / Hermes / agent runtimes; when to invoke which tool |
+| [`docs/superpowers/specs/`](https://github.com/JeanDes-Code/sneq-narrative-system/tree/main/docs/superpowers/specs/) | V2 design spec (markdown + HTML brief) |
+| [`docs/superpowers/plans/`](https://github.com/JeanDes-Code/sneq-narrative-system/tree/main/docs/superpowers/plans/) | Implementation plan with per-task TDD steps |
+| [`SNEQ/`](https://github.com/JeanDes-Code/sneq-narrative-system/tree/main/SNEQ/) | Original v1 design docs (in French); the conceptual foundation |
 
-## Known deferred scope
+## Limits
 
-V2 is intentionally minimal. The following are out-of-scope for this version and tracked for follow-ups:
-
-- **Attribute collapse (generate-then-commit)** — there is no `collapse` tool. The collapse loop now runs where it belongs: an invention promotes at commit time, validated against canon and constraints, when the engine detects the player taking it up.
-- **Pre-generation cache** — the v1 spec's elaborate predictor/cache for real-time RPGs. `PreGenerationHook` interface exists with a no-op default; the full implementation is a future version.
-- **Convex / Postgres repository adapters** — SQLite, in-memory, and JSON-file ship; the `Repository` contract test suite (`test/repository/contract.ts`) is the specification for new adapters.
-- **One DB per campaign is the blessed layout** — the sqlite-vec prefilter degrades on shared multi-campaign databases with many entities; the CLI examples already follow this.
-- **Multi-PC / party support** — V2 assumes single-PC sessions.
-- **Belief caching** — `deriveBeliefs` is a pure derivation run on every read. Cost grows with ledger size; measure before assuming it is fine. `doctor` says this out loud rather than implying a cache exists.
-- **A local (keyless) embeddings rung** — `setEmbeddingDim` + `reindexEmbeddings` make moving between dimensions a supported migration, but 0.5.0 still ships no key-free embeddings provider.
-- **HTTP / MCP gateway** — engine is in-process. Wrap trivially later if needed.
-- **Consumer bindings** — TTRPG single-player app and Hermes-Agent MCP / skill integrations get their own follow-up specs.
+- Without embeddings, entity resolution uses exact names and aliases. It cannot catch every duplicate a model invents.
+- Containment uses known tokens. It cannot prove that arbitrary prose respects a character's knowledge.
+- News needs authored routes. A new campaign has default dispatch rules but no routes; `doctor` reports missing delivery paths.
+- Beliefs are derived on every read. Cost grows with the ledger; no belief cache ships.
+- Use one SQLite database per campaign when vector-search scale matters. The current sqlite-vec filtering degrades with large shared databases.
+- SQLite, memory and JSON adapters ship. Distributed stores need their own adapter and atomic write strategy.
+- The session model assumes one player character. No built-in party orchestration, narration loop, HTTP server or MCP gateway ships.
+- `PreGenerationHook` has a no-op default. There is no built-in prediction cache.
 
 ## Project structure
 
@@ -344,19 +355,19 @@ V2 is intentionally minimal. The following are out-of-scope for this version and
 SNEQ/                           v1 design docs (French)
 src/                            engine source
   domain/                       branded IDs, Entity, AttributValue, GCN
-  domain/{event,record,holder,carriage,belief,invention} the 0.5.0 ledger + seam
+  domain/{event,record,holder,carriage,belief,invention} ledger and holder knowledge
   core/                         pure: derive-beliefs, containment, promotion,
                                 holder-resolution, holder-context, projection,
                                 commit-narrative, tick, doctor, migrate-legacy
   atomic/                       the single write's executor + bootstrap
   repository/{interface,sqlite/,memory/,json/} Repository contract + 3 adapters
-  router/{interface,router,providers/,defaults} Router + 4 providers (SDK ones lazy-loaded)
+  router/{interface,router,providers/,defaults} Router and provider adapters (SDKs lazy-loaded)
   resolver/{resolver,judge,thresholds,normalize} Layered cascade (degrades keyless)
   tools/{schemas,json-schema,adapters,dispatcher} Tool-call protocol
   hooks/{user-prompt,pre-generation} Extension points
   engine.ts, campaign.ts        Facade + CampaignContext
   config.ts, logger.ts, errors.ts, index.ts
-test/                           528 unit tests (incl. the repository contract suite) + 1 env-gated integration smoke
+test/                           unit and repository contract tests + an opt-in integration smoke
 docs/                           generated API + design specs + plans
 skills/                         agent-discoverable skill
 ```
@@ -364,21 +375,23 @@ skills/                         agent-discoverable skill
 ## Development
 
 ```bash
-pnpm test            # unit tests (excludes integration smoke)
+pnpm install --frozen-lockfile
 pnpm typecheck       # full project tsc --noEmit
-pnpm build           # emit dist/
+pnpm build           # emit dist/ before the CLI smoke
+pnpm test            # unit tests (excludes integration smoke)
 pnpm docs:build      # regenerate docs/api.md from TypeDoc (CI fails on a stale diff)
 SNEQ_INTEGRATION_SMOKE=1 pnpm test    # include integration smoke (needs API keys)
 ```
 
 ## Feedback
 
-If you are building something with this — a TTRPG companion, a game, a Discord campaign, something I did not think of — I want to hear about it: open a [Discussion](https://github.com/JeanDes-Code/sneq-narrative-system/discussions). What broke or what is missing belongs in an [issue](https://github.com/JeanDes-Code/sneq-narrative-system/issues). You can also write to contact@jean-desauw.fr. Real usage decides what gets built next.
+Building a game or an agent campaign with SNEQ? Share it in [Discussions](https://github.com/JeanDes-Code/sneq-narrative-system/discussions).
+Report bugs and missing behavior in an [issue](https://github.com/JeanDes-Code/sneq-narrative-system/issues), or write to contact@jean-desauw.fr.
 
 ## License
 
-MIT — see [`LICENSE`](./LICENSE).
+MIT. See [`LICENSE`](https://github.com/JeanDes-Code/sneq-narrative-system/blob/main/LICENSE).
 
 ## Acknowledgments
 
-Built with Claude Code (Opus 4.7, 1M context) over a long brainstorm → spec → plan → subagent-driven-execution session. The v1 SNEQ design docs were Jean's starting input; the V2 design, plan, and implementation were produced collaboratively with the AI. The Anthropic [superpowers plugin](https://github.com/anthropics) provided the brainstorming / planning / execution skills.
+Built by Jean Desauw with Claude Code, from the original SNEQ design documents.
