@@ -5,6 +5,17 @@ this file says *what* changed, that one says *what to do about it*.
 
 Versions follow semver with the pre-1.0 caveat: a minor bump may break.
 
+## 0.6.2 (2026-09-08)
+
+### Documentation
+
+- Refresh the npm README and package description around narrative state and character knowledge.
+- Add a runnable keyless example covering entity resolution, event commit and witness knowledge.
+- Correct CLI setup: install the SQLite peer, omit the router's embeddings tier and pass the config on every call.
+- Replace stale version notes and test counts with current limits, and use explicit GitHub links for documentation.
+
+No runtime behavior changes. No campaign migration is required.
+
 ## 0.6.1 — the model stops writing its own uptake
 
 ### Breaking

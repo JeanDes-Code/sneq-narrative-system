@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENT.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Instructions for coding agents working in this repository.
 
 ## What this is
 
@@ -35,6 +35,7 @@ CI runs typecheck, build, test on Node 20 and 22, then regenerates `docs/api.md`
 
 - Run `pnpm docs:build` and commit the result whenever the public API moves. The script is `docs:build`, not `docs` (`pnpm docs` is npm's own command and exits 0 doing nothing useful).
 - Re-export anything new and public from `src/index.ts`. Typedoc only sees what that file exports.
+- When public behavior changes, update the README examples and limits alongside the API and agent guide. Before publishing, run the README quick start and CLI commands against the packed package, with optional peers limited to those documented. The npm page uses the README from the published version; a GitHub edit alone does not refresh it.
 - One PR per change. Jean gates every merge. A git tag means "this commit is a release"; publishing to npm is a separate act Jean does by hand.
 - A version bump touches three places: `package.json`, `SNEQ_ENGINE_VERSION` in `src/index.ts`, and the literal in `test/smoke.test.ts` under "exports version constant". Miss one and `pnpm test` fails on the mismatch.
 
