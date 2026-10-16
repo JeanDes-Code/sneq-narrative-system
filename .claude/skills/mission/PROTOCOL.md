@@ -1,4 +1,4 @@
-<!-- vendored from jean-ai-os/protocols/MISSION-PROTOCOL.md @ 31d9b3c le 2026-09-05
+<!-- vendored from jean-ai-os/missions/protocol/MISSION-PROTOCOL.md @ 794edcd le 2026-10-16
      Généré. Ne pas éditer ici : la prochaine re-vendorisation écrase. Voir § Self-improvement. -->
 # Mission protocol
 
@@ -123,7 +123,8 @@ the save is enforced by Claude Code hooks, which run whatever the model does.
   once is let go, and the gap shows on the next boot.
 - **`SessionStart`** on startup, resume, clear and compact prints the active mission's `STATE.md`
   and `MISSION.md` into the fresh context. The reader side of the same failure: a new session cannot
-  miss a mission it was just shown.
+  miss a mission it was just shown. Output is capped under 9,000 bytes; when it is cut, read
+  `STATE.md` on from the continuation line.
 
 What the model does when blocked: rewrite `STATE.md` so that a session that has only this file
 could continue. Done, In flight, Next unit, Gates pending, Open questions, the Updated line. A turn
@@ -489,3 +490,7 @@ showed what the loop does to an open premise. The loop tooling itself stays a sl
 where the tag raced the human's own commits twice and a bare publish command would have failed
 inside the project's own pre-publish hook. The repo keeps the version of both lessons that names
 its files and its toolchain; what is here is the shape.
+
+2026-10-03: the `SessionStart` printout is capped under 9,000 bytes. Claude Code hands the model
+only a short preview of a hook result over 10,000 characters, and one mission's `STATE.md` plus
+`MISSION.md` reached 15,816 bytes, so the state never arrived while the text claimed it had.

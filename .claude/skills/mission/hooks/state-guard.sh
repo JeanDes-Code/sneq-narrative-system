@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# vendored from jean-ai-os/protocols/mission-hooks/state-guard.sh @ ca2f801 le 2026-09-03. Généré, ne pas éditer ici.
+# vendored from jean-ai-os/missions/protocol/hooks/state-guard.sh @ 794edcd le 2026-10-16. Généré, ne pas éditer ici.
 # Mission state guard. One script, four Claude Code hook events; the event name arrives in the
-# JSON on stdin. Source: jean-ai-os/protocols/mission-hooks/state-guard.sh, vendored per repo by
+# JSON on stdin. Source: jean-ai-os/missions/protocol/hooks/state-guard.sh, vendored per repo by
 # /mission-init next to PROTOCOL.md. Edit the source, then re-vendor.
 #
 #   UserPromptSubmit  a prompt that starts with /mission binds this session to the guard;
@@ -10,7 +10,8 @@
 #                     executor builds. Subagents (agent_id set) are never held.
 #   PostToolUse       marks the turn as one that acted (the settings matcher says which tools count).
 #   Stop              refuses to end an acting turn while STATE.md predates it.
-#   SessionStart      prints the active mission's STATE.md and MISSION.md into the new context.
+#   SessionStart      prints the active mission's STATE.md and MISSION.md into the new context, capped
+#                     under 9,000 bytes; a cut file ends with a line that says where to read on.
 #
 # Argument 1: the missions dir, relative to the repo root (default .claude-runs/missions).
 # Argument 2: the allowlist, colon-separated repo-relative paths the main agent may still write
@@ -132,15 +133,48 @@ MSG
     slug="$(basename "$dir")"
     stamp="$(date -r "$state" '+%Y-%m-%d %H:%M')"
     if bound; then binding="bound to this session"; else binding="not bound to this session; a prompt that starts with /mission binds it"; fi
-    echo "Mission state guard ($(basename "$repo")): active mission \`$slug\`, STATE.md updated $stamp. Guard $binding."
-    echo "If you run this mission, resume it from the two files below. Never add a second INDEX.md line for a slug that already has one."
-    echo
-    echo "--- $MISSIONS_REL/$slug/STATE.md ---"
-    cat "$state"
+    # Claude Code hands the model only a short preview of a hook result over 10,000 characters, so
+    # the whole printout stays under LIMIT bytes. A file that does not fit is cut at a line boundary
+    # and ends with one line that says where to resume reading it.
+    LIMIT=9000
+    used=0
+    blen() { local LC_ALL=C; _n=${#1}; }
+    out() { printf '%s\n' "$1"; blen "$1"; used=$((used + _n + 1)); }
+    # Upper bound, in bytes, of the continuation line for file $1: its fixed text, the path, a line
+    # number up to 6 digits and an excerpt of at most 80 characters of up to 4 bytes each.
+    cont_max() { blen "[... $(basename "$1") continues: read $1 from \"\" (line 999999) ...]"; _n=$((_n + 1 + 320)); }
+    # Print file $2 under the header "--- $1 ---" while it fits under LIMIT with $3 bytes kept free
+    # for what follows it. Returns 1 when the file was cut.
+    emit_capped() {
+      local label="$1" file="$2" keep="$3" line n=0 room
+      out "--- $label ---"
+      cont_max "$file"; room=$((LIMIT - keep - _n))
+      while IFS= read -r line || [ -n "$line" ]; do
+        n=$((n + 1))
+        blen "$line"
+        if [ $((used + _n + 1)) -ge "$room" ]; then
+          while [ -z "${line//[[:space:]]/}" ] && IFS= read -r line; do n=$((n + 1)); done
+          out "[... $(basename "$file") continues: read $file from \"${line:0:80}\" (line $n) ...]"
+          return 1
+        fi
+        out "$line"
+      done < "$file"
+      return 0
+    }
+    out "Mission state guard ($(basename "$repo")): active mission \`$slug\`, STATE.md updated $stamp. Guard $binding."
+    out "If you run this mission, resume it from the two files below. Never add a second INDEX.md line for a slug that already has one."
+    out ""
+    keep=0
+    mission_label="$MISSIONS_REL/$slug/MISSION.md"
     if [ -f "$dir/MISSION.md" ]; then
-      echo
-      echo "--- $MISSIONS_REL/$slug/MISSION.md ---"
-      cat "$dir/MISSION.md"
+      # Room for MISSION.md's blank line, header and continuation line, whatever STATE.md takes.
+      blen "--- $mission_label ---"; keep=$((_n + 2))
+      cont_max "$dir/MISSION.md"; keep=$((keep + _n))
+    fi
+    emit_capped "$MISSIONS_REL/$slug/STATE.md" "$state" "$keep"
+    if [ -f "$dir/MISSION.md" ]; then
+      out ""
+      emit_capped "$mission_label" "$dir/MISSION.md" 0
     fi
     ;;
 
